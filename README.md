@@ -13,4 +13,7 @@ cmake .
 make install
 ```
 
-While running cmake, if the libraries were installed correctly they should be detected in the setup.
+While running cmake, if the libraries were installed correctly they should be detected in the setup. Then, to link the libraries during compilation:
+```
+g++ test -o test.cpp -fopenmp -larmadillo -lopenblas -llapack
+```
