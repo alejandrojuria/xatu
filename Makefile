@@ -1,7 +1,10 @@
 CC = g++
 CFLAGS = -O2 -Wall -lm
-INCLUDE = -I/usr/local/lib/armadillo-9.800.2/include -I/usr/lib/OpenBLAS/include/
-LIBS = -L/usr/lib/OpenBLAS/lib -lopenblas -lpthread -llapack -fopenmp
+#INCLUDE = -I/usr/local/lib/armadillo-9.800.2/include -I/usr/lib/OpenBLAS/include/
+#LIBS = -L/usr/lib/OpenBLAS/lib -lopenblas -lpthread -llapack -fopenmp
+#INCLUDE = -I/opt/OpenBLAS/include/  
+#LIBS = -L/opt/OpenBLAS/lib
+LIBS = -fopenmp -llapack -lopenblas -larmadillo
 
 zigzag: zigzag.cpp
 	$(CC) zigzag.cpp -o zigzag $(CFLAGS) $(INCLUDE) $(LIBS)
@@ -27,8 +30,8 @@ invariant_dense: libinvariant_dense.cpp libzigzag.cpp main_invariant_dense.cpp
 all: libzigzag.cpp libexcitons.cpp main.cpp
 	$(CC) main.cpp libexcitons.cpp libzigzag.cpp -o main $(CFLAGS) $(INCLUDE) $(LIBS)
 
-spectrum: libzigzag.cpp libexcitons.cpp main_spectrum.cpp
-	$(CC) main_spectrum.cpp libexcitons.cpp libzigzag.cpp -o spectrum $(CFLAGS) $(INCLUDE) $(LIBS)
+spectrum: lib/libzigzag.cpp lib/libexcitons.cpp lib/main_spectrum.cpp
+	$(CC) lib/main_spectrum.cpp lib/libexcitons.cpp lib/libzigzag.cpp -o spectrum $(CFLAGS) $(INCLUDE) $(LIBS)
 
 transition: libzigzag.cpp libexcitons.cpp main_transition.cpp
 	$(CC) main_transition.cpp libexcitons.cpp libzigzag.cpp -o transition $(CFLAGS) $(INCLUDE) $(LIBS)

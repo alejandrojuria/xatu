@@ -2,10 +2,7 @@
     "configurations": [
         {
             "name": "Linux",
-            "includePath": [
-                "${workspaceFolder}/**",
-                "/usr/local/lib/armadillo-9.800.2/include"
-            ],
+            "includePath": [],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",
