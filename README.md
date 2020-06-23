@@ -6,7 +6,11 @@ Install the required libraries:
 Clone the Armadillo library repository:
 ```git clone https://gitlab.com/conradsnicta/armadillo-code.git```
 
+<<<<<<< HEAD
 To install Armadillo run:
+=======
+To install run:
+>>>>>>> master
 ```
 cd armadillo-code
 cmake .
@@ -15,6 +19,7 @@ make install
 
 While running cmake, if the libraries were installed correctly they should be detected in the setup. Then, to link the libraries during compilation:
 ```
+<<<<<<< HEAD
 g++ test.cpp -o test -fopenmp -larmadillo -lopenblas -llapack
 ```
 
@@ -29,3 +34,7 @@ LIBS = -L/another_dir/OpenBLAS/lib
 CFLAGS = -fopenmp -O2 -Wall
 g++ test.cpp -o test $(INCLUDE) $(LIBS) $(CFLAGS)
 ```
+=======
+g++ test -o test.cpp -fopenmp -larmadillo -lopenblas -llapack
+```
+>>>>>>> master
