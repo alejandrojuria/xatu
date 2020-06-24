@@ -13,6 +13,7 @@ for line in lines:
     spinX.append(float(line[1]))
 
 file = open('bulk_energy_evolution', 'r')
+file.readline() # Skip first line
 lines = file.readlines()
 energy = []
 for line in lines:

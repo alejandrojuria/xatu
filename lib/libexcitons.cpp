@@ -699,7 +699,6 @@ vec spinX(const cx_vec& coefs,
         if(Q != 0){
             h = hamiltonian(kpoints(i) + Q, H0, Ha, Hsoc);
             eig_sym(auxEigVal, eigvecKQStack.slice(i), h);
-
         }
         else{
             eigvecKQStack.slice(i) = eigvecKStack.slice(i);
@@ -716,20 +715,23 @@ vec spinX(const cx_vec& coefs,
         int kIndex = determineKIndex(k, kpoints);
         
         coefSq = abs(coefs(n))*abs(coefs(n)); // BSE coef. squared
+        cout << coefSq << endl;
 
         // First valence band (hole) spin
         eigvec = eigvecKStack.slice(kIndex).col(v);
         spinEigvec = eigvec % spinVector;
 
 	    holeSpin -= coefSq*real(arma::cdot(eigvec, spinEigvec));
-        cout << "Valence band: " << v << endl;
-        cout << arma::cdot(eigvec, spinEigvec) << "\n" << endl;
+        cout << arma::cdot(eigvec, spinEigvec) << endl;
+        //cout << "Valence band: " << v << endl;
+        //cout << arma::cdot(eigvec, spinEigvec) << "\n" << endl;
 
         // Repeat for conduction electron
         eigvec = eigvecKQStack.slice(kIndex).col(c);
         spinEigvec = eigvec % spinVector;
-        cout << "Conduction band: " << c << endl;
-        cout << arma::cdot(eigvec, spinEigvec) << "\n" << endl;
+        cout << arma::cdot(eigvec, spinEigvec) << endl;
+        //cout << "Conduction band: " << c << endl;
+        //cout << arma::cdot(eigvec, spinEigvec) << "\n" << endl;
 
 	    electronSpin += coefSq*real(arma::cdot(eigvec, spinEigvec));   
     }

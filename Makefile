@@ -15,8 +15,8 @@ excitons: libzigzag.cpp excitons.cpp
 realspace_wf: libzigzag.cpp libexcitons.cpp libwavefunction.cpp
 	$(CC) libwavefunction.cpp main_rswf.cpp libexcitons.cpp libzigzag.cpp -o wavefunction $(CFLAGS) $(INCLUDE) $(LIBS)
 
-bands: libzigzag.cpp libexcitons.cpp main_bands.cpp
-	$(CC) main_bands.cpp  libexcitons.cpp libzigzag.cpp -o bands $(CFLAGS) $(INCLUDE) $(LIBS)
+bands: lib/libzigzag.cpp lib/libexcitons.cpp lib/main_bands.cpp
+	$(CC) lib/main_bands.cpp  lib/libexcitons.cpp lib/libzigzag.cpp -o bands $(CFLAGS) $(INCLUDE) $(LIBS)
 
 invariant: libinvariant.cpp libzigzag.cpp main_invariant.cpp
 	$(CC) main_invariant.cpp libinvariant.cpp libzigzag.cpp -o invariant $(CFLAGS) $(INCLUDE) $(LIBS)

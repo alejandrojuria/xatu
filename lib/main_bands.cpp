@@ -71,7 +71,7 @@ int main(){
 	// ------------------------ Initialization ------------------------
 
     initializeConstants();
-    lambda = 0;
+    //lambda = 0;
 	// Number of cells in the finite direction
 	int N = 15;
 
@@ -101,11 +101,10 @@ int main(){
     cx_mat eigenvec, eigenvecQ;
 	vec eigenval, eigenvalQ;
 	mat motif = createMotiv(N);
-	int vband = 2*(N+1)*5-3;
+	int vband = 2*(N+1)*5-4;
+	int vband2 = 2*(N+1)*5-3;
 	int cband = 2*(N+1)*5+2;
-	int cband_2 = 2*(N+1)*5+3;
-	int cband_3 = 2*(N+1)*5+4;
-
+	int cband2 = 2*(N+1)*5+3;
 
 	bool doSwitchBandCross = false;
 	bool calculateMaxValence = false;
@@ -134,9 +133,9 @@ int main(){
 
 		cout << "k = : " << kpoints(i) << endl;
 		cout << "Q = " << 0 << endl;
-		double spinV = expectedSpinZValue(eigenvec.col(vband - 1), N);
+		double spinV = expectedSpinZValue(eigenvec.col(vband), N);
 		double spinC = expectedSpinZValue(eigenvec.col(cband + 1), N);
-		double spinV_1 = expectedSpinZValue(eigenvec.col(vband), N);
+		double spinV_1 = expectedSpinZValue(eigenvec.col(vband + 1), N);
 		double spinC_1 = expectedSpinZValue(eigenvec.col(cband), N);
 		cout << "Spin valence: " << spinV << endl;
 		cout << "Spin valence deg.: " << spinV_1 << endl;
@@ -281,13 +280,13 @@ int main(){
 		// k-dependent (band)
 		if(writeSpin){
 			double szV = expectedSpinZValue(eigenvec.col(vband), N);
+			double szV_2 = expectedSpinZValue(eigenvec.col(vband2), N);
 			double szC = expectedSpinZValue(eigenvec.col(cband), N);
-			double szC_2 = expectedSpinZValue(eigenvec.col(cband_2), N);
-			double szC_3 = expectedSpinZValue(eigenvec.col(cband_3), N);
+			double szC_2 = expectedSpinZValue(eigenvec.col(cband2), N);
 			double sxV = expectedSpinXValue(eigenvec.col(vband), N);
 			double sxC = expectedSpinXValue(eigenvec.col(cband), N);
 			fprintf(textfile_spin, "%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n", 
-					kpoints(i), szV, szC, szC_2, szC_3, sxV, sxC);
+					kpoints(i), szV, szV_2, szC, szC_2, sxV, sxC);
 		};
 
 

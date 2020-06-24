@@ -8,12 +8,12 @@ N = 15
 dimTB = int(2*(N+1)*8)
 
 plotBands = True
-plotEdgesPosition = True
-plotSpin = False
+plotEdgesPosition = False
+plotSpin = True
 
 # --------------------- Plot bands ---------------------
 if(plotBands):
-    file = open("bands_N15_k500.txt", "r")
+    file = open("bands_N15_k500_nosoc.txt", "r")
     lines = file.readlines()
     kpoints = []
     energies = []
@@ -26,8 +26,8 @@ if(plotBands):
     energies = np.array(energies)
     kpoints = np.array(kpoints)
 
-    iband = 2*(N+1)*2
-    fband = 2*(N+1)*8-1
+    iband = 2*(N+1)*5 - 5
+    fband = 2*(N+1)*5 + 0
     plt.figure()
     for i in range(iband, fband):
         plt.plot(kpoints , energies[:, int(i)], 'g-')
@@ -76,16 +76,16 @@ if(plotSpin):
     lines = file_spin.readlines()
     spinV = []
     spinC = []
-    spinyV = []
-    spinyC = []
+    spinV2 = []
+    spinC2 = []
     spinxV = []
     spinxC = []
     for line in lines:
         line = line.split("\t")
         spinV.append(float(line[1]))
-        spinC.append(float(line[2]))
-        spinyV.append(float(line[3]))
-        spinyC.append(float(line[4]))
+        spinV2.append(float(line[2]))
+        spinC.append(float(line[3]))
+        spinC2.append(float(line[4]))
         spinxV.append(float(line[5]))
         spinxC.append(float(line[6]))
 
@@ -93,13 +93,14 @@ if(plotSpin):
     _min, _max = np.amin(combined_data), np.amax(combined_data)
     plt.figure()
     fig, ax = plt.subplots(1,2)
-    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5-2)], c=spinV)
+    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5 - 4)], c=spinV)
     sca1.set_clim(_min, _max)
-    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5 + 1)], c=spinC)
+    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5 - 3)], c=spinV2)
+    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5) - 5])
     sca1.set_clim(_min, _max)
     fig.colorbar(sca1, ax=ax[0])
     ax[1].plot(kpoints, spinV, 'r-')
-    ax[1].plot(kpoints, spinC, 'c-')
+    ax[1].plot(kpoints, spinV2, 'c-')
     ax[0].set_ylabel("$\epsilon (eV)$", fontsize = 13)
     ax[0].set_xlabel("$k(A^{-1})$", fontsize = 13)
     ax[1].set_ylabel("$<S_z> (\hbar = 1)$", fontsize = 13)
@@ -108,7 +109,7 @@ if(plotSpin):
     fig.suptitle("Expected spin value $<S_z>$")
 
 
-    plt.figure()
+'''    plt.figure()
     plt.plot(kpoints, spinV, 'r-')
     plt.plot(kpoints, spinC, 'c-')
     plt.title("Expected spin value $S_z$")
@@ -147,7 +148,7 @@ if(plotSpin):
     ax2[2].plot(kpoints, spinC, "b-")
     ax2[2].set_xlabel("$k(A^{-1})$")
     ax2[2].set_ylabel("$<S_z>$")
-    ax2[2].legend(["Valence", "Conduction"])
+    ax2[2].legend(["Valence", "Conduction"])'''
 
 
 plt.show()
