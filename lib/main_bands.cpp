@@ -79,7 +79,7 @@ int main(){
 	prepareHamiltonian(N);
 
 	int Ncell = 500;
-    int nk = 2*Ncell; // Avoid k=PI/a for edge stats
+    int nk = 2*Ncell + 1; // Avoid k=PI/a for edge stats
 	//double zeeCenter = 0.693268 - PI/a;
 	vec kpoints = arma::linspace(0.0, 2*PI/a + 0.0, nk);
 
@@ -281,12 +281,14 @@ int main(){
 		if(writeSpin){
 			double szV = expectedSpinZValue(eigenvec.col(vband), N);
 			double szV_2 = expectedSpinZValue(eigenvec.col(vband2), N);
+			double szV_3 = expectedSpinZValue(eigenvec.col(vband - 1), N);
+			double szV_4 = expectedSpinZValue(eigenvec.col(vband - 2), N);
 			double szC = expectedSpinZValue(eigenvec.col(cband), N);
 			double szC_2 = expectedSpinZValue(eigenvec.col(cband2), N);
 			double sxV = expectedSpinXValue(eigenvec.col(vband), N);
 			double sxC = expectedSpinXValue(eigenvec.col(cband), N);
-			fprintf(textfile_spin, "%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n", 
-					kpoints(i), szV, szV_2, szC, szC_2, sxV, sxC);
+			fprintf(textfile_spin, "%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\t%lf\n", 
+					kpoints(i), szV, szV_2, szV_3, szV_4, szC, szC_2, sxV, sxC);
 		};
 
 

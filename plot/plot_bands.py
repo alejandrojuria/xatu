@@ -75,32 +75,35 @@ if(plotSpin):
     file_spin = open("spin_bands")
     lines = file_spin.readlines()
     spinV = []
-    spinC = []
+    spinV3 = []
     spinV2 = []
-    spinC2 = []
+    spinV4 = []
     spinxV = []
     spinxC = []
     for line in lines:
         line = line.split("\t")
         spinV.append(float(line[1]))
         spinV2.append(float(line[2]))
-        spinC.append(float(line[3]))
-        spinC2.append(float(line[4]))
+        spinV3.append(float(line[3]))
+        spinV4.append(float(line[4]))
         spinxV.append(float(line[5]))
         spinxC.append(float(line[6]))
 
-    combined_data = np.array([spinV,spinC])
+    combined_data = np.array([spinV,spinV3])
     _min, _max = np.amin(combined_data), np.amax(combined_data)
     plt.figure()
     fig, ax = plt.subplots(1,2)
     sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5 - 4)], c=spinV)
     sca1.set_clim(_min, _max)
-    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5 - 3)], c=spinV2)
-    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5) - 5])
+    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5 - 5)], c=spinV3)
+    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5 - 6)], c=spinV4)
+    sca1 = ax[0].scatter(kpoints, energies[:, int(2*(N+1)*5) - 3], c=spinV2)
     sca1.set_clim(_min, _max)
     fig.colorbar(sca1, ax=ax[0])
     ax[1].plot(kpoints, spinV, 'r-')
-    ax[1].plot(kpoints, spinV2, 'c-')
+    ax[1].plot(kpoints, spinV2, 'g-')
+    ax[1].plot(kpoints, spinV3, 'c-')
+    ax[1].plot(kpoints, spinV4, 'b-')
     ax[0].set_ylabel("$\epsilon (eV)$", fontsize = 13)
     ax[0].set_xlabel("$k(A^{-1})$", fontsize = 13)
     ax[1].set_ylabel("$<S_z> (\hbar = 1)$", fontsize = 13)

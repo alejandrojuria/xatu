@@ -48,16 +48,16 @@ int main(){
 
     std::string filename = "bulk_energy_evolution";
     FILE* textfile = fopen(filename.c_str(), "w");
-    bool writeEigvals = true;
+    bool writeEigvals = false;
 
     std::string filename_wf = "bulk_wf_2bands";
     FILE* textfile_wf = fopen(filename_wf.c_str(), "w");
-    bool printWF = false;
+    bool printWF = true;
 
     bool calculateSpin = true;
     std::string filename_spin = "bulk_spin_evolution";
     FILE* textfile_spin = fopen(filename_spin.c_str(), "w");
-    bool writeSpin = true;
+    bool writeSpin = false;
 
     // ----------------------- Main body -----------------------
 
@@ -65,10 +65,10 @@ int main(){
     prepareHamiltonian(N);
 
     //double zeeCenter = 0.693268 - PI/a; // According to main_bands calculations
-    int nBulkBands = 4;       // Bulk bands
+    int nBulkBands = 2;       // Bulk bands
     vec zeemanArray = {0.01, 0.008, 0.005, 0.003, 0.001, 0.0008, 0.0005, 0.0003, 0.0001};
-    vec cellArray = {10, 20, 50, 75, 100, 125, 150, 175, 200};
-    //vec cellArray = {100};
+    //vec cellArray = {10, 20, 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400};
+    vec cellArray = {400};
     int Ncell = 100;
     int nk = 2*Ncell;
     double epsk = 0.001;
@@ -85,11 +85,12 @@ int main(){
     for(unsigned int n = 0; n < (int)cellArray.n_elem; n++){
 
         Ncell = cellArray(n);
-        nk = 2*Ncell;
+        nk = 2*Ncell + 1;
         double epsk = 0.001;
         vec kpoints = arma::linspace(0.0, 2*PI/a, nk);
         kpoints = kpoints(arma::span(0, nk-2));
         nk -= 1;
+
 
         double Q = 0.0;
 
