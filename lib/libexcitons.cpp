@@ -665,16 +665,17 @@ vec computeEnergies(const cx_vec& eigvec, const cx_mat& HBS, const mat& HK){
 
 /* Routine to compute the expected Sz spin value of the electron
 and hole that form a given exciton. */
-vec spinX(const cx_vec& coefs, 
+cx_vec spinX(const cx_vec& coefs, 
           const mat& basis, const vec& kpoints, int N){
 
     double k;
 
     // Initialize Sz for both electron and hole to zero
-    double electronSpin = 0;
-    double holeSpin = 0;
+    cx_double electronSpin = 0;
+    cx_double holeSpin = 0;
     double totalSpin = 0;
     int dimTB = 2*(N+1)*8;
+    int dimX = basis.n_rows;
     double Q = basis(0,3);
     cout << Q << endl;
 
@@ -705,39 +706,50 @@ vec spinX(const cx_vec& coefs,
         };
     };
 
-    double k0 = basis(0,2);
-    int kIndex = 0;
-    for(int n = 0; n < (int)basis.n_rows; n++){
+    // Initialize hole spin and electron spin operators
+    int nbands = 2;
+    int nbandsSq = nbands*nbands;
+    vec valence = arma::regspace(2*(N+1)*5 - 3 - nbands + 1, 2*(N+1)*5 - 3);
+    vec conduction = arma::regspace(2*(N+1)*5 + 2, 2*(N+1)*5 + 2 + nbands - 1);
 
-        int v = basis(n,0);
-        int c = basis(n,1);
-        double k = basis(n,2);
-        int kIndex = determineKIndex(k, kpoints);
-        
-        coefSq = abs(coefs(n))*abs(coefs(n)); // BSE coef. squared
-        cout << coefSq << endl;
+    arma::cx_mat spinHole = arma::zeros<arma::cx_mat>(dimX, dimX);
+    arma::cx_mat spinElectron = arma::zeros<arma::cx_mat>(dimX, dimX);
 
-        // First valence band (hole) spin
-        eigvec = eigvecKStack.slice(kIndex).col(v);
-        spinEigvec = eigvec % spinVector;
+    arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nbands, nbands);
+    arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(nbands, nbands);
 
-	    holeSpin -= coefSq*real(arma::cdot(eigvec, spinEigvec));
-        cout << arma::cdot(eigvec, spinEigvec) << endl;
-        //cout << "Valence band: " << v << endl;
-        //cout << arma::cdot(eigvec, spinEigvec) << "\n" << endl;
+    arma::cx_mat vMatrix = arma::eye<cx_mat>(nbands, nbands);
+    arma::cx_mat cMatrix = arma::eye<cx_mat>(nbands, nbands);
 
-        // Repeat for conduction electron
-        eigvec = eigvecKQStack.slice(kIndex).col(c);
-        spinEigvec = eigvec % spinVector;
-        cout << arma::cdot(eigvec, spinEigvec) << endl;
-        //cout << "Conduction band: " << c << endl;
-        //cout << arma::cdot(eigvec, spinEigvec) << "\n" << endl;
+    for(int k = 0; k < nk; k++){
 
-	    electronSpin += coefSq*real(arma::cdot(eigvec, spinEigvec));   
+        for(int i = 0; i < nbands; i++){
+            for(int j = 0; j < nbands; j++){
+                eigvec = eigvecKStack.slice(k).col(valence(i));
+                spinEigvec = eigvec % spinVector;
+                eigvec = eigvecKStack.slice(k).col(valence(j));
+                spinHoleReduced(i,j) = arma::cdot(eigvec, spinEigvec);
+
+                eigvec = eigvecKQStack.slice(k).col(conduction(i));
+                spinEigvec = eigvec % spinVector;
+                eigvec = eigvecKQStack.slice(k).col(conduction(j));
+                spinElectronReduced(i,j) = arma::cdot(eigvec, spinEigvec);
+            }
+        }
+        spinHole.submat(k*nbandsSq, k*nbandsSq, (k+1)*nbandsSq - 1, (k+1)*nbandsSq - 1) = arma::kron(cMatrix, spinHoleReduced);
+        spinElectron.submat(k*nbandsSq, k*nbandsSq, (k+1)*nbandsSq - 1, (k+1)*nbandsSq - 1) = arma::kron(spinElectronReduced, vMatrix);
     }
-    totalSpin += (holeSpin + electronSpin);
+
+    // Perform tensor products with the remaining quantum numbers
+    // - Valence:
+
+    holeSpin = -arma::cdot(coefs, spinHole*coefs);
+    electronSpin = arma::cdot(coefs, spinElectron*coefs);
+
+
+    totalSpin = real((holeSpin + electronSpin));
     
-    vec results = {holeSpin, electronSpin, totalSpin};
+    cx_vec results = {holeSpin, electronSpin, totalSpin};
     return results;
 };
 

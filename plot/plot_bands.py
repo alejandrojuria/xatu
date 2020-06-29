@@ -26,11 +26,12 @@ if(plotBands):
     energies = np.array(energies)
     kpoints = np.array(kpoints)
 
-    iband = 2*(N+1)*5 - 5
-    fband = 2*(N+1)*5 + 0
+    iband = 2*(N+1)*5 - 6
+    fband = 2*(N+1)*5 - 4
     plt.figure()
     for i in range(iband, fband):
         plt.plot(kpoints , energies[:, int(i)], 'g-')
+    plt.plot(kpoints, energies[:, fband + 1], 'b-')
     
     plt.figure()
     gap = energies[:, int(2*(N+1)*5+1)] - energies[:, int(2*(N+1)*5-1)]
@@ -53,7 +54,7 @@ if(plotBands):
 
 # --------------------- Plot edge localization ---------------------
 if(plotEdgesPosition):
-    file2 = open("position_edge")
+    file2 = open("bands_position_edge")
     lines = file2.readlines()
     posv = []
     posc = []
@@ -72,7 +73,7 @@ if(plotEdgesPosition):
 
 # --------------------- Plot band expected spin ---------------------
 if(plotSpin):
-    file_spin = open("spin_bands")
+    file_spin = open("bands_spin")
     lines = file_spin.readlines()
     spinV = []
     spinV3 = []

@@ -40,7 +40,7 @@ int main(){
 
 	// ------------------------ Model output into files ------------------------
 
-	std::string filename_wf = "TB_wavefunction";
+	std::string filename_wf = "bands_TB_wavefunction";
     FILE* textfile_wf = fopen(filename_wf.c_str(), "w");
 	bool writeTBwf = false;
 
@@ -48,23 +48,23 @@ int main(){
 	FILE* textfile = fopen(filename.c_str(), "w");
 	bool writeBands = true;
 
-	std::string filename_pos = "position_edge";
+	std::string filename_pos = "bands_position_edge";
 	FILE* textfile_pos = fopen(filename_pos.c_str(), "w");
 	bool writeEdgeLocalization = false;
 
-	std::string filename_over = "overlap";
+	std::string filename_over = "bands_overlap";
 	FILE* textfile_over = fopen(filename_over.c_str(), "w");
 	bool writeOverlap = false;
 
-	std::string filename_der = "band_derivative";
+	std::string filename_der = "bands_derivative";
 	FILE* textfile_der = fopen(filename_der.c_str(), "w");
 	bool writeBandDerivative = false;
 
-	std::string filename_spin = "spin_bands";
+	std::string filename_spin = "bands_spin";
 	FILE* textfile_spin = fopen(filename_spin.c_str(), "w");
 	bool writeSpin = true;
 
-	std::string filename_dos = "dos_bulk";
+	std::string filename_dos = "bands_dos_bulk";
 	FILE* textfile_dos = fopen(filename_dos.c_str(), "w");
 	bool writeDoS = false;
 
@@ -78,7 +78,7 @@ int main(){
 	initializeBlockMatrices();
 	prepareHamiltonian(N);
 
-	int Ncell = 500;
+	int Ncell = 1000;
     int nk = 2*Ncell + 1; // Avoid k=PI/a for edge stats
 	//double zeeCenter = 0.693268 - PI/a;
 	vec kpoints = arma::linspace(0.0, 2*PI/a + 0.0, nk);

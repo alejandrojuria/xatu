@@ -41,3 +41,9 @@ hartree: hartree-fock_check.cpp libexcitons.cpp
 
 clean:
 	rm zigzag excitons test_file test_file_excitons
+
+clean_spenctrum:
+	rm spectrum*
+
+clean_bands:
+	rm bands*

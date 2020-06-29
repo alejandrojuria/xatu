@@ -61,7 +61,7 @@ void BShamiltonian(int, int, const arma::mat&, const arma::vec&, std::string ord
 arma::vec computeEnergies(const arma::cx_vec&, const arma::cx_mat&, const arma::mat&);
 
 // Exciton information
-arma::vec spinX(const arma::cx_vec&, const arma::mat&, const arma::vec&, int);
+arma::cx_vec spinX(const arma::cx_vec&, const arma::mat&, const arma::vec&, int);
 
 // Routines to compute Fermi Golden Rule
 arma::cx_vec ehPairCoefs(double, const arma::vec&, const arma::mat&);

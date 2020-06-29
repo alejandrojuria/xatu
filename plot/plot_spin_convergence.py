@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np 
 
 
-file = open('bulk_spin_evolution', 'r')
+file = open('spectrum_bulk_spin_evolution_2', 'r')
+
 lines = file.readlines()
 
 nk = []
@@ -12,8 +13,9 @@ for line in lines:
     nk.append(int(line[0]))
     spinX.append(float(line[1]))
 
-file = open('bulk_energy_evolution', 'r')
+file = open('spectrum_bulk_energy_evolution_2', 'r')
 file.readline() # Skip first line
+
 lines = file.readlines()
 energy = []
 for line in lines:
