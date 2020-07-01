@@ -32,6 +32,9 @@ if(plotBands):
     for i in range(iband, fband):
         plt.plot(kpoints , energies[:, int(i)], 'g-')
     plt.plot(kpoints, energies[:, fband + 1], 'b-')
+    plt.title('Valence band braiding')
+    plt.xlabel(r'$k (A^{-1})$')
+    plt.ylabel(r'$\epsilon (eV)$')
     
     plt.figure()
     gap = energies[:, int(2*(N+1)*5+1)] - energies[:, int(2*(N+1)*5-1)]
@@ -90,6 +93,34 @@ if(plotSpin):
         spinxV.append(float(line[5]))
         spinxC.append(float(line[6]))
 
+
+
+    fig, ax = plt.subplots(figsize=(10,5))
+    axins = ax.inset_axes([0.05, 0.5, 0.205, 0.35])
+
+    ax.plot(kpoints, spinV, 'r-')
+    ax.plot(kpoints, spinV2, 'b-')
+    ax.plot(kpoints, spinV3, 'g-')
+    ax.plot(kpoints, spinV4, 'c-')
+    axins.plot(kpoints, spinV, 'r-')
+    axins.plot(kpoints, spinV2, 'b-')
+    axins.plot(kpoints, spinV3, 'g-')
+    axins.plot(kpoints, spinV4, 'c-')
+
+    x1, x2, y1, y2 = 0.52, 0.54, 0.38, 0.4
+    axins.set_xlim(x1, x2)
+    axins.set_ylim(y1, y2)
+    axins.set_xticklabels('')
+    axins.set_yticklabels('')   
+
+    ax.indicate_inset_zoom(axins) # Plots rectangle to show where inset is coming from
+
+    ax.legend(['First valence band', 'First valence band deg.', 'Sec. valence band', 'Sec. valence band'])
+    ax.title.set_text(r'$S_z$ for valence bands')
+    ax.set_ylabel(r'$S_z (\hbar = 1)$')
+    ax.set_xlabel(r'$k(A^{-1})$')
+
+    '''
     combined_data = np.array([spinV,spinV3])
     _min, _max = np.amin(combined_data), np.amax(combined_data)
     plt.figure()
@@ -111,9 +142,9 @@ if(plotSpin):
     ax[1].set_xlabel("$k(A^{-1})$", fontsize = 13)
     ax[1].legend(["Valence", "Conduction"])
     fig.suptitle("Expected spin value $<S_z>$")
+'''
 
-
-'''    plt.figure()
+'''     plt.figure()
     plt.plot(kpoints, spinV, 'r-')
     plt.plot(kpoints, spinC, 'c-')
     plt.title("Expected spin value $S_z$")

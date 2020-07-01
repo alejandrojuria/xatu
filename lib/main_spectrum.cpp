@@ -46,18 +46,18 @@ int main(){
     // ----------------- Model parameters & Output --------------------
     int N = 15;
 
-    std::string filename = "spectrum_bulk_energy_evolution_2";
+    std::string filename = "spectrum_bulk_energy_evolution_z";
     FILE* textfile = fopen(filename.c_str(), "w");
-    bool writeEigvals = true;
+    bool writeEigvals = false;
 
     std::string filename_wf = "spectrum_bulk_wf_2bands";
     FILE* textfile_wf = fopen(filename_wf.c_str(), "w");
-    bool printWF = false;
+    bool printWF = true;
 
-    bool calculateSpin = true;
-    std::string filename_spin = "spectrum_bulk_spin_evolution_2";
+    bool calculateSpin = false;
+    std::string filename_spin = "spectrum_bulk_spin_evolution_z";
     FILE* textfile_spin = fopen(filename_spin.c_str(), "w");
-    bool writeSpin = true;
+    bool writeSpin = false;
 
     // ----------------------- Main body -----------------------
 
@@ -65,9 +65,9 @@ int main(){
     prepareHamiltonian(N);
 
     //double zeeCenter = 0.693268 - PI/a; // According to main_bands calculations
-    int nBulkBands = 2;       // Bulk bands
+    int nBulkBands = 0;       // Bulk bands
     vec zeemanArray = {0.01, 0.008, 0.005, 0.003, 0.001, 0.0008, 0.0005, 0.0003, 0.0001};
-    vec cellArray = arma::regspace(10, 150);
+    vec cellArray = arma::regspace(10, 10, 250);
     //vec cellArray = {100};
     int Ncell = 100;
     int nk = 2*Ncell;
@@ -85,12 +85,12 @@ int main(){
     for(unsigned int n = 0; n < (int)cellArray.n_elem; n++){
 
         Ncell = cellArray(n);
-        nk = 2*Ncell + 1;
+        nk = 2*Ncell;
         double epsk = 0.001;
         vec kpoints = arma::linspace(0.0, 2*PI/a, nk);
         kpoints = kpoints(arma::span(0, nk-2));
         nk -= 1;
-
+        int nEdgeStates = nk;
 
         double Q = 0.0;
 
@@ -125,11 +125,12 @@ int main(){
                 double coef = 0;
                 for(int nband = 0; nband < nbands2; nband++){
                     coef += abs(eigvecX.col(state)(nbands2*i + nband))*abs(eigvecX.col(state)(nbands2*i + nband));
+                    coef += abs(eigvecX.col(state + 1)(nbands2*i + nband))*abs(eigvecX.col(state + 1)(nbands2*i + nband));
                 };
                 coef /= (kpoints(1) - kpoints(0)); // L2 norm instead of l2
                 fprintf(textfile_wf, "%11.8lf\t%11.8lf\n", kpoints(i), coef);
             };
-            //fprintf(textfile_wf, "#\n");
+            fprintf(textfile_wf, "#\n");
         };
 
         cx_vec spin;
@@ -146,6 +147,7 @@ int main(){
 
     fclose(textfile);
     fclose(textfile_wf);
+    fclose(textfile_spin);
 
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);

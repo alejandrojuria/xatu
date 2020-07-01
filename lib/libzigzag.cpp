@@ -29,7 +29,7 @@ void initializeConstants() {
 	lambda = 1.5;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
-	zeeman = 1E-7;
+	zeeman = 1E-9;
 
 	// Infinitesimal on-site energy to split edges
 	onsiteEdge = 1E-7;
