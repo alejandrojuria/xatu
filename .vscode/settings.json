@@ -52,7 +52,9 @@
         "stdexcept": "cpp",
         "streambuf": "cpp",
         "thread": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "bit": "cpp",
+        "cinttypes": "cpp"
     },
     "C_Cpp.intelliSenseEngineFallback": "Disabled"
 }

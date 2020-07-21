@@ -3,8 +3,8 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "zigzag.hpp"
-#include "excitons.hpp"
+#include "Zigzag.hpp"
+#include "Exciton.hpp"
 #include "libwavefunction.hpp"
 
 /* Implementation of the hydrogenic atom wavefunction for the state

@@ -8,38 +8,59 @@
 #define eps0 8.8541878E-12
 #endif
 
-// Shared variable declaration
-extern double a, c;
-extern double Es, Ep, Vsss, Vsps, Vpps, Vppp;
-extern double lambda, zeeman, onsiteEdge;
-extern arma::vec a1, a2, tau;
-extern arma::vec n1, n2, n3;
-extern arma::vec Gamma, K, M;
-extern arma::mat M0, M1, M2p, M2m, Mzeeman;
-extern arma::cx_mat Mso;
-extern arma::cx_mat H0, Ha, Hsoc, Hzeeman;
 
-/* Global variable initialization */
-void initializeConstants();
+class Zigzag{
+    
+    public:
+        //// Attributes
+        int N;
+        double a, c;
+        double Es, Ep, Vsss, Vsps, Vpps, Vppp;
+        double lambda, zeeman, onsiteEdge;
+        std::string zeeman_axis;
+        arma::vec a1, a2, tau;
+        arma::vec n1, n2, n3;
+        arma::mat motif;
+        arma::vec Gamma, K, M;
+        arma::mat M0, M1, M2p, M2m;
+        arma::cx_mat Mso, Mzeeman;
+        arma::cx_mat H0, Ha, Hsoc, Hzeeman;
+        arma::vec kpoints;
 
-/* Matrix routines for hamiltonian initialization */
-arma::mat matrixWithSpin(const arma::mat& matrix);
-arma::mat tightbindingMatrix(const arma::vec& n);
-arma::mat createMotiv(int);
-void initializeBlockMatrices();
-void prepareHamiltonian(int N);
-arma::cx_mat hamiltonian(double k, const arma::cx_mat& H0, const arma::cx_mat& Ha, const arma::cx_mat& Hsoc);
+    //// Methods
+    // Constructor and destructor
+    public:
+        Zigzag(int N = 15, std::string zeeman_axis = "z");    
+        ~Zigzag();
 
-/* Some utilities/extra information */
-void writeEigenvaluesToFile(FILE* file, const arma::vec& eigenval, double k);
-arma::cx_mat inversionOperator(const arma::cx_vec&, int);
+    protected:
+        /* Attribute initialization */
+        void initializeConstants();
 
-/* Expected value of spin components */
-double expectedSpinZValue(const arma::cx_vec&, int);
-double expectedSpinYValue(const arma::cx_vec&, int);
-double expectedSpinXValue(const arma::cx_vec&, int);
+        /* Matrix routines for hamiltonian initialization */
+        arma::mat matrixWithSpin(const arma::mat&);
+        arma::mat tightbindingMatrix(const arma::vec&);
+        void createMotif();
+        void initializeBlockMatrices();
+        void prepareHamiltonian();
 
-/* Routines for DoS calculation */
-std::complex<double> rGreenF(double, double, double);
-double densityOfStates(double, double, const arma::mat&);
-void writeDensityOfStates(const arma::mat&, double, FILE*);
+        /* Routines for DoS calculation */
+        std::complex<double> rGreenF(double, double, double);
+
+    public:
+        void setZeeman(double);
+        arma::cx_mat hamiltonian(double k);
+
+        /* Some utilities/extra information */
+        void writeEigenvaluesToFile(FILE* file, const arma::vec& eigenval, double k);
+        arma::cx_mat inversionOperator(const arma::cx_vec&);
+
+        /* Expected value of spin components */
+        double expectedSpinZValue(const arma::cx_vec&);
+        double expectedSpinYValue(const arma::cx_vec&);
+        double expectedSpinXValue(const arma::cx_vec&);
+
+        /* Routines for DoS calculation */
+        double densityOfStates(double, double, const arma::mat&);
+        void writeDensityOfStates(const arma::mat&, double, FILE*);
+};

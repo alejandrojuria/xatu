@@ -7,7 +7,7 @@ import math
 
 N = 15
 
-file = open("bulk_wf_2bands", "r")
+file = open("class_bulk_wf", "r")
 lines = file.readlines()
 kpoints = []
 coefs = []

@@ -9,37 +9,41 @@ dimTB = int(2*(N+1)*8)
 
 plotBands = True
 plotEdgesPosition = False
-plotSpin = True
+plotSpin = False
 
 # --------------------- Plot bands ---------------------
 if(plotBands):
-    file = open("bands_N15_k500_nosoc.txt", "r")
+    file = open("bands_N4_k2001", "r")
     lines = file.readlines()
     kpoints = []
     energies = []
     for line in lines:
         line = line.split('\t')
         kpoints.append(float(line[0]))
-        kEnergy = [float(i) for i in line[1:-1]]
+        kEnergy = np.array([float(i) for i in line[1:-1]])
         energies.append(kEnergy)
 
-    energies = np.array(energies)
-    kpoints = np.array(kpoints)
+    print(kpoints)
+    energies = np.array(energies, dtype=object)
+    print(type(energies))
+    kpoints = np.array(kpoints, dtype=object)
 
-    iband = 2*(N+1)*5 - 6
-    fband = 2*(N+1)*5 - 4
+    iband = 2*(N+1)*2
+    fband = 2*(N+1)*8
     plt.figure()
     for i in range(iband, fband):
-        plt.plot(kpoints , energies[:, int(i)], 'g-')
-    plt.plot(kpoints, energies[:, fband + 1], 'b-')
+        if i in [2*(N+1)*5 - 2, 2*(N+1)*5 - 1, 2*(N+1)*5, 2*(N+1)*5 + 1]:
+            plt.plot(kpoints , energies[:, int(i)], 'b-')
+        else:
+            plt.plot(kpoints , energies[:, int(i)], 'g-')
     plt.title('Valence band braiding')
     plt.xlabel(r'$k (A^{-1})$')
     plt.ylabel(r'$\epsilon (eV)$')
     
     plt.figure()
     gap = energies[:, int(2*(N+1)*5+1)] - energies[:, int(2*(N+1)*5-1)]
-    #plt.plot(kpoints, gap, 'g-')
-    prevGap = gap[0]
+    plt.plot(kpoints, gap, 'g-')
+    """prevGap = gap[0]
     for i in range(len(kpoints)):
         actualGap = gap[i]
         if(actualGap > prevGap):
@@ -48,9 +52,9 @@ if(plotBands):
     nk = i
     plt.plot(kpoints[nk-1:], gap[nk-1:], 'g-')
     rk = list(reversed(kpoints[:nk-1])) + kpoints[nk - 1]
-    plt.plot(rk, gap[:nk-1], 'r-')
+    plt.plot(rk, gap[:nk-1], 'r-')"""
     plt.title("Gap")
-    plt.legend(["Right branch", "Left branch"])
+    #plt.legend(["Right branch", "Left branch"])
     plt.ylabel("Gap (eV)")
     plt.xlabel("$k (A^{-1})$")
 
@@ -76,49 +80,80 @@ if(plotEdgesPosition):
 
 # --------------------- Plot band expected spin ---------------------
 if(plotSpin):
-    file_spin = open("bands_spin")
+    file_spin = open("bands_spin_4bands")
     lines = file_spin.readlines()
     spinV = []
     spinV3 = []
     spinV2 = []
     spinV4 = []
     spinxV = []
-    spinxC = []
+    spinxV3 = []
+    spinxV2 = []
+    spinxV4 = []
+    spinyV = []
+    spinyV3 = []
+    spinyV2 = []
+    spinyV4 = []
     for line in lines:
         line = line.split("\t")
         spinV.append(float(line[1]))
         spinV2.append(float(line[2]))
         spinV3.append(float(line[3]))
         spinV4.append(float(line[4]))
-        spinxV.append(float(line[5]))
-        spinxC.append(float(line[6]))
+        spinyV.append(float(line[5]))
+        spinyV2.append(float(line[6]))
+        spinyV3.append(float(line[7]))
+        spinyV4.append(float(line[8]))
+        spinxV.append(float(line[9]))
+        spinxV2.append(float(line[10]))
+        spinxV3.append(float(line[11]))
+        spinxV4.append(float(line[12]))
 
 
 
-    fig, ax = plt.subplots(figsize=(10,5))
-    axins = ax.inset_axes([0.05, 0.5, 0.205, 0.35])
+    #fig, ax = plt.subplots(figsize=(10,5))
+    fig, ax = plt.subplots(1, 3)
+    #axins = ax.inset_axes([0.05, 0.5, 0.205, 0.35])
 
-    ax.plot(kpoints, spinV, 'r-')
-    ax.plot(kpoints, spinV2, 'b-')
-    ax.plot(kpoints, spinV3, 'g-')
-    ax.plot(kpoints, spinV4, 'c-')
-    axins.plot(kpoints, spinV, 'r-')
-    axins.plot(kpoints, spinV2, 'b-')
-    axins.plot(kpoints, spinV3, 'g-')
-    axins.plot(kpoints, spinV4, 'c-')
+    ax[2].plot(kpoints, spinV, 'r-')
+    ax[2].plot(kpoints, spinV2, 'b-')
+    ax[2].plot(kpoints, spinV3, 'g-')
+    ax[2].plot(kpoints, spinV4, 'c-')
 
-    x1, x2, y1, y2 = 0.52, 0.54, 0.38, 0.4
-    axins.set_xlim(x1, x2)
-    axins.set_ylim(y1, y2)
-    axins.set_xticklabels('')
-    axins.set_yticklabels('')   
+    ax[1].plot(kpoints, spinyV, 'r-')
+    ax[1].plot(kpoints, spinyV2, 'b-')
+    ax[1].plot(kpoints, spinyV3, 'g-')
+    ax[1].plot(kpoints, spinyV4, 'c-')
 
-    ax.indicate_inset_zoom(axins) # Plots rectangle to show where inset is coming from
+    ax[0].plot(kpoints, spinxV, 'r-')
+    ax[0].plot(kpoints, spinxV2, 'b-')
+    ax[0].plot(kpoints, spinxV3, 'g-')
+    ax[0].plot(kpoints, spinxV4, 'c-')
+    #axins.plot(kpoints, spinV, 'r-')
+    #axins.plot(kpoints, spinV2, 'b-')
+    #axins.plot(kpoints, spinV3, 'g-')
+    #axins.plot(kpoints, spinV4, 'c-')
 
-    ax.legend(['First valence band', 'First valence band deg.', 'Sec. valence band', 'Sec. valence band'])
-    ax.title.set_text(r'$S_z$ for valence bands')
-    ax.set_ylabel(r'$S_z (\hbar = 1)$')
-    ax.set_xlabel(r'$k(A^{-1})$')
+    #x1, x2, y1, y2 = 0.52, 0.54, 0.38, 0.4
+    #axins.set_xlim(x1, x2)
+    #axins.set_ylim(y1, y2)
+    #axins.set_xticklabels('')
+    #axins.set_yticklabels('')   
+
+    #ax.indicate_inset_zoom(axins) # Plots rectangle to show where inset is coming from
+
+    ax[1].legend(['First valence band', 'First valence band deg.', 'First conduction band', 'First conduction band deg.'])
+    ax[2].title.set_text(r'$S_z$')
+    ax[2].set_ylabel(r'$S_z (\hbar = 1)$')
+    ax[2].set_xlabel(r'$k(A^{-1})$')
+
+    ax[0].title.set_text(r'$S_x$')
+    ax[0].set_ylabel(r'$S_x (\hbar = 1)$')
+    ax[0].set_xlabel(r'$k(A^{-1})$')
+
+    ax[1].title.set_text(r'$S_y$')
+    ax[1].set_ylabel(r'$S_y (\hbar = 1)$')
+    ax[1].set_xlabel(r'$k(A^{-1})$')
 
     '''
     combined_data = np.array([spinV,spinV3])

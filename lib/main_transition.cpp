@@ -1,6 +1,5 @@
 /* Script to compute transition rate from ground state bulk exciton to
- edge non-interacting electron-hole pair according to 
- Fermi Golden rule */
+ edge non-interacting electron-hole pair according to Fermi Golden rule */
 
 #include <iostream>
 #include <fstream>
@@ -11,8 +10,8 @@
 #include <string>
 #include <chrono>
 
-#include "excitons.hpp"
-#include "zigzag.hpp"
+#include "Exciton.hpp"
+#include "Zigzag.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -23,91 +22,83 @@
 using namespace arma;
 using namespace std::chrono;
 
-// Shared variable declaration
-double a, c;
-double Es, Ep, Vsss, Vsps, Vpps, Vppp;
-double lambda, zeeman, onsiteEdge;
-vec a1, a2, tau;
-vec n1, n2, n3;
-vec Gamma, K, M;
-mat M0, M1, M2p, M2m, Mzeeman;
-cx_mat Mso;
-cx_mat H0, Ha, Hsoc, Hzeeman;
-
-cx_mat HBS;
-mat HK;
-mat states;
-
 int main(){
 
-    auto start = high_resolution_clock::now();
+    //omp_set_num_threads(24);
     
-    initializeConstants();
     // lambda = 0.0; // no SOC
     cx_mat eigvecX;
     vec eigvalX;
 
-    std::string filename = "transition_dumb";
-    FILE* textfile = fopen(filename.c_str(), "w");
+    std::string filename = "transition_ribbon_2bands_200cell_same";
+    FILE* textfile = fopen(filename.c_str(), "a");
 
     int N = 15;
+    int nBulkBands = 2;
+    int nEdgeBands = 1;
+    double Q = 0.0;
 
     // ----------------------- Main body -----------------------
 
-    initializeBlockMatrices();
-    prepareHamiltonian(N);
+    vec NArray = arma::regspace(7, 4, 31);
+    for(int n = 0; n < (int)NArray.n_elem; n++){
 
-    int nBulkBands = 2; // Bulk bands
-    vec NcellArray = {100, 200, 300, 400, 500, 600};
-    for(int n = 0; n < (int)NcellArray.n_elem; n++){
+        auto start = high_resolution_clock::now();
 
-        int Ncell = NcellArray(n);
+        int N = NArray(n); 
+        int Ncell = 200;
+        int nk = 2*Ncell - 2;
 
-        int nk = 2*Ncell;
-        double epsk = 0.001;
-        vec kpoints = arma::linspace(0.0, 2*PI/a, nk);
-        kpoints = kpoints(arma::span(0, nk-2));
-        nk -= 1;
-        int Qindex = 0;
-        double Q = kpoints(Qindex);
-
+        cout << "Ribbon width: " << N << " cells" << endl;
         cout << "N. cells: " << Ncell << endl;
         cout << "nk = " << nk << endl;
-        cout << "Q = " << Q << "(" << Qindex << "/" << nk/2 << ")" << endl;
+        cout << "Q = " << Q << endl;
         cout << "#bulk bands: " << nBulkBands << endl;
-        cout << "Computing GS bulk exciton...\n" << endl;
+        cout << "Computing GS bulk exciton..." << endl;
 
-        mat states = createBasis(N, Q, kpoints, nBulkBands, 0);
-
-        BShamiltonian(N, Ncell, states, kpoints);
-        arma::eig_sym(eigvalX, eigvecX, HBS);
+        Exciton bulkExciton = Exciton(N, Ncell, Q, nBulkBands, 0);
+        bulkExciton.BShamiltonian();
+        cout << "Diagonalizing... " << std::flush;
+        int eig_number = 20;
+        eig_sym(eigvalX, eigvecX, cx_mat(bulkExciton.HBS));
+        //eig_sym(eigvalX, eigvecX, bulkExciton.HBS);
         cout << "Done" << endl;
 
-        vec energies = computeEnergies(eigvecX.col(0), HBS, HK);
+        vec energies = bulkExciton.computeEnergies(eigvecX.col(0));
         cout << "Eigenenergy: " << eigvalX(0) << " eV" << endl;
         cout << "Kinetic energy: " << energies(0) << "eV" << endl;
         cout << "Potential energy: " << energies(1) << "eV" << endl;
 
         double initialEnergy = eigvalX(0);
         cx_vec initialCoefs = eigvecX.col(0);
-        initialCoefs /= sqrt(kpoints(1) - kpoints(0));
+        /*cx_vec initialCoefs_deg = eigvecX.col(1);
+        arma::cx_mat fixedStates = bulkExciton.fixDegeneracy(initialCoefs, initialCoefs_deg, 10);
+        initialCoefs = fixedStates.col(0);*/
+        //initialCoefs /= sqrt(bulkExciton.kpoints(1) - bulkExciton.kpoints(0));
 
-        cout << "Computing transition rate...\n" << endl;
-        
-        double transitionRate = fermiGoldenRule(initialCoefs, initialEnergy,
-                nBulkBands, Q, N, Ncell, kpoints);
+        // Force symmetry
+        /*for(int n = 0; n < initialCoefs.n_elem/2; n++){
+            int bandNumber = n%(nBulkBands*nBulkBands);
+            int kindex = n/(nBulkBands*nBulkBands);
+            initialCoefs(initialCoefs.n_elem - 1 - (nBulkBands*nBulkBands - 1 - bandNumber) - kindex*nBulkBands*nBulkBands) = initialCoefs(n);
+        };*/
+
+        cout << "Computing transition rate..." << endl;
+
+        Exciton exciton = Exciton(N, Ncell, Q, nBulkBands, nEdgeBands, vec{0, 0});
+        double transitionRate = exciton.fermiGoldenRule(initialCoefs, initialEnergy);
 
         cout << "Done" << endl;
-        cout << "Transition rate is: " << transitionRate << endl;
+        cout << "Transition rate is: " << transitionRate << "\n" << endl;
 
-        fprintf(textfile, "%d\t%.10e\n", nk, transitionRate);
-    }
+        fprintf(textfile, "%d\t%.10e\n", N, transitionRate);
+
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(stop - start);
+	    std::cout << "Elapsed time during iteration: " << duration.count() << " ms" << std::endl;
+    };
 
     fclose(textfile);
-
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-	std::cout << duration.count() << " ms" << std::endl;
 
 	return 0;
 };

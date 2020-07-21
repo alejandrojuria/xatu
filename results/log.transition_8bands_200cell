@@ -1,0 +1,9 @@
+Ribbon width: 5 cells
+N. cells: 200
+nk = 399
+Q = 0
+#bulk bands: 8
+Computing GS bulk exciton...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+Initializing Bethe-Salpeter matrix... 

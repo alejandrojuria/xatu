@@ -7,7 +7,7 @@ import math
 
 # ---------------- Read data from file -----------------------
 #file = open("rs_wf_first_301nk_4bands_noedge", "r")
-file = open("TB_wavefunction", "r")
+file = open("bands_TB_wavefunction", "r")
 #holeLine = file.readline()
 
 #holeInfo = holeLine.split("\t")
