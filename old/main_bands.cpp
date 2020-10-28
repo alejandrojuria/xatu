@@ -34,7 +34,39 @@ cx_mat HBS;
 mat HK;
 mat states;
 
+
+// Header for band crossing
+bool detectBandCrossing(vec, vec, vec, int, int, vec);
+
+/* Routine to fix band crossing for two given bands. Compares slope of one band against the other to 
+detect abrupt changes. Thus it measures \delta(actual_slope - previous_slope)*/
+bool detectBandCrossing(vec actualEigenval, vec previousEigenval, vec previousEigenval2, int firstBand, int secondBand, vec kpoints){
+
+	double initialSlope = (previousEigenval(firstBand) - previousEigenval2(firstBand))/(kpoints(1) - kpoints(0));
+	double actualSlopeFirst = (actualEigenval(firstBand) - previousEigenval(firstBand))/(kpoints(1) - kpoints(0));
+	double actualSlopeSecond = (actualEigenval(secondBand) - previousEigenval(firstBand))/(kpoints(1) - kpoints(0));
+	cout << "first slope: " << initialSlope << endl; 
+	cout << "second slope: " << actualSlopeFirst << endl; 
+	cout << "second slope p: " << actualSlopeSecond << endl; 
+
+
+	double deltaFirst = abs((actualSlopeFirst - initialSlope)/initialSlope);
+	double deltaSecond = abs((actualSlopeSecond - initialSlope)/initialSlope);
+	
+	if (deltaSecond < deltaFirst){
+		return true;
+	}
+	else{
+		return false;
+	};
+};
+
 int main(){
+
+	vec previousEigenvalues;
+	vec previousEigenvalues2;
+	vec auxEigval;
+	cx_mat auxEigvec;
 
     auto start = high_resolution_clock::now();
 
@@ -125,22 +157,63 @@ int main(){
 	mat energies(dimDoS, nk);
 	double FermiEnergy;
 
+	int count = 0;
+
 	// ---------------------------- Main loop ----------------------------
 	for (int i = 0; i < nk; i++) {
 
 		cx_mat h = hamiltonian(kpoints(i), H0, Ha, Hsoc);
 		arma::eig_sym(eigenval, eigenvec, h);
 
-		cout << "k = : " << kpoints(i) << endl;
+		cout << "k = " << kpoints(i) << endl;
 		cout << "Q = " << 0 << endl;
-		double spinV = expectedSpinZValue(eigenvec.col(vband), N);
-		double spinC = expectedSpinZValue(eigenvec.col(cband + 1), N);
-		double spinV_1 = expectedSpinZValue(eigenvec.col(vband + 1), N);
-		double spinC_1 = expectedSpinZValue(eigenvec.col(cband), N);
-		cout << "Spin valence: " << spinV << endl;
-		cout << "Spin valence deg.: " << spinV_1 << endl;
-		cout << "Spin conduction: " << spinC << endl;
-		cout << "Spin conduction deg.: " << spinC_1 << endl;
+
+		if(i != 0 && i != 1 && i == -1){
+			bool detectV1 = detectBandCrossing(eigenval, previousEigenvalues, previousEigenvalues2, vband, vband - 2, kpoints);
+			bool detectV2 = detectBandCrossing(eigenval, previousEigenvalues, previousEigenvalues2, vband + 1, vband - 1, kpoints);
+			bool detectC1 = detectBandCrossing(eigenval, previousEigenvalues, previousEigenvalues2, cband, cband + 2, kpoints); 
+			bool detectC2 = detectBandCrossing(eigenval, previousEigenvalues, previousEigenvalues2, cband + 1, cband + 3, kpoints); 
+
+			if(detectV1){
+				cout << "Crossing!" << endl;
+				cout << "Counts: " << count << endl;
+				auxEigval = eigenval;
+				eigenval(vband) = eigenval(vband - 2);
+				eigenval(vband - 2) = auxEigval(vband);
+
+				auxEigvec = eigenvec;
+				eigenvec.col(vband) = eigenvec.col(vband - 2);
+				eigenvec.col(vband - 2) = auxEigvec.col(vband);
+				count++;
+			}
+			if(detectV2){
+				auxEigval = eigenval;
+				eigenval(vband + 1) = eigenval(vband - 1);
+				eigenval(vband - 1) = auxEigval(vband + 1);
+
+				auxEigvec = eigenvec;
+				eigenvec.col(vband + 1) = eigenvec.col(vband - 1);
+				eigenvec.col(vband - 1) = auxEigvec.col(vband + 1);
+			}
+			if(detectC1){
+				auxEigval = eigenval;
+				eigenval(cband) = eigenval(cband + 2);
+				eigenval(cband + 2) = auxEigval(cband);
+
+				auxEigvec = eigenvec;
+				eigenvec.col(cband) = eigenvec.col(cband + 2);
+				eigenvec.col(cband + 2) = auxEigvec.col(cband);
+			}
+			if(detectC2){
+				auxEigval = eigenval;
+				eigenval(cband + 1) = eigenval(cband + 3);
+				eigenval(cband + 3) = auxEigval(cband + 1);
+
+				auxEigvec = eigenvec;
+				eigenvec.col(cband + 1) = eigenvec.col(cband  + 3);
+				eigenvec.col(cband + 3) = auxEigvec.col(cband + 1);
+			}
+		};
 
 		if(i == (int)nk/2){
 			FermiEnergy = eigenval(vband + 1);
@@ -312,6 +385,11 @@ int main(){
 		if(writeBands){
 			writeEigenvaluesToFile(textfile, eigenval, kpoints[i]);
 		};
+
+		if(i > 0){
+			previousEigenvalues2 = previousEigenvalues;
+		}
+		previousEigenvalues = eigenval;
 	};
 
 	// Output results after main loop

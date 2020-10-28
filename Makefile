@@ -1,7 +1,7 @@
 CC = g++
 CFLAGS = -O2 -Wall -lm
-#INCLUDE = -I/usr/local/lib/armadillo-9.800.2/include -I/usr/lib/OpenBLAS/include/
-#LIBS = -L/usr/lib/OpenBLAS/lib -lopenblas -lpthread -llapack -fopenmp
+INCLUDE = -I/usr/local/lib/armadillo-9.800.2/include -I/usr/lib/OpenBLAS/include/
+LIBS = -L/usr/lib/OpenBLAS/lib -lopenblas -lpthread -llapack -fopenmp
 #INCLUDE = -I/opt/OpenBLAS/include/  
 #LIBS = -L/opt/OpenBLAS/lib
 #INCLUDE = -L/usr/lib/x86_x64-linux-gnu

@@ -40,7 +40,7 @@ if(plotBands):
     plt.xlabel(r'$k (A^{-1})$')
     plt.ylabel(r'$\epsilon (eV)$')
     
-    plt.figure()
+    #plt.figure()
     gap = energies[:, int(2*(N+1)*5+1)] - energies[:, int(2*(N+1)*5-1)]
     plt.plot(kpoints, gap, 'g-')
     """prevGap = gap[0]
@@ -221,4 +221,16 @@ if(plotSpin):
     ax2[2].legend(["Valence", "Conduction"])'''
 
 
+"""kpoints = []
+derivative = []
+with open('bands_derivative', 'r') as f:
+    lines = f.readlines()
+    for line in lines:
+        line = line.split('\t')
+        kpoints.append(float(line[0]))
+        derivative.append(float(line[1]))
+
+plt.figure()
+plt.plot(kpoints, derivative, "g-")
+plt.title('Band derivative')"""
 plt.show()

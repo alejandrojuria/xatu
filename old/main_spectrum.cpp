@@ -57,7 +57,7 @@ int main(){
     bool calculateSpin = true;
     std::string filename_spin = "spectrum_bulk_spin_evolution_centeres_BZ";
     FILE* textfile_spin = fopen(filename_spin.c_str(), "w");
-    bool writeSpin = false;
+    bool writeSpin = true;
 
     // ----------------------- Main body -----------------------
 
@@ -67,8 +67,13 @@ int main(){
     //double zeeCenter = 0.693268 - PI/a; // According to main_bands calculations
     int nBulkBands = 2;       // Bulk bands
     vec zeemanArray = {0.01, 0.008, 0.005, 0.003, 0.001, 0.0008, 0.0005, 0.0003, 0.0001};
+<<<<<<< Updated upstream:old/main_spectrum.cpp
     //vec cellArray = arma::regspace(10, 150);
     vec cellArray = {150};
+=======
+    vec cellArray = {10, 20, 50, 75, 100, 125, 150, 175, 200};
+    //vec cellArray = {100};
+>>>>>>> Stashed changes:lib/main_spectrum.cpp
     int Ncell = 100;
     int nk = 2*Ncell;
     double epsk = 0.001;
@@ -92,7 +97,11 @@ int main(){
         nk -= 1;
         int nEdgeStates = 0;
 
+<<<<<<< Updated upstream:old/main_spectrum.cpp
         double Q = 0;
+=======
+        double Q = 0.0;
+>>>>>>> Stashed changes:lib/main_spectrum.cpp
 
         //zeeman = zeemanArray(n); // Overwrite zeeman term value
 
