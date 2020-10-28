@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-file = open("edge_wf_Q", "r")
+file = open("exciton_bulk_wf", "r")
 lines = file.readlines()
 kpoints = []
 coefs = []
@@ -15,7 +15,6 @@ for n, line in enumerate(lines):
     coefs.append(float(line[1]))
 
 file.close()
-print(kpoints)
 print(coefs)
 
 width = 2*math.pi/((n+1)*4.5332)

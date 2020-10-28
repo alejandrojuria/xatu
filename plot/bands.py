@@ -6,11 +6,11 @@ import numpy as np
 
 N = 15
 dimTB = int(2*(N+1)*8)
-iband = 2*(N+1)*5 - 8
-fband = 2*(N+1)*5 + 8
+iband = 2*(N+1)*2
+fband = 2*(N+1)*8
 
 # --------------------- Plot bands ---------------------
-file = open("bands_N15_k500_nosoc.txt", "r")
+file = open("bands_N15_k2001_nosoc", "r")
 lines = file.readlines()
 kpoints = []
 energies = []
@@ -23,14 +23,24 @@ for line in lines:
 energies = np.array(energies)
 kpoints = np.array(kpoints)
 
-plt.figure()
+fig, ax = plt.subplots(1,2)
 for i in range(iband, fband):
-    plt.plot(kpoints , energies[:, int(i)], 'g-')
+    ax[0].plot(kpoints , energies[:, int(i)], 'g-')
 plt.title("Energy bands")
-plt.xlabel(r"$k(A^{-1})$")
-plt.ylabel(r"$\epsilon (eV)$")
+ax[0].set_title('Bands')
+ax[0].set_xlabel(r"$k(A^{-1})$")
+ax[0].set_ylabel(r"$\epsilon (eV)$")
 
-if(True):
+iband = 2*(N+1)*4
+fband = 2*(N+1)*5 - 2
+
+for i in range(iband, fband):
+    ax[1].plot(kpoints , energies[:, int(i)], 'g-')
+ax[1].set_title('Valence bands zoom in')
+ax[1].set_xlabel(r"$k(A^{-1})$")
+ax[1].set_ylabel(r"$\epsilon (eV)$")
+
+if(False):
     file_spin = open("spin_bands")
     lines = file_spin.readlines()
     spinV = []
