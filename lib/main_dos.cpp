@@ -24,11 +24,11 @@ int main(){
 	FILE* textfile = fopen(filename.c_str(), "w");
 
     int N = 15;
-    int Ncell = 150;
+    int Ncell = 200;
     double Q = 0.0;
     int bulkBands = 0;
     int edgeBands = 2;
-    double delta = 0.01;
+    double delta = 2.4/(2*Ncell);
     Exciton exciton = Exciton(N, Ncell, Q, bulkBands, edgeBands);
 
     vec energyArray = arma::linspace(-1, 1, 200);

@@ -5,7 +5,7 @@ LIBS = -L/usr/lib/OpenBLAS/lib -lopenblas -lpthread -llapack -fopenmp
 #INCLUDE = -I/opt/OpenBLAS/include/  
 #LIBS = -L/opt/OpenBLAS/lib
 #INCLUDE = -L/usr/lib/x86_x64-linux-gnu
-LIBS = -fopenmp -llapack -lopenblas -larmadillo -larpack
+#LIBS = -fopenmp -llapack -lopenblas -larmadillo -larpack
 
 exciton: lib/Exciton.cpp lib/Zigzag.cpp lib/main_exciton.cpp
 	$(CC) lib/Exciton.cpp lib/Zigzag.cpp lib/main_exciton.cpp -o exciton $(CFLAGS) $(INCLUDE) $(LIBS)

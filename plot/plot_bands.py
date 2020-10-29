@@ -9,7 +9,7 @@ dimTB = int(2*(N+1)*8)
 
 plotBands = True
 plotEdgesPosition = False
-plotSpin = False
+plotSpin = True
 
 # --------------------- Plot bands ---------------------
 if(plotBands):
@@ -142,7 +142,7 @@ if(plotSpin):
 
     #ax.indicate_inset_zoom(axins) # Plots rectangle to show where inset is coming from
 
-    ax[1].legend(['First valence band', 'First valence band deg.', 'First conduction band', 'First conduction band deg.'])
+    ax[1].legend(['Valence left edge', 'Valence right edge', 'Conduction right edge', 'Conduction left edge'])
     ax[2].title.set_text(r'$S_z$')
     ax[2].set_ylabel(r'$S_z (\hbar = 1)$')
     ax[2].set_xlabel(r'$k(A^{-1})$')

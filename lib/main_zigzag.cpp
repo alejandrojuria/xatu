@@ -46,7 +46,7 @@ int main(){
 
 	std::string filename_spin = "bands_spin_4bands";
 	FILE* textfile_spin = fopen(filename_spin.c_str(), "w");
-	bool writeSpin = false;
+	bool writeSpin = true;
 
 	std::string filename_dos = "bands_dos_bulk";
 	FILE* textfile_dos = fopen(filename_dos.c_str(), "w");
@@ -57,23 +57,23 @@ int main(){
     int N = 15;
     Zigzag system = Zigzag(N);
 
-	int Ncell = 500;
-    int nk = 2*Ncell + 1; // Avoid k=PI/a for edge stats
+	int Ncell = 300;
+    int nk = 2*Ncell; // Avoid k=PI/a for edge stats
 	//double zeeCenter = 0.693268 - PI/a;
 	vec kpoints = arma::linspace(0, 2*PI/system.a, nk);
 	int Qindex = 0;
 	double Q = 0.0;
 
 	// Indices for file writing
-	int tbWFindex = nk/2 - 20;
+	int tbWFindex = 53;
 	int localizationIndex = nk/2;
 
     cx_mat eigenvec, eigenvecQ;
 	vec eigenval, eigenvalQ;
-	int vband = 2*(N+1)*5-4;
-	int vband2 = 2*(N+1)*5-3;
-	int cband = 2*(N+1)*5+2;
-	int cband2 = 2*(N+1)*5+3;
+	int vband = 2*(N+1)*5-2;
+	int vband2 = 2*(N+1)*5-1;
+	int cband = 2*(N+1)*5+0;
+	int cband2 = 2*(N+1)*5+1;
 
 	bool calculateMaxValence = false;
 	// Variables for valence maximum calculation
@@ -151,7 +151,7 @@ int main(){
 		// ----------------- Write TB real w.f. into file -----------------
 		// Specific (n,k) state
 		if(writeTBwf && (i == tbWFindex)){
-			int band = 2*(N+1)*5 - 2;
+			int band = 2*(N+1)*5 + 1;
 			for(int j = 0; j < (int)system.motif.n_rows; j++){
 
 				std::complex<double> coef = 0;

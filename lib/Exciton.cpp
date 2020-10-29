@@ -589,13 +589,21 @@ double Exciton::pairDensityOfStates(double energy, double delta){
 
                 uword vband = bandToIndex[edgeV(m)]; // Unsigned integer 
                 uword cband = bandToIndex[edgeC(n)];
+                //cx_vec coefK = eigvecKStack.slice(i).col(vband);
+                //cx_vec coefKQ = eigvecKQStack.slice(i).col(cband);
+                //double ftD = abs(ftStack(0));
+                //double D = abs(tDirect(ftD, coefK, coefKQ, coefK, coefKQ));
+                //cout << D << endl;
 
                 double stateEnergy = eigvalKStack.col(i)(cband) - eigvalKStack.col(i)(vband);
                 dos += -PI*imag(rGreenF(energy, delta, stateEnergy));
             };
         }
     }
-    dos /= kpoints.n_elem*a;
+    //if(!specifyEdges.is_empty() && specifyEdges(0) != specifyEdges(1)){ // Add degenerate bands
+    //    dos *= 4;
+    //}
+    dos /= (kpoints.n_elem*a);
 
     return dos;
 }
@@ -835,13 +843,13 @@ double Exciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
 
     mat edgeBands = eigvalKStack.rows(bands);
 
-    double delta = 0.01;
+    double delta = 2.4/(2*Ncell); // Adjust delta depending on number of k points
     double rho = pairDensityOfStates(pairEnergy, delta);
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
     //cout << initialCoefs << endl;
-    cout << "First overlap: " << pow(abs(arma::cdot(ehCoefs1, W*initialCoefs)),2) << endl;
-    cout << "Second overlap: " << pow(abs(arma::cdot(ehCoefs2, W*initialCoefs)),2) << endl;
+    cout << "First t.r. (-k): " << 2*PI*pow(abs(arma::cdot(ehCoefs1, W*initialCoefs)),2)*rho/hbar << endl;
+    cout << "Second t.r. (k): " << 2*PI*pow(abs(arma::cdot(ehCoefs2, W*initialCoefs)),2)*rho/hbar << endl;
     transitionRate = 2*PI*(pow(abs(arma::cdot(ehCoefs1, W*initialCoefs)),2) + pow(abs(arma::cdot(ehCoefs2, W*initialCoefs)),2))*rho/hbar;
 
     return transitionRate;

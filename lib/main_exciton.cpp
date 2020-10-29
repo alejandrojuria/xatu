@@ -53,7 +53,7 @@ int main(){
         int nk = 2*Ncell - 1;
         int N = NArray(n);
         cx_mat eigvecX;
-        cx_vec eigvalX;
+        vec eigvalX;
 
         cout << "#######################################################" << endl;
         cout << "#--------------------- Parameters ---------------------" << endl;
@@ -64,7 +64,7 @@ int main(){
 
         Exciton bulkExciton = Exciton(N, Ncell, Q, nBulkBands, nEdgeBands);
         bulkExciton.BShamiltonian();
-        arma::eigs_gen(eigvalX, eigvecX, bulkExciton.HBS, 20, "sr");
+        arma::eig_sym(eigvalX, eigvecX, bulkExciton.HBS);
 
         cout << "#----------------------- Energy -----------------------" << endl;
         cout << "Fundamental state energy is: " << eigvalX(0) << endl;
@@ -79,11 +79,11 @@ int main(){
             fprintf(textfile, "%d\t%12.9lf\n", N, eigvalX(0));
         };
 
-        cx_mat states = bulkExciton.fixDegeneracy(eigvecX.col(0), eigvecX.col(1), 20);
-        cx_vec state = states.col(0);
+        //cx_mat states = bulkExciton.fixDegeneracy(eigvecX.col(0), eigvecX.col(1), 20);
+        //cx_vec state = states.col(0);
 
         if(printWF){
-            //state = eigvecX.col(0);
+            cx_vec state = eigvecX.col(0);
             int nbands = bulkExciton.nBulkBands + bulkExciton.nEdgeBands;
             int nbands2 = nbands*nbands;
             for (int i = 0; i < nk - 1; i++){

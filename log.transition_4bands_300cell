@@ -1,0 +1,259 @@
+Ribbon width: 7 cells
+N. cells: 300
+nk = 598
+Q = 0
+#bulk bands: 4
+Computing GS bulk exciton...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+Initializing Bethe-Salpeter matrix... Done
+Diagonalizing... Done
+Eigenenergy: 0.45587 eV
+Kinetic energy: 0.791367eV
+Potential energy: -0.335497eV
+Computing transition rate...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+43
+Selected k: 0.101812	43
+Closest gap energy: 0.456313
+Energy gap (-k): 0.456313
+Energy gap (k): 0.456313
+43
+Selected k: 0.101812	43
+Closest gap energy: 0.456313
+Energy gap (-k): 0.456313
+Energy gap (k): 0.456313
+DoS value: 1.75487
+First overlap: 1.05625e-06
+Second overlap: 1.03716e-06
+Done
+Transition rate is: 3.50682e+10
+
+Elapsed time during iteration: 613227 ms
+Deleting exciton object... 
+Destroying Zigzag object...
+Deleting exciton object... 
+Destroying Zigzag object...
+Ribbon width: 11 cells
+N. cells: 300
+nk = 598
+Q = 0
+#bulk bands: 4
+Computing GS bulk exciton...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+Initializing Bethe-Salpeter matrix... Done
+Diagonalizing... Done
+Eigenenergy: 0.299446 eV
+Kinetic energy: 0.634307eV
+Potential energy: -0.334861eV
+Computing transition rate...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+89
+Selected k: 0.208253	89
+Closest gap energy: 0.299396
+Energy gap (-k): 0.299396
+Energy gap (k): 0.299396
+89
+Selected k: 0.208253	89
+Closest gap energy: 0.299396
+Energy gap (-k): 0.299396
+Energy gap (k): 0.299396
+DoS value: 2.90083
+First overlap: 9.8885e-09
+Second overlap: 9.9598e-09
+Done
+Transition rate is: 5.49616e+08
+
+Elapsed time during iteration: 537006 ms
+Deleting exciton object... 
+Destroying Zigzag object...
+Deleting exciton object... 
+Destroying Zigzag object...
+Ribbon width: 15 cells
+N. cells: 300
+nk = 598
+Q = 0
+#bulk bands: 4
+Computing GS bulk exciton...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+Initializing Bethe-Salpeter matrix... Done
+Diagonalizing... Done
+Eigenenergy: 0.254489 eV
+Kinetic energy: 0.575342eV
+Potential energy: -0.320853eV
+Computing transition rate...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+109
+Selected k: 0.254531	109
+Closest gap energy: 0.254
+Energy gap (-k): 0.254
+Energy gap (k): 0.254
+109
+Selected k: 0.254531	109
+Closest gap energy: 0.254
+Energy gap (-k): 0.254
+Energy gap (k): 0.254
+DoS value: 3.47313
+First overlap: 1.24777e-09
+Second overlap: 1.27818e-09
+Done
+Transition rate is: 8.37451e+07
+
+Elapsed time during iteration: 524937 ms
+Deleting exciton object... 
+Destroying Zigzag object...
+Deleting exciton object... 
+Destroying Zigzag object...
+Ribbon width: 19 cells
+N. cells: 300
+nk = 598
+Q = 0
+#bulk bands: 4
+Computing GS bulk exciton...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+Initializing Bethe-Salpeter matrix... Done
+Diagonalizing... Done
+Eigenenergy: 0.243597 eV
+Kinetic energy: 0.550722eV
+Potential energy: -0.307125eV
+Computing transition rate...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+114
+Selected k: 0.266101	114
+Closest gap energy: 0.243877
+Energy gap (-k): 0.243877
+Energy gap (k): 0.243877
+114
+Selected k: 0.266101	114
+Closest gap energy: 0.243877
+Energy gap (-k): 0.243877
+Energy gap (k): 0.243877
+DoS value: 3.61228
+First overlap: 1.13638e-10
+Second overlap: 1.08631e-10
+Done
+Transition rate is: 7.66435e+06
+
+Elapsed time during iteration: 546251 ms
+Deleting exciton object... 
+Destroying Zigzag object...
+Deleting exciton object... 
+Destroying Zigzag object...
+Ribbon width: 23 cells
+N. cells: 300
+nk = 598
+Q = 0
+#bulk bands: 4
+Computing GS bulk exciton...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+Initializing Bethe-Salpeter matrix... Done
+Diagonalizing... Done
+Eigenenergy: 0.231406 eV
+Kinetic energy: 0.537276eV
+Potential energy: -0.305871eV
+Computing transition rate...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+120
+Selected k: 0.279984	120
+Closest gap energy: 0.232253
+Energy gap (-k): 0.232253
+Energy gap (k): 0.232253
+120
+Selected k: 0.279984	120
+Closest gap energy: 0.232253
+Energy gap (-k): 0.232253
+Energy gap (k): 0.232253
+DoS value: 3.77594
+First overlap: 1.81167e-11
+Second overlap: 1.50168e-11
+Done
+Transition rate is: 1.19428e+06
+
+Elapsed time during iteration: 575282 ms
+Deleting exciton object... 
+Destroying Zigzag object...
+Deleting exciton object... 
+Destroying Zigzag object...
+Ribbon width: 27 cells
+N. cells: 300
+nk = 598
+Q = 0
+#bulk bands: 4
+Computing GS bulk exciton...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+Initializing Bethe-Salpeter matrix... Done
+Diagonalizing... Done
+Eigenenergy: 0.242298 eV
+Kinetic energy: 0.526508eV
+Potential energy: -0.28421eV
+Computing transition rate...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+115
+Selected k: 0.268415	115
+Closest gap energy: 0.241901
+Energy gap (-k): 0.241901
+Energy gap (k): 0.241901
+115
+Selected k: 0.268415	115
+Closest gap energy: 0.241901
+Energy gap (-k): 0.241901
+Energy gap (k): 0.241901
+DoS value: 3.6403
+First overlap: 1.2632e-12
+Second overlap: 8.84265e-13
+Done
+Transition rate is: 74623.9
+
+Elapsed time during iteration: 601965 ms
+Deleting exciton object... 
+Destroying Zigzag object...
+Deleting exciton object... 
+Destroying Zigzag object...
+Ribbon width: 31 cells
+N. cells: 300
+nk = 598
+Q = 0
+#bulk bands: 4
+Computing GS bulk exciton...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+Initializing Bethe-Salpeter matrix... Done
+Diagonalizing... Done
+Eigenenergy: 0.239534 eV
+Kinetic energy: 0.504758eV
+Potential energy: -0.265225eV
+Computing transition rate...
+Correctly initiallized Zigzag object
+Creating BZ mesh... Initializing basis for BSE... Diagonalizing H0 for all k points... Correctly initialized Exciton object
+116
+Selected k: 0.270729	116
+Closest gap energy: 0.239941
+Energy gap (-k): 0.239941
+Energy gap (k): 0.239941
+116
+Selected k: 0.270729	116
+Closest gap energy: 0.239941
+Energy gap (-k): 0.239941
+Energy gap (k): 0.239941
+DoS value: 3.66784
+First overlap: 6.03858e-13
+Second overlap: 7.00181e-13
+Done
+Transition rate is: 45657.8
+
+Elapsed time during iteration: 630247 ms
+Deleting exciton object... 
+Destroying Zigzag object...
+Deleting exciton object... 
+Destroying Zigzag object...

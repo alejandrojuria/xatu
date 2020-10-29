@@ -164,6 +164,35 @@ mat initializePotentialMatrix(int Ncell, const arma::mat& motif){
 
     int nAtom = motif.n_rows;
     int dimRows = nAtom*nAtom;
+    int dimCols = (2*Ncell+1);
+
+    arma::mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
+    arma::vec potentialVector = arma::zeros<vec>(nAtom, 1);
+
+    rowvec cell = arma::zeros(2*Ncell + 1, 3);
+    cell.col(1) = arma::regspace(0, 2*Ncell + 1)*a;
+
+    vec ones = arma::zeros(nAtom, 1);
+    arma::mat motif_combinations = arma::kron(motif, ones) - arma::kron(ones, motif);
+
+    for(int i = 0; i < 2*Ncell + 1; i++){
+        arma::mat position = cell.row(i) - motif_combinations;
+        vec pos_module = arma::diagvec(position*position.t());
+        for(int j = 0; j < nAtom; j++){
+            potentialVector(j) = potential(pos_module(j));
+        };
+        potentialMat.col(i) = potentialVector;
+    };
+
+    cout << "Potential matrix computed" << endl;
+    return potentialMat;
+};
+
+// Old implementation of potential matrix
+/* mat initializePotentialMatrix(int Ncell, const arma::mat& motif){
+
+    int nAtom = motif.n_rows;
+    int dimRows = nAtom*nAtom;
     int dimCols = (2*Ncell+1)*(2*Ncell+1);
     mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
     rowvec cellDifference;
@@ -187,9 +216,9 @@ mat initializePotentialMatrix(int Ncell, const arma::mat& motif){
     };
     cout << "Potential matrix computed" << endl;
     return arma::kron(potentialMat, arma::ones(64, 1));
-};
+};*/
 
-/* Exact implementation of direct term */
+/* Exact implementation of interaction term, valid for both direct and exchange */
 std::complex<double> exactInteractionTerm(const arma::cx_vec& coefsK1, 
                                      const arma::cx_vec& coefsK2,
                                      const arma::cx_vec& coefsK3, 
@@ -201,24 +230,20 @@ std::complex<double> exactInteractionTerm(const arma::cx_vec& coefsK1,
                                         
     cx_vec firstCoefArray = conj(coefsK1) % coefsK3;
     cx_vec secondCoefArray = conj(coefsK2) % coefsK4;
-    cx_vec coefVector = arma::kron(firstCoefArray, secondCoefArray);
+    cx_vec coefVector = arma::kron(secondCoefArray, firstCoefArray);
     cout << coefVector.n_rows << "--" << coefVector.n_cols << endl;
 
-    cx_vec expArray = arma::zeros<cx_vec>((2*Ncell+1)*(2*Ncell+1));
-    cout << __LINE__ << endl;
+    double k_diff = kArray(2)-kArray(0) + kArray(3) - kArray(1);
     std::complex<double> i(0,1);
-    for(int n = -Ncell; n < Ncell + 1; n++){
-        for(int m = -Ncell; m < Ncell + 1; m++){
-            expArray((n + Ncell)*(2*Ncell + 1) + (m + Ncell)) = exp(i*(kArray(2)-kArray(0))*(double)n*a)*
-            exp(i*(kArray(3)-kArray(1))*(double)m*a);
-        };
-    };
+    cx_vec expArray = arma::regspace<cx_vec>(0, 2*Ncell + 1)*a*k_diff*i;
+    expArray = arma::exp(expArray);
+    cout << __LINE__ << endl;
 
     cx_vec result = potential.st()*coefVector;
     result = result % expArray;
     
     cout << __LINE__ << endl;
-    std::complex<double> term = arma::sum(result)/((2.*Ncell + 1.)*(2.*Ncell + 1.));
+    std::complex<double> term = arma::sum(result)/(2.*Ncell + 1.);
     return term;
 };
 

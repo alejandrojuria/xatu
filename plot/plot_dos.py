@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt 
 import numpy as np
 
-file = open("dos_bulk", "r")
+file = open("dos_eh_pair", "r")
 lines = file.readlines()
 energies = []
 dos = []

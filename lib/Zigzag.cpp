@@ -45,10 +45,10 @@ void Zigzag::initializeConstants(){
 	lambda = 1.5;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
-	zeeman = 0.0;
+	zeeman = 1E-7;
 
 	// Infinitesimal on-site energy to split edges
-	onsiteEdge = 1E-7;
+	onsiteEdge = 0.0;
 
 	//// Lattice vectors
 	// Bravais basis

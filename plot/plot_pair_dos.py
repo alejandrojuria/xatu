@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-file = open("exciton_convergence_ribbon_width_2bands", "r")
+file = open("dos_eh_pair", "r")
 file.readline()
 
 lines = file.readlines()
