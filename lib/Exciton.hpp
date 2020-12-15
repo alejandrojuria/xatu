@@ -19,13 +19,12 @@ class Exciton : public Zigzag{
     private:
         int basisDimTB, nk;
         arma::vec specifyEdges;
-        arma::vec valenceBands, conductionBands;
         arma::uvec bandList;
         arma::mat eigvalKStack, eigvalKQStack;
-        arma::cx_cube eigvecKStack, eigvecKQStack;
         arma::cx_vec ftStack;
         std::map<int, int> bandToIndex;
-        arma::vec edgeV, edgeC;
+        arma::uvec edgeV, edgeC;
+        arma::mat potentialMat;
         double pairEnergy;
 
     public:
@@ -36,6 +35,8 @@ class Exciton : public Zigzag{
         arma::mat HK;
         arma::mat basisStates;
         arma::vec kpoints;
+        arma::uvec valenceBands, conductionBands;
+        arma::cx_cube eigvecKStack, eigvecKQStack;
 
     //// Methods
     // Constructor & Destructor
@@ -49,16 +50,24 @@ class Exciton : public Zigzag{
         double potential(double);
         std::complex<double> fourierTrans(double);
         std::complex<double> tDirect(std::complex<double>,
-                                    const arma::cx_vec&, 
-                                    const arma::cx_vec&,
-                                    const arma::cx_vec&, 
-                                    const arma::cx_vec&);
+                                     const arma::cx_vec&, 
+                                     const arma::cx_vec&,
+                                     const arma::cx_vec&, 
+                                     const arma::cx_vec&);
         std::complex<double> tExchange(std::complex<double>, 
                                     const arma::cx_vec&, 
                                     const arma::cx_vec&,
                                     const arma::cx_vec&, 
                                     const arma::cx_vec&);
+        std::complex<double> exactInteractionTerm(const arma::cx_vec&, 
+                                 const arma::cx_vec&,
+                                 const arma::cx_vec&, 
+                                 const arma::cx_vec&,
+                                 const arma::vec&);
+
+        // Initializers
         void initializeResultsH0();
+        void initializePotentialMatrix();
 
         // Utilities
         void generateBandDictionary();

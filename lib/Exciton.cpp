@@ -16,7 +16,7 @@ Exciton::Exciton(int N, int Ncell, double Q, int nBulkBands, int nEdgeBands, vec
     
     // Initialize basic attributes
     this->Ncell = Ncell;
-    this->nk = 2*Ncell - 2;
+    this->nk = 2*Ncell + 1;
     this->Q = Q;
     this->nBulkBands = nBulkBands;
     this->nEdgeBands = nEdgeBands;
@@ -31,6 +31,8 @@ Exciton::Exciton(int N, int Ncell, double Q, int nBulkBands, int nEdgeBands, vec
     generateBandDictionary();
     std::cout << "Diagonalizing H0 for all k points... " << std::flush;
     initializeResultsH0();
+    std::cout << "Calculating potential for all lattice positions... " << std::flush;
+    initializePotentialMatrix();
     std::cout << "Correctly initialized Exciton object" << std::endl;
 };
 
@@ -82,7 +84,7 @@ void Exciton::STVH0(double X, double *SH0) {
 /* Calculate value of interaction potential (Keldysh). Units are eV.
    Input: double k. Output: complex double */
 double Exciton::potential(double r){
-    double eps = 43.;
+    double eps = 40.;
     double eps1 = 1.;
     double eps2 = 5.06;
     double eps_bar = (eps1 + eps2)/2;
@@ -160,12 +162,91 @@ std::complex<double> Exciton::tExchange(std::complex<double> VQ,
     return X;
 };
 
+void Exciton::initializePotentialMatrix(){
+
+    int nAtom = motif.n_rows;
+    int dimRows = nAtom*nAtom;
+    int dimCols = (2*Ncell+1);
+
+    arma::mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
+    //arma::vec potentialVector = arma::zeros<vec>(dimRows, 1);
+
+    mat cell = arma::zeros(2*Ncell + 1, 3);
+    cell.col(1) = arma::regspace(0, 2*Ncell)*a;
+
+    vec ones = arma::zeros(nAtom, 1);
+    arma::mat motif_combinations = arma::kron(motif, ones) - arma::kron(ones, motif);
+
+    for(int i = 0; i < 2*Ncell + 1; i++){
+        arma::mat position = arma::kron(cell.row(i), arma::ones(dimRows, 1)) - motif_combinations;
+        vec pos_module = arma::sqrt(arma::diagvec(position*position.t()));
+        for(int j = 0; j < nAtom; j++){
+            potentialMat.col(i)(j) = potential(pos_module(j));
+        };
+    };
+
+    cout << "Potential matrix computed" << endl;
+    this->potentialMat = arma::kron(potentialMat, arma::ones(64, 1));
+};
+
+// Old implementation of potential matrix
+/* mat initializePotentialMatrix(int Ncell, const arma::mat& motif){
+
+    int nAtom = motif.n_rows;
+    int dimRows = nAtom*nAtom;
+    int dimCols = (2*Ncell+1)*(2*Ncell+1);
+    mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
+    rowvec cellDifference;
+    rowvec atomPosDiff;
+    double distance;
+    for(int i = -Ncell; i < Ncell + 1; i++){
+        for(int j = -Ncell; j < Ncell + 1; j++){
+
+            cellDifference = {0.0, (i - j)*a, 0.0};
+            for(int n = 0; n < motif.n_rows; n++){
+                for(int m = 0; m < motif.n_rows; m++){
+                    atomPosDiff = cellDifference - (motif.row(n) - motif.row(m));
+                    distance = sqrt(arma::dot(atomPosDiff, atomPosDiff));
+
+                    potentialMat(n*nAtom + m, 
+                                (i + Ncell)*(2*Ncell + 1) + (j + Ncell)) = 
+                                potential(distance);
+                };
+            };
+        };
+    };
+    cout << "Potential matrix computed" << endl;
+    return arma::kron(potentialMat, arma::ones(64, 1));
+};*/
+
+/* Exact implementation of interaction term, valid for both direct and exchange */
+std::complex<double> Exciton::exactInteractionTerm(const arma::cx_vec& coefsK1, 
+                                     const arma::cx_vec& coefsK2,
+                                     const arma::cx_vec& coefsK3, 
+                                     const arma::cx_vec& coefsK4, 
+                                     const arma::vec& kArray){
+                                        
+    cx_vec firstCoefArray = conj(coefsK1) % coefsK3;
+    cx_vec secondCoefArray = conj(coefsK2) % coefsK4;
+    cx_vec coefVector = arma::kron(secondCoefArray, firstCoefArray);
+
+    double k_diff = kArray(2) - kArray(0) + kArray(3) - kArray(1);
+    std::complex<double> i(0,1);
+    cx_vec expArray = arma::regspace<cx_vec>(0, 2*Ncell)*a*k_diff*i;
+    expArray = arma::exp(expArray);
+
+    cx_vec result = potentialMat.st()*coefVector;
+    result = result % expArray;
+    
+    std::complex<double> term = arma::sum(result)/(2.*Ncell + 1.);
+    return term;
+};
 
 /* Method to create mesh of brillouin zone. Note that the last point will be removed, so the vector is 
 initiallized with nk + 1 points */
 void Exciton::createMesh(){
-    vec kpoints = arma::linspace(0.0, 2*PI/a, nk + 2);
-    kpoints = kpoints(arma::span(1, nk));
+    vec kpoints = arma::linspace(-PI/a, PI/a, nk + 1);
+    kpoints = kpoints(arma::span(0, nk - 1));
 
     this->kpoints = kpoints;
 };
@@ -183,7 +264,7 @@ void Exciton::initializeBasis(){
 arma::mat Exciton::createBasis(int nBulkBands, int nEdgeBands){
 
     int nk = kpoints.n_elem;
-    vec valence, conduction;
+    uvec valence, conduction;
 
     // Sanity check
     if (nBulkBands % 2 != 0 ){
@@ -195,8 +276,8 @@ arma::mat Exciton::createBasis(int nBulkBands, int nEdgeBands){
         conduction = {};
     }
     else{
-        valence = arma::regspace(2*(N+1)*5 - 3 - nBulkBands + 1, 2*(N+1)*5 - 3);
-        conduction = arma::regspace(2*(N+1)*5 + 2, 2*(N+1)*5 + 2 + nBulkBands - 1);
+        valence = arma::regspace<uvec>(2*(N+1)*5 - 3 - nBulkBands + 1, 2*(N+1)*5 - 3);
+        conduction = arma::regspace<uvec>(2*(N+1)*5 + 2, 2*(N+1)*5 + 2 + nBulkBands - 1);
     };
 
     if (nEdgeBands == 0){
@@ -204,17 +285,17 @@ arma::mat Exciton::createBasis(int nBulkBands, int nEdgeBands){
         edgeV = {};
     }
     else if(!specifyEdges.is_empty() && nEdgeBands == 1){
-        edgeC = arma::regspace(2*(N+1)*5 + 0 + specifyEdges(1), 2*(N+1)*5 + 0 + specifyEdges(1));
-        edgeV = arma::regspace(2*(N+1)*5 - 2 + specifyEdges(0), 2*(N+1)*5 - 2 + specifyEdges(0));
+        edgeC = arma::regspace<uvec>(2*(N+1)*5 + 0 + specifyEdges(1), 2*(N+1)*5 + 0 + specifyEdges(1));
+        edgeV = arma::regspace<uvec>(2*(N+1)*5 - 2 + specifyEdges(0), 2*(N+1)*5 - 2 + specifyEdges(0));
     }
     else{
-        edgeC = arma::regspace(2*(N+1)*5 + 0, 2*(N+1)*5 + nEdgeBands - 1);
-        edgeV = arma::regspace(2*(N+1)*5 - 2, 2*(N+1)*5 - 2 + nEdgeBands - 1); 
+        edgeC = arma::regspace<uvec>(2*(N+1)*5 + 0, 2*(N+1)*5 + nEdgeBands - 1);
+        edgeV = arma::regspace<uvec>(2*(N+1)*5 - 2, 2*(N+1)*5 - 2 + nEdgeBands - 1); 
     };
 
-    vec tValence;
-    vec tConduction;
-    vec auxBands;
+    uvec tValence;
+    uvec tConduction;
+    uvec auxBands;
 
     int nv = valence.n_elem;
     int nc = conduction.n_elem;
@@ -229,7 +310,7 @@ arma::mat Exciton::createBasis(int nBulkBands, int nEdgeBands){
     for (int i = 0; i < nk; i++){
 
         if (nEdgeBands > 0){
-            tValence = arma::join_cols(valence, edgeV);
+            tValence = arma::join_cols<uvec>(valence, edgeV);
             tConduction = arma::join_cols(edgeC, conduction);
         }
         else{
@@ -240,7 +321,7 @@ arma::mat Exciton::createBasis(int nBulkBands, int nEdgeBands){
         for (int k = 0; k < (int)tConduction.n_elem; k++){
             for (int j = 0; j < (int)tValence.n_elem; j++){
             
-                arma::mat state = { tValence(j), tConduction(k), kpoints(i), Q };
+                arma::mat state = { (double)tValence(j), (double)tConduction(k), kpoints(i), Q };
                 states.row(it) = state;
 
                 it++;
@@ -412,6 +493,7 @@ void Exciton::initializeResultsH0(){
         // The FT is calculated for vec kpoints starting in zero ALWAYS
         ftStack(i) = fourierTrans(kpoints(i) - kpoints(0));
     };
+    ftStack(0) = 0.0;
 
     // !!!!!!!!!!! Routines have to be fixed
     //cx_cube atomicGCoefsKstack = atomicGCoefs(eigvecKStack, motif, kpoints, N); // Needs to be fixed 
@@ -453,6 +535,7 @@ void Exciton::BShamiltonian(){
 
     #pragma omp parallel for schedule(static, 1) collapse(2)
     for (int i = 0; i < basisDimBSE; i++){
+        //cout << "Iteration: " << i << "/" << basisDimBSE << endl; 
         for (int j = 0; j < basisDimBSE; j++){
             
             double k = basisStates(i, 2);
@@ -478,8 +561,12 @@ void Exciton::BShamiltonian(){
             int kk2_index = abs(k2_index - k_index); // Always positive
             std::complex<double> ftD = ftStack(kk2_index);
 
-            std::complex<double> D = tDirect(ftD, coefsK, coefsKQ, coefsK2, coefsK2Q);
-            std::complex<double> X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
+            //std::complex<double> D = tDirect(ftD, coefsK, coefsKQ, coefsK2, coefsK2Q);
+            //std::complex<double> X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
+            vec kArrayD = {k+Q, k2, k2+Q, k};
+            vec kArrayX = {k+Q, k2, k, k2+Q};
+            std::complex<double> D = exactInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, kArrayD);
+            std::complex<double> X = exactInteractionTerm(coefsKQ, coefsK2, coefsK, coefsK2Q, kArrayX);
 
             if(abs(D) < threshold && abs(X) < threshold && i != j){
                 continue;
@@ -798,8 +885,13 @@ double Exciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
             }
             std::complex<double> ftD = ftStack(kbke_index);
 
+            // Aproximated interaction
             std::complex<double> D = tDirect(ftD, coefsK, coefsKQ, coefsK2, coefsK2Q);
             std::complex<double> X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
+
+            // Exact interaction (TO BE IMPLEMENTED YET)
+            //std::complex<double> D = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, kArray, motif, potentialMatrix, Ncell)
+            //std::complex<double> X = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, )
 
             // Compute matrix elements
             //cout << bandnumber << knumber << endl;
