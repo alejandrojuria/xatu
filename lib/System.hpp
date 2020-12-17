@@ -14,7 +14,8 @@ class System {
     
     public:
         //// Attributes
-        int ndim, nmotif, norbitals, ncells;
+        int ndim, natoms, norbitals, ncells;
+        double a, c;
         arma::mat bravais_lattice, motif, unitCellList;
         arma::mat reciprocal_lattice;
         arma::cx_cube hamiltonianMatrices;
@@ -26,12 +27,6 @@ class System {
         System(std::string);    
         ~System();
 
-    protected:
-
-        /* Routines for DoS calculation */
-        std::complex<double> rGreenF(double, double, double);
-
-    public:
         arma::cx_mat hamiltonian(arma::vec k);
 
         /* Some utilities/extra information */
@@ -46,9 +41,16 @@ class System {
         double densityOfStates(double, double, const arma::mat&);
         void writeDensityOfStates(const arma::mat&, double, FILE*);
 
+
+    protected:
+        /* Routines for DoS calculation */
+        std::complex<double> rGreenF(double, double, double);
+        arma::mat brillouin_zone_mesh(int);
+        arma::mat generate_combinations(int n, int ndim);
+
+
     private:
         void readConfigurationFile(std::string);
+        void extractLatticeParameters();
         arma::mat calculate_reciprocal_lattice();
-        arma::mat brillouin_zone_mesh(int);
-        arma::mat generate_combinations(int, int);
 };

@@ -12,6 +12,7 @@ using namespace std::chrono;
 System::System(std::string filename){
 
 	readConfigurationFile(filename);
+	extractLatticeParameters();
 	cout << "Correctly initiallized Zigzag object" << endl;
 
 };
@@ -29,10 +30,18 @@ void System::readConfigurationFile(std::string filename){
 
 		getline(configfile, line);
 		std::istringstream iss(line);
-		iss >> ndim >> nmotif >> norbitals >> ncells;
+		try{
+			iss >> ndim >> natoms >> norbitals >> ncells;
+			if (ndim > 3){
+				throw "Error: ndim must be lower than three";
+			};
+		}
+		catch (std::string e){
+			std::cerr << e;
+		};
 
 		bravais_lattice(ndim, 3);
-		motif(nmotif, 3);
+		motif(natoms, 3);
 		unitCellList(ncells, 3);
 		hamiltonianMatrices(norbitals, norbitals, ncells);
 		
@@ -50,7 +59,7 @@ void System::readConfigurationFile(std::string filename){
 		};
 
 		// Read motif
-		for(int i = 0; i < nmotif; i++){
+		for(int i = 0; i < natoms; i++){
 			double value;
 			getline(configfile, line);
 			std::istringstream iss(line);
@@ -164,7 +173,22 @@ arma::mat System::brillouin_zone_mesh(int n){
 	return kpoints;
 }
 
-arma::mat generate_combinations(int n, int ndim){
+void System::extractLatticeParameters(){
+
+	try{
+		if (motif.is_empty() || bravais_lattice.is_empty()){
+			throw "Error: Can not obtain lattice parameters (no Bravais lattice or motif)";
+		}
+	}
+	catch (std::string e){
+			std::cerr << e;
+	}
+	double a = arma::norm(bravais_lattice.row(0));
+	double c = abs(motif.row(0)(2) - motif.row(1)(2));
+	
+}
+
+arma::mat System::generate_combinations(int n, int ndim){
 	int ncombinations = pow(n, ndim);
 	arma::mat combinations(ncombinations, ndim);
 	int it = 0;
