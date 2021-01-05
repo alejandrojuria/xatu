@@ -14,7 +14,7 @@ class System {
     
     public:
         //// Attributes
-        int ndim, natoms, norbitals, ncells;
+        int ndim, natoms, norbitals, ncells, basisdim;
         double a, c;
         arma::mat bravais_lattice, motif, unitCellList;
         arma::mat reciprocal_lattice;
@@ -27,7 +27,8 @@ class System {
         System(std::string);    
         ~System();
 
-        arma::cx_mat hamiltonian(arma::vec k);
+        arma::mat brillouin_zone_mesh(int);
+        arma::cx_mat hamiltonian(arma::rowvec k);
 
         /* Some utilities/extra information */
         arma::cx_mat inversionOperator(const arma::cx_vec&);
@@ -45,12 +46,11 @@ class System {
     protected:
         /* Routines for DoS calculation */
         std::complex<double> rGreenF(double, double, double);
-        arma::mat brillouin_zone_mesh(int);
         arma::mat generate_combinations(int n, int ndim);
 
 
     private:
         void readConfigurationFile(std::string);
         void extractLatticeParameters();
-        arma::mat calculate_reciprocal_lattice();
+        void calculate_reciprocal_lattice();
 };

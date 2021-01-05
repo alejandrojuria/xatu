@@ -13,6 +13,7 @@ System::System(std::string filename){
 
 	readConfigurationFile(filename);
 	extractLatticeParameters();
+	calculate_reciprocal_lattice();
 	cout << "Correctly initiallized Zigzag object" << endl;
 
 };
@@ -27,7 +28,6 @@ void System::readConfigurationFile(std::string filename){
     std::ifstream configfile (filename.c_str());
     std::string line;
     if (configfile.is_open()){
-
 		getline(configfile, line);
 		std::istringstream iss(line);
 		try{
@@ -39,11 +39,11 @@ void System::readConfigurationFile(std::string filename){
 		catch (std::string e){
 			std::cerr << e;
 		};
-
-		bravais_lattice(ndim, 3);
-		motif(natoms, 3);
-		unitCellList(ncells, 3);
-		hamiltonianMatrices(norbitals, norbitals, ncells);
+		basisdim = natoms*norbitals;
+		bravais_lattice = arma::zeros(ndim, 3);
+		motif = arma::zeros(natoms, 3);
+		unitCellList = arma::zeros(ncells, 3);
+		hamiltonianMatrices = arma::cx_cube(basisdim, basisdim, ncells);
 		
 		// Read bravais lattice vectors
         for(int i = 0; i < ndim; i++){
@@ -81,8 +81,8 @@ void System::readConfigurationFile(std::string filename){
 			iss >> x >> y >> z;
 			unitCellList.row(i) = arma::rowvec{x, y, z};
 
-			for(int j = 0; j < norbitals; j++){
-				arma::cx_rowvec array(norbitals);
+			for(int j = 0; j < basisdim; j++){
+				arma::cx_rowvec array(basisdim);
 				getline(configfile, line);
 				std::istringstream iss(line);
 				
@@ -104,18 +104,14 @@ void System::readConfigurationFile(std::string filename){
 	else cout << "Unable to open config. file";
 };
 
-int main(){
-	System("model_bi");
-}
-
 /* Initialize Bloch hamiltonian for posterior diagonalization. Input: arma::vec k (wave number) */
-cx_mat System::hamiltonian(arma::vec k) {
+arma::cx_mat System::hamiltonian(arma::rowvec k){
 
-	cx_mat h = arma::zeros<cx_mat>(norbitals, norbitals);
-	std::complex<double> i(0, 1);
+	cx_mat h = arma::zeros<cx_mat>(basisdim, basisdim);
+	std::complex<double> imag(0, 1);
 	for (int i = 0; i < ncells; i++){
-		arma::rowvec a = unitCellList.row(i);
-		h += hamiltonianMatrices.slice(i) * std::exp(-i*arma::dot(k, a));
+		arma::rowvec cell = unitCellList.row(i);
+		h += hamiltonianMatrices.slice(i) * std::exp(-imag*arma::dot(k, cell));
 	};
 
 	return h;
@@ -126,7 +122,7 @@ cx_mat System::hamiltonian(arma::vec k) {
     a_i\dot b_j=2PI\delta_ij, which can be written as a linear system of
     equations to solve for b_j. Resulting vectors have 3 components independently
     of the dimension of the vector space they span.*/
-mat System::calculate_reciprocal_lattice(){
+void System::calculate_reciprocal_lattice(){
 	reciprocal_lattice = arma::zeros(ndim, 3);
 	arma::mat coefficient_matrix = bravais_lattice;
 
@@ -164,7 +160,7 @@ arma::mat System::brillouin_zone_mesh(int n){
 	arma::mat combinations = generate_combinations(n, ndim);
 
 	for (int i = 0; i < nk; i++){
-		arma::rowvec kpoint(3);
+		arma::rowvec kpoint = arma::zeros<rowvec>(3);
 		for (int j = 0; j < ndim; j++){
 			kpoint += (2.*combinations.row(i)(j) - n)/(2*n)*reciprocal_lattice.row(j);
 		}
@@ -188,17 +184,23 @@ void System::extractLatticeParameters(){
 	
 }
 
-arma::mat System::generate_combinations(int n, int ndim){
-	int ncombinations = pow(n, ndim);
+arma::mat System::generate_combinations(int nvalues, int ndim){
+	int ncombinations = pow(nvalues, ndim);
+	arma::vec ones = arma::ones(nvalues);
 	arma::mat combinations(ncombinations, ndim);
-	int it = 0;
-	for (int i = 0; i < n; i++){
-		for (int j = 0; j < n; j++){
-			for (int k = 0; k < n; k++){
-				combinations.row(it) = arma::rowvec{(float)i, (float)j, (float)k};
-			}
+	arma::vec auxvector;
+	arma::rowvec combination(ndim);
+	for(int n = 0; n < ndim; n++){
+		arma::vec values = arma::regspace(0, nvalues - 1);
+		for(int i = 0; i < ndim - n; i++){
+			arma::vec values = arma::kron(ones, values);
 		}
+		for(int j = 0; j < n; j++){
+			arma::vec values = arma::kron(values, ones);
+		}
+		combinations.col(n) = values;
 	}
+
 	return combinations;
 }
 
