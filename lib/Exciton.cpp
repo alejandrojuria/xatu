@@ -167,6 +167,8 @@ void Exciton::initializePotentialMatrix(){
     int nAtom = motif.n_rows;
     int dimRows = nAtom*nAtom;
     int dimCols = (2*Ncell+1);
+    cout << a << endl;
+    cout << c << endl;
 
     arma::mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
     //arma::vec potentialVector = arma::zeros<vec>(dimRows, 1);
@@ -174,14 +176,18 @@ void Exciton::initializePotentialMatrix(){
     mat cell = arma::zeros(2*Ncell + 1, 3);
     cell.col(1) = arma::regspace(0, 2*Ncell)*a;
 
-    vec ones = arma::zeros(nAtom, 1);
+    vec ones = arma::ones(nAtom, 1);
     arma::mat motif_combinations = arma::kron(motif, ones) - arma::kron(ones, motif);
+    cout << motif_combinations << endl;
 
     for(int i = 0; i < 2*Ncell + 1; i++){
         arma::mat position = arma::kron(cell.row(i), arma::ones(dimRows, 1)) - motif_combinations;
         vec pos_module = arma::sqrt(arma::diagvec(position*position.t()));
-        for(int j = 0; j < nAtom; j++){
+        for(int j = 0; j < dimRows; j++){
             potentialMat.col(i)(j) = potential(pos_module(j));
+            cout << pos_module(j) << endl;
+            cout << potential(pos_module(j)) << endl;
+            cout << "------" << endl;
         };
     };
 

@@ -19,20 +19,20 @@ class GExciton : System {
 
     //// Attributes
     private:
-        int nk;
         arma::mat eigvalKStack, eigvalKQStack;
         arma::cx_vec ftStack;
         std::map<int, int> bandToIndex;
-        arma::mat potentialMat;
+        
         double pairEnergy;
 
     public:
-        int Ncell, nbands, nrmbands, fermiLevel, basisdim, excitonbasisdim;
+        arma::mat potentialMat;
+        int Ncell, nk, nbands, nrmbands, fermiLevel, basisdim, excitonbasisdim;
         double filling;
         arma::vec bands;
         arma::vec valenceBands, conductionBands;
         arma::uvec bandList;
-        arma::vec Q;
+        arma::rowvec Q;
         arma::cx_mat HBS;
         arma::mat HK;
         arma::mat basisStates;
@@ -43,16 +43,21 @@ class GExciton : System {
     //// Methods
     // Constructor & Destructor
     public:
+        // Overload constructor:
+        // Specify number of bands participating (int)
         GExciton(std::string filename, int Ncell = 200, 
-                 double Q = 0, int nbands = 2, int nrmbands = 0, 
-                 arma::vec bands = {}, double filling = 0.5);
+                 const arma::rowvec& Q = {0., 0., 0.}, int nbands = 2, int nrmbands = 0, 
+                 double filling = 0.5);
+        // Specify which bands participate (vector with band numbers)
+        GExciton(std::string filename, int Ncell = 200, 
+                 double Q = 0, arma::vec bands = {}, double filling = 0.5);
         ~GExciton();
 
     private:
         // Methods for BSE matrix initialization
         void STVH0(double, double*);
         double potential(double);
-        std::complex<double> fourierTrans(arma::vec k);
+        std::complex<double> fourierTrans(arma::rowvec k);
         std::complex<double> tDirect(std::complex<double>,
                                      const arma::cx_vec&, 
                                      const arma::cx_vec&,
@@ -86,12 +91,13 @@ class GExciton : System {
 
     public:
         // Basis creation methods
-        arma::mat createBasis(int nbands, int nrmbands, const arma::vec& bands);
         void initializeBasis();
+        arma::mat createBasis(const arma::vec&, const arma::vec&);
+        arma::mat specifyBasisSubset(const arma::vec& bands);
         void createSOCBasis();
 
         // BSE initialization and energies
-        void BShamiltonian();
+        void BShamiltonian(const arma::mat& basis = {});
         arma::vec computeEnergies(const arma::cx_vec&);
 
         // Observables

@@ -24,10 +24,11 @@ class Exciton : public Zigzag{
         arma::cx_vec ftStack;
         std::map<int, int> bandToIndex;
         arma::uvec edgeV, edgeC;
-        arma::mat potentialMat;
+        
         double pairEnergy;
 
     public:
+        arma::mat potentialMat;
         int Ncell;
         double Q;
         int nBulkBands, nEdgeBands;

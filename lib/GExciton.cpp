@@ -11,8 +11,8 @@ using namespace std::chrono;
 
 
 // Constructor
-GExciton::GExciton(std::string filename, int Ncell, double Q, int nbands, 
-                   int nrmbands, arma::vec bands, double filling) : 
+GExciton::GExciton(std::string filename, int Ncell, const arma::rowvec& Q, 
+                   int nbands, int nrmbands, double filling) : 
           System(filename){
 
     // Constructor for GExciton class. If bands vector is given, it is used in all
@@ -30,12 +30,59 @@ GExciton::GExciton(std::string filename, int Ncell, double Q, int nbands,
     this->nbands = nbands;
     this->nrmbands = nrmbands;
     this->bands = bands;
+    this->excitonbasisdim = nk*(nbands - nrmbands)*(nbands - nrmbands);
 
-    this->kpoints = brillouin_zone_mesh(Ncell);
+    this->valenceBands = arma::regspace(fermiLevel - nbands + 1, fermiLevel - nrmbands);
+    this->conductionBands = arma::regspace(fermiLevel + nrmbands, fermiLevel + nbands - 1);
 
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
-    createMesh();
+    this->kpoints = brillouin_zone_mesh(Ncell);
+    
+    std::cout << "Initializing basis for BSE... " << std::flush;
+    initializeBasis();
+    generateBandDictionary();
+    std::cout << "Diagonalizing H0 for all k points... " << std::flush;
+    initializeResultsH0();
+    std::cout << "Calculating potential for all lattice positions... " << std::flush;
+    initializePotentialMatrix();
+    std::cout << "Correctly initialized Exciton object" << std::endl;
+};
+
+GExciton::GExciton(std::string filename, int Ncell, double Q, 
+                   arma::vec bands, double filling) : 
+          System(filename){
+
+    // Constructor for GExciton class. If bands vector is given, it is used in all
+    // calculations instead of parameters nbands, nrmbands.
+    // int Ncell: Number of unit cells along ONE direction.
+    
+    // Initialize basic attributes
+    this->Ncell = Ncell;
+    this->nk = pow(Ncell, ndim);
+    this->Q = Q;
+
+    this->filling = filling;
+    this->basisdim = norbitals*natoms;
+    this->fermiLevel = (int) (filling * basisdim);
+    this->bands = bands;
+    this->excitonbasisdim = nk*bands.n_elem;
+
+    std::vector<double> valence, conduction;
+    for(int i = 0; i < bands.n_elem; i++){
+        if (bands(i) <= 0){
+            valence.push_back(bands(i) + fermiLevel);
+        }
+        else{
+            conduction.push_back(bands(i) + fermiLevel);
+        }
+    }
+    this->valenceBands = arma::vec(valence);
+    this->conductionBands = arma::vec(conduction);
+
+    // Initialize derived attributes
+    std::cout << "Creating BZ mesh... " << std::flush;
+    this->kpoints = brillouin_zone_mesh(Ncell);
     std::cout << "Initializing basis for BSE... " << std::flush;
     initializeBasis();
     generateBandDictionary();
@@ -115,17 +162,17 @@ double GExciton::potential(double r){
 
 /* Calculate lattice Fourier transform of Keldsyh potential
    Input: double k, int Ncell. Output:  complex double. Vk */
-std::complex<double> GExciton::fourierTrans(arma::vec k){
-    std::complex<double> i(0,1);
+std::complex<double> GExciton::fourierTrans(arma::rowvec k){
+    std::complex<double> imag(0,1);
     std::complex<double> Vk = potential(0);
     arma::mat cell_list = generate_combinations(Ncell, ndim);
     for(int n = 0; n < cell_list.n_rows; n++){
-        arma::rowvec lattice_vector = arma::zeros(3);
+        arma::rowvec lattice_vector = arma::zeros<arma::rowvec>(3);
         for (int i = 0; i < ndim; i++){
             lattice_vector += cell_list.row(n)(i) * bravais_lattice.row(i);
         }
         double module = arma::norm(lattice_vector);
-        Vk += potential(module)*std::exp(i*arma::dot(k, lattice_vector));
+        Vk += potential(module)*std::exp(imag*arma::dot(k, lattice_vector));
     };
     return Vk;
 };
@@ -179,6 +226,9 @@ void GExciton::initializePotentialMatrix(){
     int dimRows = natoms*natoms;
     int dimCols = nk;
 
+    cout << a << endl;
+    cout << c << endl;
+
     arma::mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
     //arma::vec potentialVector = arma::zeros<vec>(dimRows, 1);
 
@@ -192,7 +242,7 @@ void GExciton::initializePotentialMatrix(){
         cells.row(n) = cell_vector;
     };
 
-    vec ones = arma::zeros(natoms, 1);
+    vec ones = arma::ones(natoms, 1);
     arma::mat motif_combinations = arma::kron(motif, ones) - arma::kron(ones, motif);
 
     for(int i = 0; i < nk; i++){
@@ -200,6 +250,9 @@ void GExciton::initializePotentialMatrix(){
         vec pos_module = arma::sqrt(arma::diagvec(position*position.t()));
         for(int j = 0; j < dimRows; j++){ // Aqui habia puesto solo un natoms -> MAL (?)
             potentialMat.col(i)(j) = potential(pos_module(j));
+            cout << pos_module(j) << endl;
+            cout << potential(pos_module(j)) << endl;
+            cout << "-----" << endl;
         };
     };
 
@@ -213,12 +266,12 @@ std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
                                      const arma::cx_vec& coefsK3, 
                                      const arma::cx_vec& coefsK4, 
                                      const arma::mat& kArray){
-                                        
+    
     cx_vec firstCoefArray = conj(coefsK1) % coefsK3;
     cx_vec secondCoefArray = conj(coefsK2) % coefsK4;
     cx_vec coefVector = arma::kron(secondCoefArray, firstCoefArray);
 
-    arma::vec k_diff = kArray.row(2) - kArray.row(0) + kArray.row(3) - kArray.row(1);
+    arma::rowvec k_diff = kArray.row(2) - kArray.row(0) + kArray.row(3) - kArray.row(1);
     std::complex<double> i(0,1);
     arma::mat cells_coefs = generate_combinations(Ncell, ndim);
     arma::mat cells = arma::zeros(cells_coefs.n_rows, 3);
@@ -244,48 +297,24 @@ std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
 /* Overloading createBasis method to work with class attributes instead of given ones
 */
 void GExciton::initializeBasis(){
-    this->basisStates = createBasis(nbands, nrmbands, bands);
+    this->basisStates = createBasis(conductionBands, valenceBands);
 };
 
 /* Initilise basis to be used in the construction of the BSE matrix.
    We consider only the latest valence band, and the first conduction band.
 */
-arma::mat GExciton::createBasis(int nbands, int nrmbands, const arma::vec& bands){
+arma::mat GExciton::createBasis(const arma::vec& conductionBands, 
+                                const arma::vec& valenceBands){
 
-    arma::mat states;
-
-    if (bands.is_empty()){
-        excitonbasisdim = nk*(nbands - nrmbands)*(nbands - nrmbands);
-        states = arma::zeros(excitonbasisdim, 3);
-
-        valenceBands = arma::regspace(fermiLevel - nbands, fermiLevel - nrmbands);
-        conductionBands = arma::regspace(fermiLevel + nrmbands, fermiLevel + nbands);
-    }
-    else{
-        std::cout << "Using given bands vector" << endl;
-        excitonbasisdim = nk*bands.n_elem;
-        states = arma::zeros(excitonbasisdim, 3);
-        std::vector<double> valence, conduction;
-        for(int i = 0; i < bands.n_elem; i++){
-            if (bands(i) <= 0){
-                valence.push_back(bands(i));
-            }
-            else{
-                conduction.push_back(bands(i));
-            }
-        }
-        valenceBands = arma::vec(valence);
-        conductionBands = arma::vec(conduction);
-    }
-
+    arma::mat states = arma::zeros(excitonbasisdim, 3);
     int it = 0;
     for (int i = 0; i < nk; i++){
         for (int k = 0; k < (int)conductionBands.n_elem; k++){
             for (int j = 0; j < (int)valenceBands.n_elem; j++){
-            
-                arma::mat state = { (double)valenceBands(j), (double)conductionBands(k), (double)i};
-                states.row(it) = state;
 
+                arma::mat state = { (double)valenceBands(j), (double)conductionBands(k), 
+                                    (double)i };
+                states.row(it) = state;
                 it++;
             };
         };
@@ -297,17 +326,50 @@ arma::mat GExciton::createBasis(int nbands, int nrmbands, const arma::vec& bands
     return states;
 };
 
+/* Method to generate a basis which is a subset of the basis considered for the
+exciton. Its main purpose is to allow computation of Fermi golden rule between
+two specified subbasis. */
+arma::mat GExciton::specifyBasisSubset(const arma::vec& bands){
+
+    // Check if given bands vector corresponds to subset of bands
+    try{
+        for (const auto& band : bands){
+            for (const auto& reference_band : bandList){
+                if ((band + fermiLevel - reference_band) == 0) {
+                    continue;
+                }
+            }
+            throw "Error: Given band list must be a subset of the exciton one"; 
+        };
+    }
+    catch (std::string e){
+        std::cerr << e;
+    };
+
+    int reducedBasisDim = nk*bands.n_elem;
+    std::vector<double> valence, conduction;
+    for(int i = 0; i < bands.n_elem; i++){
+        if (bands(i) <= 0){
+            valence.push_back(bands(i) + fermiLevel);
+        }
+        else{
+            conduction.push_back(bands(i) + fermiLevel);
+        }
+    }
+    arma::vec valenceBands = arma::vec(valence);
+    arma::vec conductionBands = arma::vec(conduction);
+
+    arma::mat states = createBasis(conductionBands, valenceBands);
+
+    return states;
+}
+
 
 /* Compute the basis elements for the spinful exciton problem. Reorders basis
 in blocks of defined spin (so that they are diagonal for later calculation of eigenstates of BSE)
 Generates only basis for bulk excitons.
-This routine does not work with vec bands (for now) */
+This routine does not work with vec bands (for now) -> Now it works? (overloading constructors) */
 void GExciton::createSOCBasis(){
-
-    vec valenceBands = arma::regspace(fermiLevel - nbands, fermiLevel - nrmbands);
-    vec conductionBands = arma::regspace(fermiLevel + nrmbands, fermiLevel + nbands);
-
-    int excitonbasisdim = nk*(nbands - nrmbands)*(nbands - nrmbands);
 
     arma::mat states = arma::zeros(excitonbasisdim, 3);
 
@@ -436,7 +498,7 @@ void GExciton::initializeResultsH0(){
         eigvalKStack.col(i) = auxEigVal(bandList);
         eigvecKStack.slice(i) = auxEigvec.cols(bandList);
 
-        if(arma::norm(Q) == 0){
+        if(arma::norm(Q) != 0){
             h = hamiltonian(kpoints.row(i) + Q);
             arma::eig_sym(auxEigVal, auxEigvec, h);
 
@@ -477,11 +539,17 @@ calculation.
 Input: int N (cells finite direction), vec states, int Ncells (periodic 
 direction), int nEdgeStates. Output: None (updates previously declared matrices) 
 BEWARE: Does not work for Q < 0 (Expected to use reflection symmetry)*/
-void GExciton::BShamiltonian(){
+void GExciton::BShamiltonian(const arma::mat& basis){
 
     std::cout << "Initializing Bethe-Salpeter matrix... " << std::flush;
 
+    arma::mat basisStates = this->basisStates;
+    if (!basis.is_empty()){
+        basisStates = basis;
+    };
+
     int basisDimBSE = basisStates.n_rows;
+    cout << basisDimBSE << endl;
 
     HBS = arma::zeros<cx_mat>(basisDimBSE, basisDimBSE);
     HK  = arma::zeros<mat>(basisDimBSE, basisDimBSE);
@@ -490,7 +558,7 @@ void GExciton::BShamiltonian(){
     std::complex<double> ftX = fourierTrans(Q);
     double threshold = 1E-10;
 
-    #pragma omp parallel for schedule(static, 1) collapse(2)
+    //#pragma omp parallel for schedule(static, 1) collapse(2)
     for (int i = 0; i < basisDimBSE; i++){
         //cout << "Iteration: " << i << "/" << basisDimBSE << endl; 
         for (int j = 0; j < basisDimBSE; j++){
@@ -778,8 +846,8 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
 {
 
     double transitionRate = 0;
-    mat bulkBasis = createBasis(nbands, nrmbands, bands={});
-    mat edgeBasis = createBasis(nrmbands, nbands, bands={});
+    mat bulkBasis = specifyBasisSubset(bands={});
+    mat edgeBasis = specifyBasisSubset(bands={});
     int nedge = edgeBasis.n_rows;
     int nbulk = bulkBasis.n_rows;
     int nBulkBands = nbands - nrmbands;
@@ -899,7 +967,7 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
     mat edgeBands = eigvalKStack.rows(bands);
 
     double delta = 2.4/(2*Ncell); // Adjust delta depending on number of k points
-    double rho = pairDensityOfStates(pairEnergy, delta);
+    double rho = pairDensityOfStates(valenceBands, conductionBands, pairEnergy, delta);
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
     //cout << initialCoefs << endl;

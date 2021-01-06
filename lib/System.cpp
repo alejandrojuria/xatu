@@ -179,9 +179,17 @@ void System::extractLatticeParameters(){
 	catch (std::string e){
 			std::cerr << e;
 	}
-	double a = arma::norm(bravais_lattice.row(0));
-	double c = abs(motif.row(0)(2) - motif.row(1)(2));
-	
+	this->a = arma::norm(bravais_lattice.row(0));
+
+	double reference_height = motif.row(0)(2);
+	double c = 0;
+	for (int i = 0; i < motif.n_rows; i++){
+		double diff = abs(motif.row(i)(2) - reference_height);
+		if (diff > c){
+			c = diff;
+		}
+	}
+	this->c = c;
 }
 
 arma::mat System::generate_combinations(int nvalues, int ndim){
@@ -275,28 +283,28 @@ arma::mat System::generate_combinations(int nvalues, int ndim){
 // };
 
 
-// /* Definition of non-interacting retarded Green function */
-// std::complex<double> System::rGreenF(double energy, double delta, double eigEn){
+/* Definition of non-interacting retarded Green function */
+std::complex<double> System::rGreenF(double energy, double delta, double eigEn){
 
-// 	std::complex<double> i(0,1);
-// 	return 1./((energy + i*delta) - eigEn);
-// };
+	std::complex<double> i(0,1);
+	return 1./((energy + i*delta) - eigEn);
+};
 
 // /* Routine to calcule the density of states at a given energy,
 // associated to a given set of eigenvalues (e.g. bulk or edge).
 // NB: It is NOT normalized. */
 // double System::densityOfStates(double energy, double delta, const mat& energies){
 
-// 		double dos = 0;
-// 		for(int i = 0; i < (int)energies.n_rows; i++){
-// 			for(int j = 0; j < (int)energies.n_cols; j++){
-// 				double eigEn = energies(i,j);
-// 				dos += -PI*imag(rGreenF(energy, delta, eigEn));
-// 			};
-// 		};
-// 		dos /= energies.n_cols*a; // Divide by number of k's and length a
+//  	double dos = 0;
+//  	for(int i = 0; i < (int)energies.n_rows; i++){
+//  		for(int j = 0; j < (int)energies.n_cols; j++){
+//  			double eigEn = energies(i,j);
+//  			dos += -PI*imag(rGreenF(energy, delta, eigEn));
+//  		};
+//  	};
+//  	dos /= energies.n_cols*a; // Divide by number of k's and length a
 
-// 		return dos;
+//  	return dos;
 // }
 
 // /* Routine to calculate and write the density of states associated 
