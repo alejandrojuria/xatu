@@ -25,15 +25,21 @@ GExciton::GExciton(std::string filename, int Ncell, const arma::rowvec& Q,
     this->Q = Q;
 
     this->filling = filling;
+    cout << filling << endl;
+    cout << natoms << endl;
     this->basisdim = norbitals*natoms;
-    this->fermiLevel = (int) (filling * basisdim);
+    cout << basisdim << endl;
+    this->fermiLevel = (int) (filling * basisdim) - 1; // -1 to account for start at zero
+    cout << fermiLevel << endl;
     this->nbands = nbands;
     this->nrmbands = nrmbands;
     this->bands = bands;
     this->excitonbasisdim = nk*(nbands - nrmbands)*(nbands - nrmbands);
 
     this->valenceBands = arma::regspace(fermiLevel - nbands + 1, fermiLevel - nrmbands);
-    this->conductionBands = arma::regspace(fermiLevel + nrmbands, fermiLevel + nbands - 1);
+    this->conductionBands = arma::regspace(fermiLevel + 1 + nrmbands, fermiLevel + nbands);
+    cout << valenceBands << endl;
+    cout << conductionBands << endl;
 
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
@@ -223,11 +229,8 @@ std::complex<double> GExciton::tExchange(std::complex<double> VQ,
 
 void GExciton::initializePotentialMatrix(){
 
-    int dimRows = natoms*natoms;
+    int dimRows = natoms*natoms*norbitals*norbitals;
     int dimCols = nk;
-
-    cout << a << endl;
-    cout << c << endl;
 
     arma::mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
     //arma::vec potentialVector = arma::zeros<vec>(dimRows, 1);
@@ -242,7 +245,8 @@ void GExciton::initializePotentialMatrix(){
         cells.row(n) = cell_vector;
     };
 
-    vec ones = arma::ones(natoms, 1);
+    vec ones = arma::ones(natoms*norbitals, 1);
+    arma::mat motif = arma::kron(this->motif, arma::ones(norbitals, 1));
     arma::mat motif_combinations = arma::kron(motif, ones) - arma::kron(ones, motif);
 
     for(int i = 0; i < nk; i++){
@@ -250,14 +254,11 @@ void GExciton::initializePotentialMatrix(){
         vec pos_module = arma::sqrt(arma::diagvec(position*position.t()));
         for(int j = 0; j < dimRows; j++){ // Aqui habia puesto solo un natoms -> MAL (?)
             potentialMat.col(i)(j) = potential(pos_module(j));
-            cout << pos_module(j) << endl;
-            cout << potential(pos_module(j)) << endl;
-            cout << "-----" << endl;
         };
     };
 
     cout << "Potential matrix computed" << endl;
-    this->potentialMat = arma::kron(potentialMat, arma::ones(norbitals*norbitals, 1));
+    this->potentialMat = potentialMat;
 };
 
 /* Exact implementation of interaction term, valid for both direct and exchange */
@@ -265,14 +266,14 @@ std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
                                      const arma::cx_vec& coefsK2,
                                      const arma::cx_vec& coefsK3, 
                                      const arma::cx_vec& coefsK4, 
-                                     const arma::mat& kArray){
+                                     const arma::rowvec& k){
     
     cx_vec firstCoefArray = conj(coefsK1) % coefsK3;
     cx_vec secondCoefArray = conj(coefsK2) % coefsK4;
     cx_vec coefVector = arma::kron(secondCoefArray, firstCoefArray);
 
-    arma::rowvec k_diff = kArray.row(2) - kArray.row(0) + kArray.row(3) - kArray.row(1);
     std::complex<double> i(0,1);
+
     arma::mat cells_coefs = generate_combinations(Ncell, ndim);
     arma::mat cells = arma::zeros(cells_coefs.n_rows, 3);
     for (int n = 0; n < cells.n_rows; n++){
@@ -284,7 +285,7 @@ std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
     };
     cx_vec expArray = arma::zeros<cx_vec>(cells.n_rows);
     for (int n = 0; n < cells.n_rows; n++){
-        expArray(n) = std::exp(i*arma::dot(k_diff, cells.row(n)));
+        expArray(n) = std::exp(i*arma::dot(k, cells.row(n)));
     }
 
     cx_vec result = potentialMat.st()*coefVector;
@@ -586,18 +587,12 @@ void GExciton::BShamiltonian(const arma::mat& basis){
 
             //std::complex<double> D = tDirect(ftD, coefsK, coefsKQ, coefsK2, coefsK2Q);
             //std::complex<double> X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
-            mat kArrayD = arma::zeros(4, 3);
-            mat kArrayX = arma::zeros(4, 3);
-            kArrayD.row(0) = kpoints.row(k_index) + Q;
-            kArrayD.row(1) = kpoints.row(k2_index);
-            kArrayD.row(2) = kpoints.row(k2_index) + Q;
-            kArrayD.row(3) = kpoints.row(k_index);
-            kArrayX.row(0) = kpoints.row(k_index) + Q;
-            kArrayX.row(1) = kpoints.row(k2_index);
-            kArrayX.row(2) = kpoints.row(k_index);
-            kArrayX.row(3) = kpoints.row(k2_index) + Q;
-            std::complex<double> D = exactInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, kArrayD);
-            std::complex<double> X = exactInteractionTerm(coefsKQ, coefsK2, coefsK, coefsK2Q, kArrayX);
+            arma::rowvec kD = kpoints.row(k2_index) - kpoints.row(k_index);
+            std::complex<double> D = exactInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, kD);
+            std::complex<double> X = exactInteractionTerm(coefsKQ, coefsK2, coefsK, coefsK2Q, Q);
+            cout << "D" << D << endl;
+            cout << "X" << X << endl;
+
 
             if(abs(D) < threshold && abs(X) < threshold && i != j){
                 continue;
@@ -614,6 +609,11 @@ void GExciton::BShamiltonian(const arma::mat& basis){
         };
     };
     //HBS = HBS + HBS.t();
+    cout << "Norm:" << arma::norm(HBS) << endl;
+    cout << "Norm:" << arma::norm(HBS - HBS.t()) << endl;
+    cout << HBS << endl;
+    cout << "HK" << endl;
+    cout << HK << endl;
     std::cout << "Done" << std::endl;
 
     this->HBS = HBS;

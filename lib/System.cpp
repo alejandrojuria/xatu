@@ -189,6 +189,9 @@ void System::extractLatticeParameters(){
 			c = diff;
 		}
 	}
+	if (c == 0){
+		c = 1;
+	}
 	this->c = c;
 }
 

@@ -72,7 +72,7 @@ class GExciton : System {
                                  const arma::cx_vec&,
                                  const arma::cx_vec&, 
                                  const arma::cx_vec&,
-                                 const arma::mat&);
+                                 const arma::rowvec&);
 
         // Initializers
         void initializeResultsH0();
