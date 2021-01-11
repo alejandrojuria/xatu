@@ -22,6 +22,7 @@ class GExciton : System {
         arma::mat eigvalKStack, eigvalKQStack;
         arma::cx_vec ftStack;
         std::map<int, int> bandToIndex;
+        bool useApproximation;
         
         double pairEnergy;
 
@@ -47,10 +48,11 @@ class GExciton : System {
         // Specify number of bands participating (int)
         GExciton(std::string filename, int Ncell = 200, 
                  const arma::rowvec& Q = {0., 0., 0.}, int nbands = 2, int nrmbands = 0, 
-                 double filling = 0.5);
+                 double filling = 0.5, bool useApproximation = false);
         // Specify which bands participate (vector with band numbers)
         GExciton(std::string filename, int Ncell = 200, 
-                 double Q = 0, arma::vec bands = {}, double filling = 0.5);
+                 double Q = 0, arma::vec bands = {}, double filling = 0.5, 
+                 bool useApproximation = false);
         ~GExciton();
 
     private:
