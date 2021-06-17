@@ -102,7 +102,7 @@ int main(){
         fprintf(textfile, "%d\t%.10e\n", N, transitionRate);
 
         cout << "Right-left" << endl;
-        exciton = Exciton(N, Ncell, Q, nBulkBands, nEdgeBands, vec{1, 0});
+        exciton = GExciton(N, Ncell, Q, nBulkBands, nEdgeBands, vec{1, 0});
         transitionRate = exciton.fermiGoldenRule(initialCoefs, initialEnergy);
 
         cout << "Done" << endl;

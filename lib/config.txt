@@ -1,0 +1,6 @@
+# Name
+afafaf
+# Dimension
+2
+ # Atoms
+1 1 1

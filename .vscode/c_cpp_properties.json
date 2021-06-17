@@ -2,11 +2,7 @@
     "configurations": [
         {
             "name": "Linux",
-<<<<<<< Updated upstream
-            "includePath": ["/usr/local/lib/armadillo-9.800.2/include"],
-=======
-            "includePath": ["/usr/local/lib/armadillo-9.800.2/include", "/home/alejandro/+Doctorado/Research/topological-excitons/lib"],
->>>>>>> Stashed changes
+            "includePath": ["/usr/local/lib/armadillo-9.800.2/include", "/home/alejandro/+Doctorado/1.Research/topological-excitons/lib"],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",

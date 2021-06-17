@@ -32,7 +32,7 @@ Exciton::Exciton(int N, int Ncell, double Q, int nBulkBands, int nEdgeBands, vec
     std::cout << "Diagonalizing H0 for all k points... " << std::flush;
     initializeResultsH0();
     std::cout << "Calculating potential for all lattice positions... " << std::flush;
-    initializePotentialMatrix();
+    //initializePotentialMatrix();
     std::cout << "Correctly initialized Exciton object" << std::endl;
 };
 
@@ -94,7 +94,7 @@ double Exciton::potential(double r){
 
     if(r == 0){
         STVH0(a/r0, &SH0);
-        return ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(a));
+        return ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(a/r0));
         //return 0.0;
     }
     else{
@@ -111,8 +111,11 @@ std::complex<double> Exciton::fourierTrans(double k){
     std::complex<double> i(0,1);
     std::complex<double> Vk = potential(0);
     for(int n = 0; n < Ncell; n++){
-        Vk += 2*potential((n+1) * a)*cos(k * (double)(n+1)*a);
+        //for(int m = 0; m < 2*Ncell + 1; m++){
+            Vk += 2*potential((n+1) * a)*cos(k * (double)(n+1)*a);
+        //};
     };
+    //potential((n-m) * a)*exp(i*(k * (double)(n-m)*a))
     //potential((n+1) * a)*std::exp(i*k*(double)(n+1)*a)
     //2*potential((n+1) * a)*cos(k * (double)(n+1)*a)
     return Vk;
@@ -125,7 +128,7 @@ std::complex<double> Exciton::tDirect(std::complex<double> Vk,
                              const arma::cx_vec& coefsK2Q)
                              {
     
-    std::complex<double> D = 1./(2*Ncell + 1);
+    std::complex<double> D = 1./pow(2*Ncell + 1, 1);
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK2Q);
     cx_double I_second_pair = arma::cdot(coefsK2, coefsK);
 
@@ -147,7 +150,7 @@ std::complex<double> Exciton::tExchange(std::complex<double> VQ,
                                const arma::cx_vec& coefsK2Q)
                                {
     
-    std::complex<double> X = 1./(2*Ncell + 1);
+    std::complex<double> X = 1./pow(2*Ncell + 1, 1);
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK);
     cx_double I_second_pair = arma::cdot(coefsK2, coefsK2Q);
 
@@ -167,8 +170,7 @@ void Exciton::initializePotentialMatrix(){
     int nAtom = motif.n_rows;
     int dimRows = nAtom*nAtom;
     int dimCols = (2*Ncell+1);
-    cout << a << endl;
-    cout << c << endl;
+
 
     arma::mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
     //arma::vec potentialVector = arma::zeros<vec>(dimRows, 1);
@@ -178,16 +180,12 @@ void Exciton::initializePotentialMatrix(){
 
     vec ones = arma::ones(nAtom, 1);
     arma::mat motif_combinations = arma::kron(motif, ones) - arma::kron(ones, motif);
-    cout << motif_combinations << endl;
 
     for(int i = 0; i < 2*Ncell + 1; i++){
         arma::mat position = arma::kron(cell.row(i), arma::ones(dimRows, 1)) - motif_combinations;
         vec pos_module = arma::sqrt(arma::diagvec(position*position.t()));
         for(int j = 0; j < dimRows; j++){
             potentialMat.col(i)(j) = potential(pos_module(j));
-            cout << pos_module(j) << endl;
-            cout << potential(pos_module(j)) << endl;
-            cout << "------" << endl;
         };
     };
 
@@ -499,7 +497,7 @@ void Exciton::initializeResultsH0(){
         // The FT is calculated for vec kpoints starting in zero ALWAYS
         ftStack(i) = fourierTrans(kpoints(i) - kpoints(0));
     };
-    ftStack(0) = 0.0;
+    //ftStack(0) = 0.0;
 
     // !!!!!!!!!!! Routines have to be fixed
     //cx_cube atomicGCoefsKstack = atomicGCoefs(eigvecKStack, motif, kpoints, N); // Needs to be fixed 
@@ -529,6 +527,7 @@ BEWARE: Does not work for Q < 0 (Expected to use reflection symmetry)*/
 void Exciton::BShamiltonian(){
 
     std::cout << "Initializing Bethe-Salpeter matrix... " << std::flush;
+    cout << ftStack << endl;
 
     int basisDimBSE = basisStates.n_rows;
 
@@ -567,12 +566,12 @@ void Exciton::BShamiltonian(){
             int kk2_index = abs(k2_index - k_index); // Always positive
             std::complex<double> ftD = ftStack(kk2_index);
 
-            //std::complex<double> D = tDirect(ftD, coefsK, coefsKQ, coefsK2, coefsK2Q);
-            //std::complex<double> X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
-            vec kArrayD = {k+Q, k2, k2+Q, k};
-            vec kArrayX = {k+Q, k2, k, k2+Q};
-            std::complex<double> D = exactInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, kArrayD);
-            std::complex<double> X = exactInteractionTerm(coefsKQ, coefsK2, coefsK, coefsK2Q, kArrayX);
+            std::complex<double> D = tDirect(ftD, coefsK, coefsKQ, coefsK2, coefsK2Q);
+            std::complex<double> X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
+            //vec kArrayD = {k+Q, k2, k2+Q, k};
+            //vec kArrayX = {k+Q, k2, k, k2+Q};
+            //std::complex<double> D = exactInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, kArrayD);
+            //std::complex<double> X = exactInteractionTerm(coefsKQ, coefsK2, coefsK, coefsK2Q, kArrayX);
 
             if(abs(D) < threshold && abs(X) < threshold && i != j){
                 continue;

@@ -15,20 +15,19 @@
 
 
 // Routines to initialize BSE elements
-class GExciton : System {
+class GExciton : public System {
 
     //// Attributes
     private:
         arma::mat eigvalKStack, eigvalKQStack;
-        arma::cx_vec ftStack;
-        std::map<int, int> bandToIndex;
+        arma::cx_mat ftStack;
         bool useApproximation;
         
         double pairEnergy;
 
     public:
         arma::mat potentialMat;
-        int Ncell, nk, nbands, nrmbands, fermiLevel, basisdim, excitonbasisdim;
+        int Ncell, totalCells, nk, nbands, nrmbands, fermiLevel, basisdim, excitonbasisdim;
         double filling;
         arma::vec bands;
         arma::vec valenceBands, conductionBands;
@@ -38,6 +37,8 @@ class GExciton : System {
         arma::mat HK;
         arma::mat basisStates;
         arma::mat kpoints;
+        std::complex<double> ftX;
+        std::map<int, int> bandToIndex;
         
         arma::cx_cube eigvecKStack, eigvecKQStack;
 
@@ -48,18 +49,21 @@ class GExciton : System {
         // Specify number of bands participating (int)
         GExciton(std::string filename, int Ncell = 200, 
                  const arma::rowvec& Q = {0., 0., 0.}, int nbands = 2, int nrmbands = 0, 
-                 double filling = 0.5, bool useApproximation = false);
+                 double filling = 0.5, bool useApproximation = false, bool storeAllVectors = false);
         // Specify which bands participate (vector with band numbers)
-        GExciton(std::string filename, int Ncell = 200, 
+        GExciton(std::string filename, std::string overlapfile = "", int Ncell = 200, 
+                 const arma::rowvec& Q = {0., 0., 0.}, int nbands = 2, int nrmbands = 0, 
+                 double filling = 0.5, bool useApproximation = false, bool storeAllVectors = false);
+        GExciton(std::string filename, std::string overlapfile = "", int Ncell = 200, 
                  double Q = 0, arma::vec bands = {}, double filling = 0.5, 
-                 bool useApproximation = false);
+                 bool useApproximation = false, bool storeAllVectors = false);
         ~GExciton();
 
     private:
         // Methods for BSE matrix initialization
         void STVH0(double, double*);
         double potential(double);
-        std::complex<double> fourierTrans(arma::rowvec k);
+        std::complex<double> fourierTrans(arma::rowvec k, const arma::mat&, bool useApproximation = true);
         std::complex<double> tDirect(std::complex<double>,
                                      const arma::cx_vec&, 
                                      const arma::cx_vec&,
@@ -77,7 +81,7 @@ class GExciton : System {
                                  const arma::rowvec&);
 
         // Initializers
-        void initializeResultsH0();
+        void initializeResultsH0(bool storeAllVectors = false);
         void initializePotentialMatrix();
 
         // Utilities
@@ -97,6 +101,9 @@ class GExciton : System {
         arma::mat createBasis(const arma::vec&, const arma::vec&);
         arma::mat specifyBasisSubset(const arma::vec& bands);
         void createSOCBasis();
+
+        // Public access to init. methods
+        void reinitializeInternals();
 
         // BSE initialization and energies
         void BShamiltonian(const arma::mat& basis = {});

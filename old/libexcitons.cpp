@@ -739,7 +739,6 @@ cx_vec spinX(const cx_vec& coefs,
     vec valence = arma::regspace(2*(N+1)*5 - 3 - nbands + 1, 2*(N+1)*5 - 3);
     vec conduction = arma::regspace(2*(N+1)*5 + 2, 2*(N+1)*5 + 2 + nbands - 1);
 
-<<<<<<< Updated upstream:old/libexcitons.cpp
     arma::cx_mat spinHole = arma::zeros<arma::cx_mat>(dimX, dimX);
     arma::cx_mat spinElectron = arma::zeros<arma::cx_mat>(dimX, dimX);
 
@@ -776,54 +775,6 @@ cx_vec spinX(const cx_vec& coefs,
     totalSpin = real((holeSpin + electronSpin));
     
     cx_vec results = {holeSpin, electronSpin, totalSpin};
-=======
-        int v = basis(n,0);
-        int c = basis(n,1);
-        double k = basis(n,2);
-        int kIndex = determineKIndex(k, kpoints);
-
-        for(int m = 0; m < (int)basis.n_rows; m++){
-
-            int v2 = basis(m,0);
-            int c2 = basis(m,1);
-            double k2 = basis(m,2);
-            int kIndex2 = determineKIndex(k2, kpoints);
-
-            coefEx = conj(coefs(m))*coefs(n); // BSE coef. squared
-
-            // First valence band (hole) spin
-            eigvec = eigvecKStack.slice(kIndex).col(v);
-            eigvec2 = eigvecKStack.slice(kIndex2).col(v2);
-            spinEigvec = eigvec % spinVector;
-
-            if(k == k2 && c == c2){
-                holeSpin -= coefEx*arma::cdot(eigvec2, spinEigvec);
-            }
-            else{
-                holeSpin -= 0;
-            };
-            //cout << "Valence band: " << v << endl;
-            //cout << arma::cdot(eigvec, spinEigvec) << "\n" << endl;
-
-            // Repeat for conduction electron
-            eigvec = eigvecKQStack.slice(kIndex).col(c);
-            eigvec2 = eigvecKQStack.slice(kIndex2).col(c2);
-            spinEigvec = eigvec % spinVector;
-            //cout << "Conduction band: " << c << endl;
-            //cout << arma::cdot(eigvec, spinEigvec) << "\n" << endl;
-
-            if(k == k2 && v == v2){
-                electronSpin += coefEx*arma::cdot(eigvec2, spinEigvec);
-            }
-            else{
-                electronSpin += 0;
-            };
-        } 
-    }
-    totalSpin += (abs(holeSpin) + abs(electronSpin));
-    
-    vec results = {abs(holeSpin), abs(electronSpin), totalSpin};
->>>>>>> Stashed changes:lib/libexcitons.cpp
     return results;
 };
 

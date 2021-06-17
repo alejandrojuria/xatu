@@ -26,19 +26,20 @@ int main(){
     //int N = 15;
     int nBulkBands = 2;
     int nEdgeBands = 0;
-    vec NArray = {15};
+    int N = 5;
     //NcellArray = arma::join_cols(NcellArray, arma::regspace(80, 20, 200));
-    double Q = 0.0;
+    Zigzag ribbon = Zigzag(N);
+    vec QArray = {0.0};
 
     // ----------------- Model parameters & Output --------------------
 
-    std::string filename = "exciton_convergence_ribbon_width_2bands";
+    std::string filename = "exciton_spectrum_exact";
     FILE* textfile = fopen(filename.c_str(), "w");
     bool writeEigvals = true;
 
-    std::string filename_wf = "exciton_bulk_wf";
+    std::string filename_wf = "exciton_bulk_wf_N15";
     FILE* textfile_wf = fopen(filename_wf.c_str(), "w");
-    bool printWF = true;
+    bool printWF = false;
 
     bool calculateSpin = false;
     std::string filename_spin = "exciton_bulk_spin_6b_z1em7";
@@ -48,21 +49,26 @@ int main(){
     // ----------------------- Main body -----------------------
 
     fprintf(textfile, "#k points\tTotal energy\tTB energy\tV energy (eV)\n");
-    for(int n = 0; n < (int)NArray.n_elem; n++){
-        int Ncell = 200;
-        int nk = 2*Ncell - 1;
-        int N = NArray(n);
+    for(int n = 0; n < (int)QArray.n_elem; n++){
+        int Ncell = 1;
+        int nk = 2*Ncell + 1;
+        double Q = QArray(n);
         cx_mat eigvecX;
         vec eigvalX;
 
-        cout << "#######################################################" << endl;
-        cout << "#--------------------- Parameters ---------------------" << endl;
+        cout << "##############################################################################" << endl;
+        cout << "--------------------------------- Parameters ---------------------------------" << endl;
         cout << "N. cells: " << Ncell << endl;
+        cout << "N: " << N << endl;
         cout << "nk = " << nk << endl;
         cout << "#bulk bands: " << nBulkBands << endl;
         cout << "#edge bands: " << nEdgeBands << "\n" << endl;
 
         Exciton bulkExciton = Exciton(N, Ncell, Q, nBulkBands, nEdgeBands);
+        cout << "Valence bands:" << bulkExciton.valenceBands << endl;
+        cout << "Conduction bands:" << bulkExciton.conductionBands << endl;
+        //cout << bulkExciton.kpoints << endl;
+        //cout << bulkExciton.potentialMat << endl;
         bulkExciton.BShamiltonian();
         arma::eig_sym(eigvalX, eigvecX, bulkExciton.HBS);
 
@@ -76,13 +82,18 @@ int main(){
 
         if(writeEigvals){
             //writeEigenvaluesToFile(textfile, eigvalX, Q);
-            fprintf(textfile, "%d\t%12.9lf\n", N, eigvalX(0));
+            fprintf(textfile, "%10.7lf\t", Q);
+            for(int i = 0; i < eigvalX.n_elem; i++){
+                fprintf(textfile, "%10.7lf\t", eigvalX(i));
+            }
+            fprintf(textfile, "\n");
         };
 
         //cx_mat states = bulkExciton.fixDegeneracy(eigvecX.col(0), eigvecX.col(1), 20);
         //cx_vec state = states.col(0);
 
         if(printWF){
+            fprintf(textfile_wf, "%d\n", N);
             cx_vec state = eigvecX.col(0);
             int nbands = bulkExciton.nBulkBands + bulkExciton.nEdgeBands;
             int nbands2 = nbands*nbands;
@@ -95,7 +106,7 @@ int main(){
                 coef /= (bulkExciton.kpoints(1) - bulkExciton.kpoints(0)); // L2 norm instead of l2
                 fprintf(textfile_wf, "%11.8lf\t%11.8lf\n", bulkExciton.kpoints(i), coef);
             };
-            //fprintf(textfile_wf, "#\n");
+            fprintf(textfile_wf, "#\n");
         };
 
         cx_vec spin;

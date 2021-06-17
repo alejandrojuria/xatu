@@ -42,7 +42,7 @@ void Zigzag::initializeConstants(){
 	Vppp = -0.600;
 
 	// Spin-orbit coupling 
-	lambda = 1.5;
+	lambda = 0.0;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
 	zeeman = 1E-7;

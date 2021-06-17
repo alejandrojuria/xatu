@@ -8,6 +8,8 @@
 #include <chrono>
 
 #include "Zigzag.hpp"
+#include "Exciton.hpp"
+
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -26,9 +28,9 @@ int main(){
 
 	std::string filename_wf = "bands_TB_wavefunction";
     FILE* textfile_wf = fopen(filename_wf.c_str(), "w");
-	bool writeTBwf = true;
+	bool writeTBwf = false;
 
-	std::string filename = "bands_N4_k2001";
+	std::string filename = "bands_N5_k401";
 	FILE* textfile = fopen(filename.c_str(), "w");
 	bool writeBands = true;
 
@@ -46,7 +48,7 @@ int main(){
 
 	std::string filename_spin = "bands_spin_4bands";
 	FILE* textfile_spin = fopen(filename_spin.c_str(), "w");
-	bool writeSpin = true;
+	bool writeSpin = false;
 
 	std::string filename_dos = "bands_dos_bulk";
 	FILE* textfile_dos = fopen(filename_dos.c_str(), "w");
@@ -54,13 +56,13 @@ int main(){
 
 	// ------------------------ Initialization ------------------------
 
-    int N = 15;
+    int N = 5;
     Zigzag system = Zigzag(N);
 
-	int Ncell = 300;
+	int Ncell = 500;
     int nk = 2*Ncell; // Avoid k=PI/a for edge stats
 	//double zeeCenter = 0.693268 - PI/a;
-	vec kpoints = arma::linspace(0, 2*PI/system.a, nk);
+	vec kpoints = arma::linspace(-PI/system.a, PI/system.a, nk);
 	int Qindex = 0;
 	double Q = 0.0;
 

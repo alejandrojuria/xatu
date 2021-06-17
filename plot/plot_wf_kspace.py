@@ -5,22 +5,25 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
-file = open("exciton_bulk_wf", "r")
+file = open("bi_ribbon_kwf_approx_N40", "r")
+file.readline() # Skip header
 lines = file.readlines()
 kpoints = []
 coefs = []
 for n, line in enumerate(lines):
+    if line == "#\n":
+        continue
     line = line.split('\t')
-    kpoints.append(float(line[0]))
-    coefs.append(float(line[1]))
+    print(line)
+    kpoints.append(float(line[1]))
+    coefs.append(float(line[3]))
 
 file.close()
-print(coefs)
 
 width = 2*math.pi/((n+1)*4.5332)
 plt.bar(kpoints, coefs, width, align='center', color="blue")
 
-plt.title('First exciton wavefunction in k-space (Ncell = 500)')
+plt.title('First exciton wavefunction in k-space (Ncell = 30)')
 plt.ylabel('$|A(k)|^2$', fontsize=15)
 plt.xlabel('$k (A^{-1})$', fontsize=15)
 plt.axis('tight')

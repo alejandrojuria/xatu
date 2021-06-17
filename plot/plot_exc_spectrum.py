@@ -5,7 +5,7 @@ import numpy as np
 
 N = 15
 
-file = open("spectrum_edge_nQ20_both_nk800", "r")
+file = open("exciton_spectrum_exact", "r")
 file.readline() # Skip header
 
 lines = file.readlines()

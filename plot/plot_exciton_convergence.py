@@ -4,35 +4,60 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-file = open("twobands_Ncell_10_to_500", "r")
+gap = 3.625*2
+
+file = open("./hBN/e_conv_approx_1_20", "r")
+file2 = open("./hBN/e_conv_exact_1_15", "r")
 lines = file.readlines()
-kpoints = []
+
+ncell = []
 energies = []
-for n, line in enumerate(lines):
-    if (n == 0):
+for line in lines[1:]:
+    if line[0] == "#":
         continue
     line = line.split('\t')
-    kpoints.append(float(line[0]))
-    allEnergy = [float(i) for i in line[1:]]
+    ncell.append(float(line[0]))
+    allEnergy = [float(i) for i in line[1:-2]]
     energies.append(allEnergy)
 
 file.close()
-energies = np.array(energies)
-print(kpoints)
 
-plt.plot(kpoints, energies[:, 0], 'g+')
-plt.plot(kpoints, energies[:, 1], 'r+')
-plt.plot(kpoints, energies[:, 2], 'b+')
+firststate = []
+for energy in energies:
+    firststate.append(energy[0] - gap)
 
-plt.plot(kpoints, energies[:, 0], 'g-')
-plt.plot(kpoints, energies[:, 1], 'r-')
-plt.plot(kpoints, energies[:, 2], 'b-')
+lines = file2.readlines()
+ncell2 = []
+energies2 = []
+for line in lines[1:]:
+    if line[0] == "#":
+        continue
+    line = line.split('\t')
+    ncell2.append(float(line[0]))
+    allEnergy = [float(i) for i in line[1:-2]]
+    energies2.append(allEnergy)
 
-plt.title('Exciton energy convergence')
-plt.ylabel('$E$ (eV)', fontsize=15)
-plt.xlabel('#k points', fontsize=15)
+exactstate = []
+for energy in energies2:
+    exactstate.append(energy[0] - gap)
+
+exciton_expected_e = -np.ones(26)*(1.932)
+
+plt.plot(ncell, firststate, 'g+')
+plt.plot(ncell, firststate, 'g-')
+
+plt.plot(ncell2, exactstate, 'b+')
+plt.plot(ncell2, exactstate, 'b-')
+
+ncell = range(1, 27)
+plt.plot(ncell, exciton_expected_e, "r-")
+
+plt.title('hBN exciton energy convergence')
+plt.ylabel(r'$E_X$ (eV)', fontsize=15)
+plt.xlabel('#N. cell', fontsize=15)
+plt.ylim((-2, 0))
 plt.axis('tight')
 plt.grid(True, axis='both')
-plt.legend(["Total energy", "TB energy", "V energy"])
+plt.legend(["_", "Approximate", "_", "Exact", "Reference energy"])
 
 plt.show()
