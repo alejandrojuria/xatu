@@ -11,17 +11,21 @@ class ConfigurationBase {
 
         std::string parseArgument(std::string);
         void extractArguments();
-        void extractContent();
+        void extractRawContent();
         virtual void parseContent() = 0;
-
         void checkArguments();
 
         template<typename T>
         std::vector<T> parseLine(const std::string&);
+        std::string standarizeLine(std::string&);
+
         template<typename T>
         T parseScalar(std::string&);
+
         template<typename T>
         void printVector(std::vector<T>&);
+
+        void printContent();
     
     protected:
         void restartFileStream();

@@ -8,8 +8,9 @@ class SystemConfiguration : public ConfigurationBase {
             arma::mat bravaisLattice;
             arma::mat motif;
             arma::cx_cube hamiltonian;
+            arma::cx_cube overlap;
             arma::mat bravaisVectors;
-            arma::rowvec norbitals;
+            arma::irowvec norbitals;
             std::map<std::string, int> atomToIndex;
             };
 
@@ -18,11 +19,10 @@ class SystemConfiguration : public ConfigurationBase {
         SystemConfiguration(std::string);
         
     private:
-        void mapFunctionsToArgs();
-        arma::mat parseBravaisLattice(std::vector<std::string>&);
-        arma::cx_cube parseHamiltonian(std::vector<std::string>&);
+        arma::mat parseVectors(std::vector<std::string>&);
+        arma::cx_cube parseMatrices(std::vector<std::string>&);
         arma::mat parseMotif(std::vector<std::string>&);
-        arma::rowvec parseOrbitals(std::vector<std::string>&);
+        arma::irowvec parseOrbitals(std::vector<std::string>&);
         virtual void parseContent();
         void checkContentCoherence();
 

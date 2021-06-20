@@ -1,6 +1,5 @@
 #include <iostream>
 #include <stdexcept>
-#include <fstream>
 #include <sstream>
 #include <algorithm>
 
@@ -14,7 +13,7 @@ ConfigurationBase::ConfigurationBase(std::string file) : filename(file){
     if(file.empty()){
         throw std::invalid_argument("ConfigurationBase: Filename must not be empty");
     }
-
+    
     m_file.open(file.c_str());
     if(!m_file.is_open()){
         throw std::invalid_argument("ConfigurationBase: File does not exist");
@@ -52,17 +51,17 @@ void ConfigurationBase::checkArguments(){
         }
 };
 
-void ConfigurationBase::extractContent(){
-    std::string line;
+void ConfigurationBase::extractRawContent(){
+    std::string line, arg;
     std::vector<std::string> content;
     while (std::getline(m_file, line)){
         // Argument detection and parsing
         if (line.find("#") != std::string::npos){
-            std::string arg = parseArgument(line);
-            if (!content.empty()){
+            if (!content.empty()) {
                 contents[arg] = content;
+                content.clear();
             }
-            content.clear();
+            arg = parseArgument(line);
         }
         // Empty line or commentary detection
         else if (!line.size() || (line.find("!") != std::string::npos)){
@@ -70,9 +69,13 @@ void ConfigurationBase::extractContent(){
         }
         // Store argument contents
         else{
-            content.push_back(line);
+            content.push_back(standarizeLine(line));
+        }
+        if (m_file.eof()) {
+            contents[arg] = content;
         }
     }
+    
     restartFileStream();
 }
 
@@ -92,6 +95,16 @@ std::vector<T> ConfigurationBase::parseLine(const std::string& line){
     return values;
 };
 
+std::string ConfigurationBase::standarizeLine(std::string& line) {
+    if (line.find(',') != std::string::npos){
+        std::replace(line.begin(), line.end(), ',', ' ');
+    }
+    if (line.find(';') != std::string::npos) {
+        std::replace(line.begin(), line.end(), ';', ' ');
+    }
+    return line;
+}
+
 template<typename T>
 T ConfigurationBase::parseScalar(std::string& line){
     T value;
@@ -105,4 +118,20 @@ void ConfigurationBase::printVector(std::vector<T>& v){
     for (auto i = v.begin(); i != v.end(); i++){
         std::cout << *i << std::endl;
     }
+}
+
+void ConfigurationBase::printContent() {
+    for (int i = 0; i != foundArguments.size(); i++) {
+        std::string arg = foundArguments[i];
+        std::cout << arg << std::endl;
+        std::vector<std::string> section = contents[arg];
+        printVector(section);
+    }
+}
+
+int main() {
+    ConfigurationBase config = ConfigurationBase("config.txt");
+    config.extractRawContent();
+    config.extractArguments();
+    config.printContent();
 }

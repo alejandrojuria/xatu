@@ -3,3 +3,12 @@ Outputs/
 Zeeman/
 results/
 .vscode/
+.vs/
+CppProperties.json
+Plots/
+plot/
+Debug/
+exciton.sln
+exciton.vcxproj
+exciton.vcxproj.filters
+exciton.vcxproj.user
