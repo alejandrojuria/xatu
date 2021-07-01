@@ -64,6 +64,7 @@ int main(int argc, char* argv[]){
     cout << "#removed bands: " << nrmbands << "\n" << endl;
 
     GExciton bulkExciton = GExciton(modelfile, Ncell, Q, nbands, nrmbands, filling, true);
+    cout << __LINE__ << endl;
     int nk = bulkExciton.nk;
 
     //double norm = arma::norm(bulkExciton.reciprocal_lattice.row(0));

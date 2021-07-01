@@ -165,7 +165,7 @@ double realSpaceWavefunction(GExciton& exciton, const arma::cx_vec& BSEcoefs,
                          std::conj(exciton.eigvecKQStack.slice(kIndex).col(c1)(electronIndex))*
                          exciton.eigvecKStack.slice(kIndex).col(v1)(holeIndex)*
                          std::conj(exciton.eigvecKStack.slice(k2Index).col(v2)(holeIndex))*
-                         exciton.eigvecKQStack.slice(k2Index).col(v2)(electronIndex);
+                         exciton.eigvecKQStack.slice(k2Index).col(c2)(electronIndex);
 
             if (false){
                 amplitude += std::exp(imag*arma::dot(exciton.Q, eCell - hCell))*

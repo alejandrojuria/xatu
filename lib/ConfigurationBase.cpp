@@ -128,10 +128,3 @@ void ConfigurationBase::printContent() {
         printVector(section);
     }
 }
-
-int main() {
-    ConfigurationBase config = ConfigurationBase("config.txt");
-    config.extractRawContent();
-    config.extractArguments();
-    config.printContent();
-}

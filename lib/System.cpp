@@ -42,8 +42,8 @@ void System::readConfigurationFile(std::string filename, bool isReal){
 		catch (std::string e){
 			std::cerr << e;
 		};
-		// basisdim = natoms * norbitals;
-		basisdim = norbitals; // Monkeypatch for WSe2
+		basisdim = natoms * norbitals;
+		// basisdim = norbitals; // Monkeypatch for WSe2
 		bravais_lattice = arma::zeros(ndim, 3);
 		motif = arma::zeros(natoms, 3);
 		unitCellList = arma::zeros(ncells, 3);
@@ -460,17 +460,22 @@ arma::mat System::generate_combinations_gamma(int nvalues, int ndim){
 	arma::mat combinations(ncombinations, ndim);
 	arma::vec auxvector;
 	arma::rowvec combination(ndim);
+	cout << __LINE__ << endl;
 	for(int n = 0; n < ndim; n++){
 		arma::vec values = arma::regspace(-(int)nvalues/2, (int)nvalues/2);
 		for(int i = 0; i < ndim - n - 1; i++){
 			values = arma::kron(ones, values);
 		}
+		cout << __LINE__ << endl;
 		for(int j = 0; j < n; j++){
 			values = arma::kron(values, ones);
 		}
+		cout << __LINE__ << endl;
 		combinations.col(n) = values;
+		cout << __LINE__ << endl;
 	}
 
+	cout << __LINE__ << endl;
 	return combinations;
 }
 

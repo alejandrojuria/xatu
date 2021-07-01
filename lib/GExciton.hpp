@@ -51,10 +51,7 @@ class GExciton : public System {
                  const arma::rowvec& Q = {0., 0., 0.}, int nbands = 2, int nrmbands = 0, 
                  double filling = 0.5, bool useApproximation = false, bool storeAllVectors = false);
         // Specify which bands participate (vector with band numbers)
-        GExciton(std::string filename, std::string overlapfile = "", int Ncell = 200, 
-                 const arma::rowvec& Q = {0., 0., 0.}, int nbands = 2, int nrmbands = 0, 
-                 double filling = 0.5, bool useApproximation = false, bool storeAllVectors = false);
-        GExciton(std::string filename, std::string overlapfile = "", int Ncell = 200, 
+        GExciton(std::string filename, int Ncell = 200, 
                  double Q = 0, arma::vec bands = {}, double filling = 0.5, 
                  bool useApproximation = false, bool storeAllVectors = false);
         ~GExciton();
