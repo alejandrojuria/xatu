@@ -39,7 +39,7 @@ GExciton::GExciton(std::string filename, int Ncell, const arma::rowvec& Q,
 
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
-    this->kpoints = brillouin_zone_mesh(Ncell);
+    this->kpoints = brillouinZoneMesh(Ncell);
     this->nk = kpoints.n_rows;
     //this->Ncell = (int)sqrt(nk)*2;
     this->excitonbasisdim = nk*(nbands - nrmbands)*(nbands - nrmbands);
@@ -162,7 +162,7 @@ void GExciton::STVH0(double X, double *SH0) {
 /* Calculate value of interaction potential (Keldysh). Units are eV.
    Input: double k. Output: complex double */
 double GExciton::potential(double r){
-    double eps = 40.;
+    double eps = 0.01;
     double eps1 = 1.;
     double eps2 = 5.06;
     double eps_bar = (eps1 + eps2)/2;
@@ -174,6 +174,8 @@ double GExciton::potential(double r){
 
     if(pot_for_Bi){
         r0 = c*eps/(eps1 + eps2);
+        // cout << "c: " << c << endl;
+        // cout << "r0: " << r0 << endl;
         double R = abs(r)/r0;
         if(r == 0){
             STVH0(a/r0, &SH0);
@@ -242,7 +244,7 @@ std::complex<double> GExciton::tDirect(std::complex<double> Vk,
                              const arma::cx_vec& coefsK2Q)
                              {
     
-    std::complex<double> D = 1./pow(pow(Ncell, ndim), 2);
+    std::complex<double> D = 1./pow(pow(Ncell, ndim), ndim);
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK2Q);
     cx_double I_second_pair = arma::cdot(coefsK2, coefsK);
 
@@ -264,7 +266,7 @@ std::complex<double> GExciton::tExchange(std::complex<double> VQ,
                                const arma::cx_vec& coefsK2Q)
                                {
     
-    std::complex<double> X = 1./pow(pow(Ncell, ndim), 2);
+    std::complex<double> X = 1./pow(pow(Ncell, ndim), ndim);
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK);
     cx_double I_second_pair = arma::cdot(coefsK2, coefsK2Q);
 
@@ -595,9 +597,9 @@ void GExciton::initializeResultsH0(bool storeAllVectores){
         #pragma omp parallel for
         for (int j = 0; j < nk; j++){
             ftStack(i, j) = fourierTrans(kpoints.row(i) - kpoints.row(j), cells, true);
-            /*if (arma::norm(kpoints.row(i)) == 0){
+            if (arma::norm(kpoints.row(i)) == 0){
                 cout << ftStack(i, j) << endl;
-            }*/
+            }
         }
         
 

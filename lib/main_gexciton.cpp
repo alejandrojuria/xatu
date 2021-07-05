@@ -28,11 +28,11 @@ int main(int argc, char* argv[]){
 
     auto start = high_resolution_clock::now();
     
-    int nbands = 2;
+    int nbands = 1;
     int nrmbands = 0;
     int Ncell = 21;
     double filling = 5./8;
-    arma::vec NcellArray = {21};
+    arma::vec NcellArray = {40};
     arma::rowvec Q = {0., 0., 0.};
     std::string modelfile = argv[1];
     try{

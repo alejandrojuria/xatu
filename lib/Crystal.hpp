@@ -2,6 +2,8 @@
 #include <armadillo>
 #include <string>
 #include <iostream>
+#include "SystemConfiguration.hpp"
+
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -16,34 +18,34 @@ class Crystal {
     public:
         int ndim, natoms, ncells;
         double a, c;
-        arma::mat bravais_lattice, motif, unitCellList;
-        arma::mat reciprocal_lattice;
+        arma::mat bravaisLattice, motif, unitCellList;
+        arma::mat reciprocalLattice;
         arma::vec kpoints;
+        std::map<std::string, int> atomToIndex;
 
     //// Methods
-    public:
-        /* Constructor and destructor */
-        Crystal(std::string, std::string overlapFile = "", bool isReal = false);    
+    protected:
+        Crystal(); // Protected so that Crystal can not be initialized (abstract)
+    public:   
         ~Crystal();
 
         /* Mesh generation routines */
-        arma::mat brillouin_zone_mesh(int);
-        arma::mat C3_BZ_Mesh(int);
-        arma::mat wigner_seitz_supercell(int);
-        arma::mat truncate_supercell(int, double);
-        arma::mat generate_combinations(int n, int ndim);
-        arma::mat generate_combinations_gamma(int n, int ndim);
+        arma::mat brillouinZoneMesh(int);
+        arma::mat c3BzMesh(int);
+        arma::mat wignerSeitzSupercell(int);
+        arma::mat truncateSupercell(int, double);
+        arma::mat generateCombinations(int n, int ndim);
+        arma::mat generateCombinationsGamma(int n, int ndim);
 
-        /* Some utilities/extra information */
+        /* Crystal operations */
         arma::cx_mat inversionOperator(const arma::cx_vec&);
         arma::rowvec rotateC3(const arma::rowvec&);
 
 
-    private:
-        void readConfigurationFile(std::string, bool isReal = false);
-        void readOverlapFile(std::string, bool isReal = false);
+    protected:
+        void initializeCrystalAttributes(const SystemConfiguration&);
         void extractLatticeParameters();
         void calculateReciprocalLattice();
-        bool isInsideWSCell(const arma::rowvec&, const arma::mat&, 
+        bool isInsideWsCell(const arma::rowvec&, const arma::mat&, 
                                const arma::rowvec&);
 };

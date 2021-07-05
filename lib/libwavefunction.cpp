@@ -88,7 +88,7 @@ double atomCoefficientSquared(int n, const arma::rowvec& cell, const arma::rowve
         coef = 0;
         // Spin up
         for(int i = 0; i < (int)RScoefs.n_cols; i++){
-            coef += RScoefs.col(i)(orbitalblock*n + orb)*exp(imag * arma::dot(exciton.kpoints.row(i), cell +  
+            coef += RScoefs.col(i)(orbitalblock*n + orb)*exp(imag * arma::dot(exciton.kpoints.row(i), cell -  
             hCell));
         };
         tCoef += abs(coef)*abs(coef);
@@ -102,7 +102,7 @@ double atomCoefficientSquared(int n, const arma::rowvec& cell, const arma::rowve
     };
     
     //tCoef = real(coef);
-    arma::cout << real(coef) << "---" << tCoef << arma::endl;
+    // arma::cout << real(coef) << "---" << tCoef << arma::endl;
 
     return tCoef;
 };
@@ -145,9 +145,20 @@ double realSpaceWavefunction(GExciton& exciton, const arma::cx_vec& BSEcoefs,
     std::complex<double> imag(0, 1);
     std::complex<double> amplitude = 0;
     std::complex<double> totalAmplitude = 0;
+    arma::cx_vec BSEsquared = arma::conj(BSEcoefs) % BSEcoefs;
+    // std::cout << arma::max(BSEsquared) << std::endl;
+    double maxval = std::real(arma::max(BSEsquared));
+
+    /* for (auto i : BSEsquared){
+        if (std::real(i) > maxval/10){
+            //std::cout << i << std::endl;
+        }
+    }*/
 
     for (int i = 0; i < exciton.excitonbasisdim; i++){
         for (int j = 0; j < exciton.excitonbasisdim; j++){
+
+
             amplitude = 0;
             arma::rowvec basisState = exciton.basisStates.row(i);
             arma::rowvec basisState2 = exciton.basisStates.row(j);

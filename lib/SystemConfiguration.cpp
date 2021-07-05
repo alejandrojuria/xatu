@@ -96,12 +96,15 @@ arma::mat SystemConfiguration::parseMotif(std::vector<std::string>& content){
     return motif;
 }
 
-arma::irowvec SystemConfiguration::parseOrbitals(std::vector<std::string>& content) {
+arma::urowvec SystemConfiguration::parseOrbitals(std::vector<std::string>& content) {
     if (content.size() != 1) {
         throw std::invalid_argument("Error: Orbital information must be one line only");
     }
     std::vector<int> orbitalVec = parseLine<int>(content[0]);
-    arma::irowvec orbitals = arma::irowvec(orbitalVec);
+    arma::urowvec orbitals = arma::zeros<arma::urowvec>(orbitalVec.size());
+    for (int i = 0; i < orbitalVec.size(); i++){
+        orbitals(i) = orbitalVec[i];
+    }
 
     return orbitals;
 }

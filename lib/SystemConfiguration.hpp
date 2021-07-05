@@ -10,7 +10,7 @@ class SystemConfiguration : public ConfigurationBase {
             arma::cx_cube hamiltonian;
             arma::cx_cube overlap;
             arma::mat bravaisVectors;
-            arma::irowvec norbitals;
+            arma::urowvec norbitals;
             std::map<std::string, int> atomToIndex;
             };
 
@@ -22,7 +22,7 @@ class SystemConfiguration : public ConfigurationBase {
         arma::mat parseVectors(std::vector<std::string>&);
         arma::cx_cube parseMatrices(std::vector<std::string>&);
         arma::mat parseMotif(std::vector<std::string>&);
-        arma::irowvec parseOrbitals(std::vector<std::string>&);
+        arma::urowvec parseOrbitals(std::vector<std::string>&);
         virtual void parseContent();
         void checkContentCoherence();
 

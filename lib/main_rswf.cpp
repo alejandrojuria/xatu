@@ -34,7 +34,7 @@ int main(int argc, char* argv[]){
     
     int nbands = 1;
     int nrmbands = 0;
-    int Ncell = 20;
+    int Ncell = 40;
     double filling = 5./8;
     arma::rowvec Q = {0., 0., 0.};
     std::string modelfile = argv[1];
@@ -64,7 +64,6 @@ int main(int argc, char* argv[]){
     cout << "#removed bands: " << nrmbands << "\n" << endl;
 
     GExciton bulkExciton = GExciton(modelfile, Ncell, Q, nbands, nrmbands, filling, true);
-    cout << __LINE__ << endl;
     int nk = bulkExciton.nk;
 
     //double norm = arma::norm(bulkExciton.reciprocal_lattice.row(0));
@@ -152,41 +151,47 @@ int main(int argc, char* argv[]){
             //arma::mat cellCombinations = bulkExciton.generate_combinations_gamma(bulkExciton.Ncell, bulkExciton.ndim);
             double radius = arma::norm(bulkExciton.bravais_lattice.row(0)) * bulkExciton.Ncell / 2.5;
             arma::mat cellCombinations = bulkExciton.truncate_supercell(bulkExciton.Ncell, radius);
-            vec coefs = arma::zeros(cellCombinations.n_rows*bulkExciton.motif.n_rows);
+            // vec coefs = arma::zeros(cellCombinations.n_rows*bulkExciton.motif.n_rows);
+            vec coefs = arma::zeros(3);
             cx_vec bloch_state;
             cx_mat bloch_states;
             vec energies;
-            cout << __LINE__ << endl;
             //cx_mat h = bulkExciton.hamiltonian(K);
             //arma::eig_sym(energies, bloch_states, h);
             //bloch_state = bloch_states.col(1);
+            mat somevectors = arma::zeros(3,3);
+            somevectors.row(0) = {0., 0., 0.};
+            somevectors.row(1) = bulkExciton.bravais_lattice.row(0);
+            somevectors.row(2) = bulkExciton.bravais_lattice.row(1);
 
-            for(int cell_index = 0; cell_index < cellCombinations.n_rows; cell_index++){
+            for(int cell_index = 0; cell_index < somevectors.n_rows; cell_index++){
                 
-                arma::rowvec cell = arma::zeros<arma::rowvec>(3);
+                /*arma::rowvec cell = arma::zeros<arma::rowvec>(3);
                 for(int j = 0; j < bulkExciton.ndim; j++){
                     cell += cellCombinations.row(cell_index)(j)*bulkExciton.bravais_lattice.row(j);
                 }
-                cout << __LINE__ << endl;
-                cell = cellCombinations.row(cell_index);
-                for (int n = 0; n < bulkExciton.motif.n_rows; n++){
-                    cout << __LINE__ << endl;
+                cell = cellCombinations.row(cell_index);*/
+                arma::rowvec cell = somevectors.row(cell_index);
+                for (int n = 0; n < 1; n++){
 
                     arma::rowvec electronPosition = cell + bulkExciton.motif.row(n);
 
-                    if(false){
+                    if(true){
                     for (int alpha = 0; alpha < bulkExciton.norbitals; alpha++){
                         for (int beta = 0; beta < bulkExciton.norbitals; beta++){
                             int electronIndex = n*bulkExciton.norbitals + alpha;
                             int holeIndexWOrb = holeIndex*bulkExciton.norbitals + beta;
                             coefs(it) += 
-                            realSpaceWavefunction(bulkExciton, excitonCoefficients, electronIndex, holeIndexWOrb, cell, holeCell);
+                            realSpaceWavefunction(bulkExciton, excitonCoefficients, 
+                                                  electronIndex, holeIndexWOrb, 
+                                                  cell, 
+                                                  holeCell);
                         }
                     }
                     }
 
-                    //fourierTransformExciton(excitonCoefficients, bulkExciton, electronPosition, holePosition);
-                    coefs(it) = atomCoefficientSquared(n, cell, holeCell, RScoefs, bulkExciton);
+                    // coefs(it) = fourierTransformExciton(excitonCoefficients, bulkExciton, electronPosition, holePosition);
+                    // coefs(it) = atomCoefficientSquared(n, cell + bulkExciton.motif.row(n), holeCell + bulkExciton.motif.row(holeIndex), RScoefs, bulkExciton);
                     //atomCoefficientSquared(n, cell, holeCell, RScoefsDeg, bulkExciton);
                             
                     coefSum += coefs(it);
@@ -197,14 +202,15 @@ int main(int argc, char* argv[]){
             it = 0;
             cout << "Writing w.f. to file" << endl;
             std::complex<double> imag(0,1);
-            for(int cell_index = 0; cell_index < cellCombinations.n_rows; cell_index++){
+            for(int cell_index = 0; cell_index < somevectors.n_rows; cell_index++){
                 
-                arma::rowvec cell = arma::zeros<arma::rowvec>(3);
+                /*arma::rowvec cell = arma::zeros<arma::rowvec>(3);
                 for(int j = 0; j < bulkExciton.ndim; j++){
                     cell += cellCombinations.row(cell_index)(j)*bulkExciton.bravais_lattice.row(j);
                 }
-                cell = cellCombinations.row(cell_index);
-                for (int n = 0; n < bulkExciton.motif.n_rows; n++){
+                cell = cellCombinations.row(cell_index);*/
+                arma::rowvec cell = somevectors.row(cell_index);
+                for (int n = 0; n < 1; n++){
 
                     rowvec position = bulkExciton.motif.row(n) + cell;
 

@@ -35,11 +35,11 @@ int main(){
 
     std::string filename = "exciton_spectrum_exact";
     FILE* textfile = fopen(filename.c_str(), "w");
-    bool writeEigvals = true;
+    bool writeEigvals = false;
 
     std::string filename_wf = "exciton_bulk_wf_N15";
     FILE* textfile_wf = fopen(filename_wf.c_str(), "w");
-    bool printWF = false;
+    bool printWF = true;
 
     bool calculateSpin = false;
     std::string filename_spin = "exciton_bulk_spin_6b_z1em7";
