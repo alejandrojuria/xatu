@@ -113,6 +113,7 @@ arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& conte
     std::vector<arma::cx_mat> matrixVector;
     double re, im;
     std::string sign, imagNumber, vartype = "real";
+    bool isTriangular = false;
     int ndim = 0;
 
     // Scan first matrix to get information
@@ -121,6 +122,7 @@ arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& conte
     if (line.find('i') != std::string::npos || line.find('j') != std::string::npos) {
         vartype = "complex";
     }
+
     for (auto i = content.begin(); i != content.end(); i++) {
         line = *i;
         if (line.find('&') != std::string::npos) {
@@ -162,6 +164,11 @@ arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& conte
         }
     }
     if (!matrix.is_zero()) {
+        // Check if matrix is triangular
+        if (matrix.row(0)(matrix.n_cols - 1) != std::conj(matrix.row(matrix.n_rows - 1)(0))){
+            isTriangular = true;
+
+        }
         matrixVector.push_back(matrix);
     }
 

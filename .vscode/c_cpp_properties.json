@@ -2,7 +2,9 @@
     "configurations": [
         {
             "name": "Linux",
-            "includePath": ["/usr/lib/armadillo/include", "/home/alejandro/+Doctorado/1.Research/topological-excitons/lib"],
+            "includePath": ["/usr/lib/armadillo/include", 
+                "/home/alejandro/+Doctorado/1.Research/topological-excitons/lib",
+                "/home/alejandro/emsdk/upstream/emscripten/system/include"],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "c11",

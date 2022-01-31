@@ -12,7 +12,6 @@ System::System(std::string filename) : Crystal(){
 	initializeCrystalAttributes(configuration);
 	initializeSystemAttributes(configuration);
 	
-	
 	std::cout << "Correctly initiallized System object" << std::endl;
 	configuration.~SystemConfiguration();
 };

@@ -38,6 +38,7 @@ void Crystal::calculateReciprocalLattice(){
 			}
 			catch (std::runtime_error e) {
 				std::cout << "Failed to obtain reciprocal lattice vectors" << std::endl;
+				throw;
 			};
 			reciprocalLattice.row(i) = reciprocal_vector.t();
 		};
