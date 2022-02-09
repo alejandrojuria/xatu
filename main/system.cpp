@@ -8,8 +8,6 @@
 #include <chrono>
 
 #include "System.hpp"
-#include "GExciton.hpp"
-
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -31,28 +29,21 @@ int main(){
 
 	// ------------------------ Initialization ------------------------
 
-    std::string filename = "./wse2_jj/WSe2.dat";
-	std::string overlapfile = "./wse2_jj/overlaps_WSe2.dat";
-
-    System system = System(filename, "", true);
+    std::string filename = "./models/2band_insulator_model.txt";
+    System system = System(filename);
 	arma::mat kpoints;
 
 	int Ncell = 100;
 	int nk = 50;
 	if (system.ndim == 1){
-		kpoints = system.brillouin_zone_mesh(Ncell);
+		kpoints = system.brillouinZoneMesh(Ncell);
 	}
 	else if (system.ndim == 2){
 		
-		system.reciprocal_lattice.row(0) = system.reciprocal_lattice.row(1) - system.reciprocal_lattice.row(0);
-		cout << system.reciprocal_lattice << endl;
-		double norm = arma::norm(system.reciprocal_lattice.row(0));
-		arma::rowvec M = system.reciprocal_lattice.row(0)/2.;
-		arma::rowvec K = norm/sqrt(3)*(system.reciprocal_lattice.row(0)/2. +
-					     system.reciprocal_lattice.row(1)/2.)/arma::norm(
-							 system.reciprocal_lattice.row(0)/2. +
-					     	 system.reciprocal_lattice.row(1)/2.
-						 	 );
+		double norm = arma::norm(system.reciprocalLattice.row(0));
+		arma::rowvec M = system.reciprocalLattice.row(0)/2.;
+		arma::rowvec K = (system.reciprocalLattice.row(0) + 
+						  system.reciprocalLattice.row(1))/2.;
 		arma::rowvec G = {0., 0., 0.};
 		kpoints = arma::zeros(3*nk + 1, 3);
 		for(int i = 0; i < nk; i++){
@@ -94,20 +85,14 @@ int main(){
 
 	// ---------------------------- Main loop ----------------------------
 	cx_vec stored_eigvec;
-	float gap = 1E100;
 	for (int i = 0; i < kpoints.n_rows; i++) {
 
-        arma::cx_vec eigenval;
+        arma::vec eigenval;
         arma::cx_mat eigenvec;
 		arma::cx_mat h = system.hamiltonian(kpoints.row(i), true);
-		arma::cx_mat s = system.overlap(kpoints.row(i), true);
-		arma::eig_pair(eigenval, eigenvec, h, s);
+		arma::eig_sym(eigenval, eigenvec, h);
 		arma::vec eigval = real(eigenval);
 		eigval = arma::sort(eigval);
-		float actual_gap = eigval(13) - eigval(12);
-		if (actual_gap < gap){
-			gap = actual_gap;
-		};
 
 		if(writeBands){
             fprintf(textfile, "%d\t", i);
@@ -117,7 +102,6 @@ int main(){
             fprintf(textfile, "\n");
 		};
 	};
-	cout << "Gap (eV): " << gap << endl;
 
 	// Close all text files
 	fclose(textfile);

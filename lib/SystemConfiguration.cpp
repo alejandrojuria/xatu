@@ -12,6 +12,9 @@ SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBa
 }
 
 void SystemConfiguration::parseContent(){
+    extractArguments();
+    extractRawContent();
+
     if (contents.empty()){
         throw std::logic_error("File contents must be extracted first");
     }
@@ -112,6 +115,7 @@ arma::urowvec SystemConfiguration::parseOrbitals(std::vector<std::string>& conte
 arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& content) {
     std::vector<arma::cx_mat> matrixVector;
     double re, im;
+    char placeholder; // To read uninteresting characters
     std::string sign, imagNumber, vartype = "real";
     bool isTriangular = false;
     int ndim = 0;
@@ -136,6 +140,7 @@ arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& conte
     arma::cx_mat matrix = arma::zeros<arma::cx_mat>(ndim, ndim);
     arma::cx_rowvec row = arma::zeros<arma::cx_rowvec>(ndim);
     std::string strValue;
+    int row_index = 0;
 
     // Start appending matrices
     for (int i = 0; i < content.size(); i++) {
@@ -143,34 +148,38 @@ arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& conte
         if (line.find('&') != std::string::npos) {
             matrixVector.push_back(matrix);
             matrix.zeros();
+            row_index = 0;
         }
         else{
             std::istringstream iss(line);
             int j = 0;
+            row.zeros();
             while (iss >> strValue) {
                 std::istringstream valuestream(strValue);
                 if (vartype == "real") {
                     valuestream >> re;
                     im = 0.0;
+                    std::cout << "this" << std::endl;
                 }
                 else {
-                    valuestream >> re >> sign >> im >> imagNumber;
+                    valuestream >> placeholder >> re >> im >> placeholder;
                 }
                 std::complex<double> value(re, im);
                 row(j) = value;
                 j++;
             }
-            matrix.row(i) = arma::cx_rowvec(row);
+            matrix.row(row_index) = arma::cx_rowvec(row);
+            row_index++;
         }
     }
-    if (!matrix.is_zero()) {
+    /*if (!matrix.is_zero()) {
         // Check if matrix is triangular
         if (matrix.row(0)(matrix.n_cols - 1) != std::conj(matrix.row(matrix.n_rows - 1)(0))){
             isTriangular = true;
 
         }
         matrixVector.push_back(matrix);
-    }
+    }*/
 
     arma::cx_cube matrices(ndim, ndim, matrixVector.size());
     for (int i = 0; i < matrixVector.size(); i++) {

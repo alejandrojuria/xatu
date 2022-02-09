@@ -1,14 +1,15 @@
 #include "Crystal.hpp"
 
-
 /* Initialize Crystal attributes from SystemConfiguration object */
 void Crystal::initializeCrystalAttributes(const SystemConfiguration& configuration){
     ndim           = configuration.systemInfo.ndim;
     bravaisLattice = configuration.systemInfo.bravaisLattice;
     motif          = configuration.systemInfo.motif;
     atomToIndex    = configuration.systemInfo.atomToIndex;
+	unitCellList   = configuration.systemInfo.bravaisVectors;
     
     natoms = motif.n_rows;
+	ncells = unitCellList.n_rows;
 
     calculateReciprocalLattice();
     extractLatticeParameters();

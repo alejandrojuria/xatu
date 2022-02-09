@@ -15,6 +15,7 @@ ConfigurationBase::ConfigurationBase(std::string file) : filename(file){
     }
     
     m_file.open(file.c_str());
+    std::cout << file.c_str() << std::endl;
     if(!m_file.is_open()){
         throw std::invalid_argument("ConfigurationBase: File does not exist");
     }
@@ -31,7 +32,7 @@ void ConfigurationBase::extractArguments(){
     std::vector<std::string> arguments;
     std::string line;
     while (std::getline(m_file, line)){
-        if (line.find("#") != std::string::npos){
+        if (line.find("#") != std::string::npos && m_file.peek() != EOF){
             std::string arg = parseArgument(line);
             arguments.push_back(arg);
         }
@@ -84,17 +85,6 @@ void ConfigurationBase::restartFileStream(){
     m_file.seekg(0);
 }
 
-template<typename T>
-std::vector<T> ConfigurationBase::parseLine(const std::string& line){
-    std::vector<T> values;
-    std::istringstream iss(line);
-    T value;
-    while (iss >> value){
-        values.push_back(value);
-    }
-    return values;
-};
-
 std::string ConfigurationBase::standarizeLine(std::string& line) {
     if (line.find(',') != std::string::npos){
         std::replace(line.begin(), line.end(), ',', ' ');
@@ -103,21 +93,6 @@ std::string ConfigurationBase::standarizeLine(std::string& line) {
         std::replace(line.begin(), line.end(), ';', ' ');
     }
     return line;
-}
-
-template<typename T>
-T ConfigurationBase::parseScalar(std::string& line){
-    T value;
-    std::istringstream iss(line);
-    iss >> value;
-    return value;
-}
-
-template<typename T>
-void ConfigurationBase::printVector(std::vector<T>& v){
-    for (auto i = v.begin(); i != v.end(); i++){
-        std::cout << *i << std::endl;
-    }
 }
 
 void ConfigurationBase::printContent() {

@@ -16,14 +16,32 @@ class ConfigurationBase {
         void checkArguments();
 
         template<typename T>
-        std::vector<T> parseLine(const std::string&);
+        std::vector<T> parseLine(const std::string& line){
+            std::vector<T> values;
+            std::istringstream iss(line);
+            T value;
+            while (iss >> value){
+                values.push_back(value);
+            }
+            return values;
+        };
+
         std::string standarizeLine(std::string&);
 
         template<typename T>
-        T parseScalar(std::string&);
+        T parseScalar(std::string& line){
+            T value;
+            std::istringstream iss(line);
+            iss >> value;
+            return value;
+        }
 
         template<typename T>
-        void printVector(std::vector<T>&);
+        void printVector(std::vector<T>& v){
+            for (auto i = v.begin(); i != v.end(); i++){
+                std::cout << *i << std::endl;
+            }
+        };
 
         void printContent();
     

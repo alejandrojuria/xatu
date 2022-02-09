@@ -13,7 +13,6 @@ System::System(std::string filename) : Crystal(){
 	initializeSystemAttributes(configuration);
 	
 	std::cout << "Correctly initiallized System object" << std::endl;
-	configuration.~SystemConfiguration();
 };
 
 System::~System(){
@@ -44,7 +43,7 @@ arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
 	if (isTriangular){
 		h += h.t();
 	}
-	
+
 	return h;
 };
 

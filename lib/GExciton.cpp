@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "Zigzag.hpp"
+#include "System.hpp"
 #include "GExciton.hpp"
 
 using namespace arma;
@@ -19,7 +19,7 @@ GExciton::GExciton(std::string filename, int Ncell, const arma::rowvec& Q,
     
     // Initialize basic attributes
     this->Ncell = Ncell;
-    this->totalCells = generate_combinations_gamma(Ncell, ndim).n_rows;
+    this->totalCells = generateCombinationsGamma(Ncell, ndim).n_rows;
     this->Q = Q;
     this->useApproximation = useApproximation;
 
@@ -96,7 +96,7 @@ GExciton::GExciton(std::string filename, int Ncell, double Q,
 
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
-    this->kpoints = brillouin_zone_mesh(Ncell);
+    this->kpoints = brillouinZoneMesh(Ncell);
     this->nk = kpoints.n_rows;
     this->excitonbasisdim = nk*bands.n_elem;
 
@@ -170,7 +170,7 @@ double GExciton::potential(double r){
     double SH0;
     bool pot_for_Bi = true;
     bool pot_for_hBN = false;
-    double cutoff = arma::norm(bravais_lattice.row(0)) * Ncell/2.5 + 1E-5;
+    double cutoff = arma::norm(bravaisLattice.row(0)) * Ncell/2.5 + 1E-5;
 
     if(pot_for_Bi){
         r0 = c*eps/(eps1 + eps2);
@@ -283,11 +283,11 @@ std::complex<double> GExciton::tExchange(std::complex<double> VQ,
 
 void GExciton::initializePotentialMatrix(){
 
-    arma::mat cells_coefs = generate_combinations(Ncell, ndim);
+    arma::mat cells_coefs = generateCombinations(Ncell, ndim);
     int dimRows = natoms*natoms*norbitals*norbitals;
     int dimCols = cells_coefs.n_rows*cells_coefs.n_rows;
 
-    arma::mat potentialMat = arma::zeros<mat>(dimRows, dimCols);
+    arma::mat potentialMat = arma::zeros<arma::mat>(dimRows, dimCols);
     //arma::vec potentialVector = arma::zeros<vec>(dimRows, 1);
     
     int ncells = cells_coefs.n_rows;
@@ -295,7 +295,7 @@ void GExciton::initializePotentialMatrix(){
     for (int n = 0; n < cells.n_rows; n++){
         arma::rowvec cell_vector = arma::zeros(1, 3);
         for (int i = 0; i < ndim; i++){
-            cell_vector += cells_coefs.row(n)(i) * bravais_lattice.row(i);
+            cell_vector += cells_coefs.row(n)(i) * bravaisLattice.row(i);
         }
         cells.row(n) = cell_vector;
     };
@@ -337,12 +337,12 @@ std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
 
     std::complex<double> i(0,1);
 
-    arma::mat cells_coefs = generate_combinations(Ncell, ndim);
+    arma::mat cells_coefs = generateCombinations(Ncell, ndim);
     arma::mat cells = arma::zeros(cells_coefs.n_rows, 3);
     for (int n = 0; n < cells.n_rows; n++){
         arma::rowvec cell_vector = arma::zeros(1, 3);
         for (int j = 0; j < ndim; j++){
-            cell_vector += cells_coefs.row(n)(j) * bravais_lattice.row(j);
+            cell_vector += cells_coefs.row(n)(j) * bravaisLattice.row(j);
         }
         cells.row(n) = cell_vector;
     };
@@ -447,7 +447,7 @@ void GExciton::createSOCBasis(){
         for (int cIndex = 0; cIndex < conductionBands.n_elem; cIndex++){
             for(int i = 0; i < nk; i++){
                 
-                mat state = {valenceBands(vIndex), conductionBands(cIndex), (double)i};
+                arma::mat state = {valenceBands(vIndex), conductionBands(cIndex), (double)i};
                 states.row(counter) = state;
 
                 counter++;
@@ -557,13 +557,13 @@ void GExciton::initializeResultsH0(bool storeAllVectores){
         bandList = arma::regspace<uvec>(0, basisdim - 1);
     }
 
-    double radius = arma::norm(bravais_lattice.row(0)) * Ncell/2.5;
-    arma::mat cells = truncate_supercell(Ncell, radius);
+    double radius = arma::norm(bravaisLattice.row(0)) * Ncell/2.5;
+    arma::mat cells = truncateSupercell(Ncell, radius);
 
     cx_cube eigvecKStack(basisdim, nTotalBands, nk);
     cx_cube eigvecKQStack(basisdim, nTotalBands, nk);
-    mat eigvalKStack(nTotalBands, nk);
-    mat eigvalKQStack(nTotalBands, nk);
+    arma::mat eigvalKStack(nTotalBands, nk);
+    arma::mat eigvalKQStack(nTotalBands, nk);
     arma::cx_mat ftStack(nk, nk);
 
     vec auxEigVal(basisdim);
@@ -661,7 +661,7 @@ void GExciton::BShamiltonian(const arma::mat& basis){
     int basisDimBSE = basisStates.n_rows;
 
     HBS = arma::zeros<cx_mat>(basisDimBSE, basisDimBSE);
-    HK  = arma::zeros<mat>(basisDimBSE, basisDimBSE);
+    HK  = arma::zeros<arma::mat>(basisDimBSE, basisDimBSE);
 
     std::complex<double> ft;
     // std::complex<double> ftX = fourierTrans(Q);
@@ -953,8 +953,8 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
 {
 
     double transitionRate = 0;
-    mat bulkBasis = specifyBasisSubset(bands={});
-    mat edgeBasis = specifyBasisSubset(bands={});
+    arma::mat bulkBasis = specifyBasisSubset(bands={});
+    arma::mat edgeBasis = specifyBasisSubset(bands={});
     int nedge = edgeBasis.n_rows;
     int nbulk = bulkBasis.n_rows;
     int nBulkBands = nbands - nrmbands;
@@ -1071,7 +1071,7 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
     cx_vec ehCoefs1 = ehPairCoefs(initialE, gapEnergy, true);
     cx_vec ehCoefs2 = ehPairCoefs(initialE, gapEnergy, false);
 
-    mat edgeBands = eigvalKStack.rows(bands);
+    arma::mat edgeBands = eigvalKStack.rows(bands);
 
     double delta = 2.4/(2*Ncell); // Adjust delta depending on number of k points
     double rho = pairDensityOfStates(valenceBands, conductionBands, pairEnergy, delta);

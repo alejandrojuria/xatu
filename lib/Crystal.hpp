@@ -25,9 +25,9 @@ class Crystal {
 
     //// Methods
     protected:
-        Crystal(); // Protected so that Crystal can not be initialized (abstract)
+        Crystal(){}; // Protected so that Crystal can not be initialized (abstract)
     public:   
-        ~Crystal();
+        ~Crystal(){};
 
         /* Mesh generation routines */
         arma::mat brillouinZoneMesh(int);

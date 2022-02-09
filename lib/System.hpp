@@ -1,5 +1,4 @@
 #pragma once
-#include "SystemConfiguration.hpp"
 #include "Crystal.hpp"
 
 #ifndef constants
