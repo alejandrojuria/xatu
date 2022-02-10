@@ -114,6 +114,12 @@ GExciton::GExciton(std::string filename, int Ncell, double Q,
     std::cout << " Correctly initialized Exciton object" << std::endl;
 };
 
+
+GExciton::GExciton(std::string modelfile, std::string excitonfile) : System(modelfile){
+    ExcitonConfiguration excitonconfig = ExcitonConfiguration(excitonfile);
+    initializeExcitonAttributes(excitonconfig);
+}
+
 // Destructor
 GExciton::~GExciton(){
     std::cout << "Deleting exciton object... " << std::endl;
@@ -164,7 +170,7 @@ void GExciton::STVH0(double X, double *SH0) {
 double GExciton::potential(double r){
     double eps = 0.01;
     double eps1 = 1.;
-    double eps2 = 5.06;
+    double eps2 = 2000;
     double eps_bar = (eps1 + eps2)/2;
     double r0;
     double SH0;
@@ -279,6 +285,10 @@ std::complex<double> GExciton::tExchange(std::complex<double> VQ,
     X *= VQ*I_first_pair*I_second_pair;
 
     return X;
+};
+
+void GExciton::initializeExcitonAttributes(const ExcitonConfiguration&){
+    //TODO
 };
 
 void GExciton::initializePotentialMatrix(){
@@ -597,9 +607,6 @@ void GExciton::initializeResultsH0(bool storeAllVectores){
         #pragma omp parallel for
         for (int j = 0; j < nk; j++){
             ftStack(i, j) = fourierTrans(kpoints.row(i) - kpoints.row(j), cells, true);
-            if (arma::norm(kpoints.row(i)) == 0){
-                cout << ftStack(i, j) << endl;
-            }
         }
         
 

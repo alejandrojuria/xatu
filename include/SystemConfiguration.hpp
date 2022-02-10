@@ -13,6 +13,9 @@ class SystemConfiguration : public ConfigurationBase {
             arma::urowvec norbitals;
             std::map<std::string, int> atomToIndex;
             };
+        
+    public:
+        configuration systemInfo;
 
     public:
         SystemConfiguration();
@@ -25,9 +28,5 @@ class SystemConfiguration : public ConfigurationBase {
         arma::urowvec parseOrbitals(std::vector<std::string>&);
         virtual void parseContent();
         void checkContentCoherence();
-
-    public:
-        configuration systemInfo;
-
 
 };

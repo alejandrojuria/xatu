@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include "Zigzag.hpp"
 #include "System.hpp"
+#include "ExcitonConfiguration.hpp"
 
 
 #ifndef constants
@@ -50,10 +51,14 @@ class GExciton : public System {
         GExciton(std::string filename, int Ncell = 200, 
                  const arma::rowvec& Q = {0., 0., 0.}, int nbands = 2, int nrmbands = 0, 
                  double filling = 0.5, bool useApproximation = false, bool storeAllVectors = false);
+
         // Specify which bands participate (vector with band numbers)
         GExciton(std::string filename, int Ncell = 200, 
                  double Q = 0, arma::vec bands = {}, double filling = 0.5, 
                  bool useApproximation = false, bool storeAllVectors = false);
+        
+        // Use two files: the mandatory one for system config., and one for exciton config.
+        GExciton(std::string systemfile, std::string excitonfile);
         ~GExciton();
 
     private:
@@ -78,6 +83,7 @@ class GExciton : public System {
                                  const arma::rowvec&);
 
         // Initializers
+        void initializeExcitonAttributes(const ExcitonConfiguration&);
         void initializeResultsH0(bool storeAllVectors = false);
         void initializePotentialMatrix();
 

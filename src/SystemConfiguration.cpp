@@ -2,7 +2,7 @@
 #include "SystemConfiguration.hpp"
 
 SystemConfiguration::SystemConfiguration(){
-    throw std::invalid_argument("SystemConfiguration must be called with one argument (filename)");
+    throw std::invalid_argument("Error: SystemConfiguration must be invoked with one argument (filename)");
 };
 
 SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBase(filename){

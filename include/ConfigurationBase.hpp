@@ -5,6 +5,18 @@
 
 
 class ConfigurationBase {
+
+    public:
+        std::string filename;
+        std::string text;
+        std::vector<std::string> foundArguments;
+        std::vector<std::string> expectedArguments;
+        struct configuration;
+        std::map<std::string, std::vector<std::string>> contents;
+
+    protected:
+        std::ifstream m_file;
+
     public:
         ConfigurationBase();
         ConfigurationBase(std::string);
@@ -47,18 +59,5 @@ class ConfigurationBase {
     
     protected:
         void restartFileStream();
-
-
-    public:
-        std::string filename;
-        std::string text;
-        std::vector<std::string> foundArguments;
-        std::vector<std::string> expectedArguments;
-        struct configuration;
-        std::map<std::string, std::vector<std::string>> contents;
-
-    protected:
-        std::ifstream m_file;
-        
-        
+                
 };
