@@ -8,6 +8,8 @@ CppProperties.json
 Plots/
 plot/
 Debug/
+build/
+bin/
 exciton.sln
 exciton.vcxproj
 exciton.vcxproj.filters
