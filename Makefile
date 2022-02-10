@@ -6,7 +6,12 @@ LIBS = -DARMA_DONT_USE_WRAPPER -lopenblas  -llapack -fopenmp
 SRC_FILES := $(wildcard src/*.cpp)
 OBJECTS := $(patsubst src/%.cpp, build/%.o, $(SRC_FILES))
 
+build: $(OBJECTS)
+
 system: $(OBJECTS) main/system.cpp
+	$(CC) $(CFLAGS) $(INCLUDE) $(LIBS) -o bin/$@ $^
+
+exciton: $(OBJECTS) main/gexciton.cpp
 	$(CC) $(CFLAGS) $(INCLUDE) $(LIBS) -o bin/$@ $^
 
 # Compilation steps
@@ -15,4 +20,4 @@ build/%.o: src/%.cpp
 	$(CC) $(CFLAGS) $(INCLUDE) $(LIBS) -c $< -o $@
 
 clean:
-	rm lib/*.o 
+	rm -f build/*.o bin/*
