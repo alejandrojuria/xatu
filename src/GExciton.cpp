@@ -9,17 +9,17 @@
 using namespace arma;
 using namespace std::chrono;
 
-GExciton::GExciton(std::string filename, int Ncell, const arma::rowvec& Q, 
+GExciton::GExciton(std::string filename, int ncell, const arma::rowvec& Q, 
                    int nbands, int nrmbands, double filling, bool useApproximation, bool storeAllVectors) : 
           System(filename){
 
     // Constructor for GExciton class. If bands vector is given, it is used in all
     // calculations instead of parameters nbands, nrmbands.
-    // int Ncell: Number of unit cells along ONE direction.
+    // int ncell: Number of unit cells along ONE direction.
     
     // Initialize basic attributes
-    this->Ncell = Ncell;
-    this->totalCells = generateCombinationsGamma(Ncell, ndim).n_rows;
+    this->ncell = ncell;
+    this->totalCells = generateCombinationsGamma(ncell, ndim).n_rows;
     this->Q = Q;
     this->useApproximation = useApproximation;
 
@@ -39,9 +39,9 @@ GExciton::GExciton(std::string filename, int Ncell, const arma::rowvec& Q,
 
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
-    this->kpoints = brillouinZoneMesh(Ncell);
+    this->kpoints = brillouinZoneMesh(ncell);
     this->nk = kpoints.n_rows;
-    //this->Ncell = (int)sqrt(nk)*2;
+    //this->ncell = (int)sqrt(nk)*2;
     this->excitonbasisdim = nk*(nbands - nrmbands)*(nbands - nrmbands);
 
     std::cout << "Initializing basis for BSE... " << std::flush;
@@ -59,17 +59,17 @@ GExciton::GExciton(std::string filename, int Ncell, const arma::rowvec& Q,
 };
 
 
-GExciton::GExciton(std::string filename, int Ncell, double Q, 
+GExciton::GExciton(std::string filename, int ncell, double Q, 
                    arma::vec bands, double filling, bool useApproximation, bool storeAllVectors) : 
           System(filename){
 
     // Constructor for GExciton class. If bands vector is given, it is used in all
     // calculations instead of parameters nbands, nrmbands.
-    // int Ncell: Number of unit cells along ONE direction.
+    // int ncell: Number of unit cells along ONE direction.
     
     // Initialize basic attributes
-    this->Ncell = Ncell;
-    this->totalCells = pow(Ncell, ndim);
+    this->ncell = ncell;
+    this->totalCells = pow(ncell, ndim);
     this->Q = Q;
     this->useApproximation = useApproximation;
 
@@ -96,7 +96,7 @@ GExciton::GExciton(std::string filename, int Ncell, double Q,
 
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
-    this->kpoints = brillouinZoneMesh(Ncell);
+    this->kpoints = brillouinZoneMesh(ncell);
     this->nk = kpoints.n_rows;
     this->excitonbasisdim = nk*bands.n_elem;
 
@@ -170,7 +170,7 @@ void GExciton::STVH0(double X, double *SH0) {
 double GExciton::potential(double r){
     double eps_bar = (eps_m + eps_s)/2;
     double SH0;
-    double cutoff = arma::norm(bravaisLattice.row(0)) * Ncell/2.5 + 1E-5;
+    double cutoff = arma::norm(bravaisLattice.row(0)) * ncell/2.5 + 1E-5;
 
     // cout << "c: " << c << endl;
     // cout << "r0: " << r0 << endl;
@@ -191,7 +191,7 @@ double GExciton::potential(double r){
 
 
 /* Calculate lattice Fourier transform of Keldsyh potential
-   Input: double k, int Ncell. Output:  complex double. Vk */
+   Input: double k, int ncell. Output:  complex double. Vk */
 std::complex<double> GExciton::fourierTrans(arma::rowvec k, const arma::mat& cells, bool useApproximation){
     std::complex<double> imag(0,1);
     //std::complex<double> Vk = potential(0);
@@ -203,7 +203,7 @@ std::complex<double> GExciton::fourierTrans(arma::rowvec k, const arma::mat& cel
             double module = arma::norm(cell);
             Vk += potential(module)*std::exp(imag*arma::dot(k, cell));
 	    }
-        Vk *= 1*pow(Ncell, ndim);
+        Vk *= 1*pow(ncell, ndim);
     }
 
     else{ // This might be wrong if already using truncated cells
@@ -226,7 +226,7 @@ std::complex<double> GExciton::tDirect(std::complex<double> Vk,
                              const arma::cx_vec& coefsK2Q)
                              {
     
-    std::complex<double> D = 1./pow(pow(Ncell, ndim), ndim);
+    std::complex<double> D = 1./pow(pow(ncell, ndim), ndim);
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK2Q);
     cx_double I_second_pair = arma::cdot(coefsK2, coefsK);
 
@@ -248,7 +248,7 @@ std::complex<double> GExciton::tExchange(std::complex<double> VQ,
                                const arma::cx_vec& coefsK2Q)
                                {
     
-    std::complex<double> X = 1./pow(pow(Ncell, ndim), ndim);
+    std::complex<double> X = 1./pow(pow(ncell, ndim), ndim);
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK);
     cx_double I_second_pair = arma::cdot(coefsK2, coefsK2Q);
 
@@ -269,7 +269,7 @@ void GExciton::initializeExcitonAttributes(const ExcitonConfiguration&){
 
 void GExciton::initializePotentialMatrix(){
 
-    arma::mat cells_coefs = generateCombinations(Ncell, ndim);
+    arma::mat cells_coefs = generateCombinations(ncell, ndim);
     int dimRows = natoms*natoms*norbitals*norbitals;
     int dimCols = cells_coefs.n_rows*cells_coefs.n_rows;
 
@@ -323,7 +323,7 @@ std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
 
     std::complex<double> i(0,1);
 
-    arma::mat cells_coefs = generateCombinations(Ncell, ndim);
+    arma::mat cells_coefs = generateCombinations(ncell, ndim);
     arma::mat cells = arma::zeros(cells_coefs.n_rows, 3);
     for (int n = 0; n < cells.n_rows; n++){
         arma::rowvec cell_vector = arma::zeros(1, 3);
@@ -342,7 +342,7 @@ std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
     cx_vec result = potentialMat.st()*coefVector;
     result = result % expArray;
 
-    double ncells = pow(Ncell, ndim);
+    double ncells = pow(ncell, ndim);
     
     std::complex<double> term = arma::sum(result)/(ncells*ncells);
     return term;
@@ -543,8 +543,8 @@ void GExciton::initializeResultsH0(bool storeAllVectores){
         bandList = arma::regspace<uvec>(0, basisdim - 1);
     }
 
-    double radius = arma::norm(bravaisLattice.row(0)) * Ncell/2.5;
-    arma::mat cells = truncateSupercell(Ncell, radius);
+    double radius = arma::norm(bravaisLattice.row(0)) * ncell/2.5;
+    arma::mat cells = truncateSupercell(ncell, radius);
 
     cx_cube eigvecKStack(basisdim, nTotalBands, nk);
     cx_cube eigvecKQStack(basisdim, nTotalBands, nk);
@@ -629,7 +629,7 @@ in the stack, and then call them consecutively as we build the matrix.
 Analogously, we calculate the Fourier transform of the potential beforehand,
 saving it in the stack so that it can be later called in the matrix element
 calculation.
-Input: int N (cells finite direction), vec states, int Ncells (periodic 
+Input: int N (cells finite direction), vec states, int ncells (periodic 
 direction), int nEdgeStates. Output: None (updates previously declared matrices) 
 BEWARE: Does not work for Q < 0 (Expected to use reflection symmetry)*/
 void GExciton::BShamiltonian(const arma::mat& basis){
@@ -1011,7 +1011,7 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
             std::complex<double> X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
 
             // Exact interaction (TO BE IMPLEMENTED YET)
-            //std::complex<double> D = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, kArray, motif, potentialMatrix, Ncell)
+            //std::complex<double> D = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, kArray, motif, potentialMatrix, ncell)
             //std::complex<double> X = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, )
 
             // Compute matrix elements
@@ -1056,7 +1056,7 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
 
     arma::mat edgeBands = eigvalKStack.rows(bands);
 
-    double delta = 2.4/(2*Ncell); // Adjust delta depending on number of k points
+    double delta = 2.4/(2*ncell); // Adjust delta depending on number of k points
     double rho = pairDensityOfStates(valenceBands, conductionBands, pairEnergy, delta);
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
