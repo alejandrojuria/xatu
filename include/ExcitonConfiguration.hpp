@@ -4,11 +4,13 @@
 class ExcitonConfiguration : public ConfigurationBase{
 
     struct configuration {
-        int Ncell, nbands, nrmbands, filling;
-        arma::vec bands={};
+        int ncell, nbands, nrmbands, filling;
+        arma::urowvec bands = {};
         arma::rowvec Q;
         bool useApproximation;
-
+        double cutoff;
+        arma::rowvec eps = {};
+        double r0, d;
     };
 
     public:
@@ -21,5 +23,5 @@ class ExcitonConfiguration : public ConfigurationBase{
     private:
         virtual void parseContent();
         void checkContentCoherence();
-
+        double parseFraction(std::string&);
 };

@@ -1,0 +1,43 @@
+! Beware: Lines with ! in any position are treated as comments and ignored.
+! ----------------------------------- Exciton configuration ----------------------------------- !!
+# ncell
+21
+
+# nbands
+1
+
+# nrmbands
+0
+
+# bands
+! Either use nbands with nrmbands or bands. If both are present, nbands is ignored.
+
+# filling
+! For filling one can use fractions instead of decimals
+1/2
+
+# Q
+! Three component vector for center-of-mass momentum
+0 0 0
+
+#  useApproximation
+! Neglects  To compute the exciton faster, either true or false
+true
+
+# cutoff
+! Cutoff for the Fourier transform of the potential.
+! If cutoff is not present, the default value is |a|*ncell/2.5
+
+
+
+!! ----------------------------------- Interaction constants ----------------------------------- !!
+# eps
+! Dielectric constants for medium, substrate and material.
+! If eps is not present, medium and substrate take values 1 and 5 (air and hBN)
+1 5.06 20
+
+# d
+! Material thickness. If not given, defaults to 1.0
+
+# r0
+! Screening length. If r0 is given, it is used instead of d and eps of material.

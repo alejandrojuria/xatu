@@ -8,6 +8,7 @@ SystemConfiguration::SystemConfiguration(){
 SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBase(filename){
     expectedArguments = {"dimension", "bravaislattice", "motif", "norbitals", "bravaisvectors", "hamiltonian"};
     parseContent();
+    checkArguments();
     checkContentCoherence();
 }
 
@@ -18,8 +19,7 @@ void SystemConfiguration::parseContent(){
     if (contents.empty()){
         throw std::logic_error("File contents must be extracted first");
     }
-    for(int i = 0; i < foundArguments.size(); i++){
-        std::string arg = foundArguments[i];
+    for(const auto& arg : foundArguments){
         auto content = contents[arg];
 
         if (arg == "dimension"){
