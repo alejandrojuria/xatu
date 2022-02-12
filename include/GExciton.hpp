@@ -23,12 +23,13 @@ class GExciton : public System {
         arma::mat eigvalKStack, eigvalKQStack;
         arma::cx_mat ftStack;
         bool useApproximation;
+        double cutoff;
         
         double pairEnergy;
 
     public:
         arma::mat potentialMat;
-        int Ncell, totalCells, nk, nbands, nrmbands, fermiLevel, basisdim, excitonbasisdim;
+        int ncell, totalCells, nk, nbands, nrmbands, fermiLevel, basisdim, excitonbasisdim;
         double filling;
         arma::vec bands;
         arma::vec valenceBands, conductionBands;
@@ -40,6 +41,10 @@ class GExciton : public System {
         arma::mat kpoints;
         std::complex<double> ftX;
         std::map<int, int> bandToIndex;
+
+        double eps_m = 1;
+        double eps_s = 5.6;
+        double r0 = 10;
         
         arma::cx_cube eigvecKStack, eigvecKQStack;
 

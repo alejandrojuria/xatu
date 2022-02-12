@@ -168,48 +168,24 @@ void GExciton::STVH0(double X, double *SH0) {
 /* Calculate value of interaction potential (Keldysh). Units are eV.
    Input: double k. Output: complex double */
 double GExciton::potential(double r){
-    double eps = 0.01;
-    double eps1 = 1.;
-    double eps2 = 2000;
-    double eps_bar = (eps1 + eps2)/2;
-    double r0;
+    double eps_bar = (eps_m + eps_s)/2;
     double SH0;
-    bool pot_for_Bi = true;
-    bool pot_for_hBN = false;
     double cutoff = arma::norm(bravaisLattice.row(0)) * Ncell/2.5 + 1E-5;
 
-    if(pot_for_Bi){
-        r0 = c*eps/(eps1 + eps2);
-        // cout << "c: " << c << endl;
-        // cout << "r0: " << r0 << endl;
-        double R = abs(r)/r0;
-        if(r == 0){
-            STVH0(a/r0, &SH0);
-            return ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(a/r0));
-        }
-        else if (r > cutoff){
-            return 0.0;
-        }
-        else{
-            STVH0(R, &SH0);
-            return ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(R));
-        };
+    // cout << "c: " << c << endl;
+    // cout << "r0: " << r0 << endl;
+    double R = abs(r)/r0;
+    if(r == 0){
+        STVH0(a/r0, &SH0);
+        return ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(a/r0));
     }
-    else if(pot_for_hBN){
-        r0 = 10;
-        double R = abs(r)/r0;
-        if(r == 0){
-            STVH0(a/r0, &SH0);
-            return ec/(8E-10*eps0*r0)*(SH0 - y0(a/r0));
-        }
-        else if (r > cutoff){
-            return 0.0;
-        }
-        else{
-            STVH0(R, &SH0);
-            return ec/(8E-10*eps0*r0)*(SH0 - y0(R));
-        };
+    else if (r > cutoff){
+        return 0.0;
     }
+    else{
+        STVH0(R, &SH0);
+        return ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(R));
+    };
     
 };
 
