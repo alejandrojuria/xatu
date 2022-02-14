@@ -15,19 +15,34 @@
 class Crystal {
     
     //// Attributes
-    public:
-        int ndim, natoms, ncells;
+    protected:
+        int ndim_, natoms_, ncells;
         double a, c;
-        arma::mat bravaisLattice, motif, unitCellList;
-        arma::mat reciprocalLattice;
-        arma::vec kpoints;
+        arma::mat bravaisLattice_, motif_, unitCellList_;
+        arma::mat reciprocalLattice_;
         std::map<std::string, int> atomToIndex;
+
+    // Const references to attributes (read-only)
+    public:
+        const int& ndim = ndim_;
+        const int& natoms = natoms_;
+        const arma::mat& bravaisLattice = bravaisLattice_;
+        const arma::mat& motif = motif_;
+        const arma::mat& unitCellList = unitCellList_;
+        const arma::mat& reciprocalLattice = reciprocalLattice_;
 
     //// Methods
     protected:
         Crystal(){}; // Protected so that Crystal can not be initialized (abstract)
     public:   
         ~Crystal(){};
+
+        int getDimension();
+        int getNumAtoms();
+        arma::mat getBravaisLattice();
+        arma::mat getMotif();
+        arma::mat getUnitCellList();
+        arma::mat getReciprocalLattice();
 
         /* Mesh generation routines */
         arma::mat brillouinZoneMesh(int);

@@ -2,13 +2,13 @@
 
 /* Initialize Crystal attributes from SystemConfiguration object */
 void Crystal::initializeCrystalAttributes(const SystemConfiguration& configuration){
-    ndim           = configuration.systemInfo.ndim;
-    bravaisLattice = configuration.systemInfo.bravaisLattice;
-    motif          = configuration.systemInfo.motif;
-    atomToIndex    = configuration.systemInfo.atomToIndex;
-	unitCellList   = configuration.systemInfo.bravaisVectors;
+    ndim_           = configuration.systemInfo.ndim;
+    bravaisLattice_ = configuration.systemInfo.bravaisLattice;
+    motif_          = configuration.systemInfo.motif;
+    atomToIndex   = configuration.systemInfo.atomToIndex;
+	unitCellList_   = configuration.systemInfo.bravaisVectors;
     
-    natoms = motif.n_rows;
+    natoms_ = motif.n_rows;
 	ncells = unitCellList.n_rows;
 
     calculateReciprocalLattice();
@@ -21,11 +21,11 @@ void Crystal::initializeCrystalAttributes(const SystemConfiguration& configurati
     equations to solve for b_j. Resulting vectors have 3 components independently
     of the dimension of the vector space they span.*/
 void Crystal::calculateReciprocalLattice(){
-	reciprocalLattice = arma::zeros(ndim, 3);
+	reciprocalLattice_ = arma::zeros(ndim, 3);
 	arma::mat coefficient_matrix = bravaisLattice;
 
 	if (ndim == 1){
-		reciprocalLattice = 2.*PI*coefficient_matrix / pow(arma::norm(coefficient_matrix), 2);
+		reciprocalLattice_ = 2.*PI*coefficient_matrix / pow(arma::norm(coefficient_matrix), 2);
 	}
 	else{
 		coefficient_matrix = coefficient_matrix.cols(0, ndim - 1);
@@ -41,7 +41,7 @@ void Crystal::calculateReciprocalLattice(){
 				std::cout << "Failed to obtain reciprocal lattice vectors" << std::endl;
 				throw;
 			};
-			reciprocalLattice.row(i) = reciprocal_vector.t();
+			reciprocalLattice_.row(i) = reciprocal_vector.t();
 		};
 	};
 };
@@ -67,7 +67,7 @@ arma::mat Crystal::brillouinZoneMesh(int n){
 			};
 		}
 		for (int j = 0; j < ndim; j++){
-			kpoint += (2*combinations.row(i)(j) - n)/(2*n)*reciprocalLattice.row(j);
+			kpoint += (2*combinations.row(i)(j) - n)/(2*n)*reciprocalLattice_.row(j);
 		}
 		kpoints.row(it) = kpoint;
 		it++;
@@ -84,11 +84,11 @@ arma::mat Crystal::c3BzMesh(int n){
 	int it = 0;
 	arma::mat kpoints_block(nk, 3);
 	arma::mat kpoints(3*nk + 3*n - 2, 3);
-	double norm = arma::norm(reciprocalLattice.row(0));
-    arma::rowvec K = norm/sqrt(3)*(reciprocalLattice.row(0)/2. -
-                                	reciprocalLattice.row(1)/2.)/arma::norm(
-                                    reciprocalLattice.row(0)/2. -
-                                    reciprocalLattice.row(1)/2.)/2;
+	double norm = arma::norm(reciprocalLattice_.row(0));
+    arma::rowvec K = norm/sqrt(3)*(reciprocalLattice_.row(0)/2. -
+                                	reciprocalLattice_.row(1)/2.)/arma::norm(
+                                    reciprocalLattice_.row(0)/2. -
+                                    reciprocalLattice_.row(1)/2.)/2;
 	arma::rowvec K_rotated = rotateC3(K);
 
 	arma::mat combinations = generateCombinations(n, ndim);
