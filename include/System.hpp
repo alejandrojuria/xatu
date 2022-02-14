@@ -11,17 +11,23 @@
 class System : public Crystal{
     
     //// Attributes
-    public:
-        int norbitals, basisdim;
+    private:
+        int norbitals_, basisdim_;
         arma::urowvec orbitals;
         arma::cx_cube hamiltonianMatrices;
         arma::cx_cube overlapMatrices;
+
+    // Const references to expose relevant attributes in a read-only way
+    public:
+        const int& norbitals = norbitals_;
+        const int& basisdim = basisdim_;
 
     //// Methods
     public:
         /* Constructor and destructor */
         System(std::string);    
         ~System();
+
 
         /* Bloch Hamiltonian */
         arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false);

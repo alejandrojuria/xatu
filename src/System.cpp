@@ -6,6 +6,7 @@
 #include "System.hpp"
 
 
+// -------------------- Constructor and destructor --------------------
 System::System(std::string filename) : Crystal(){
 
 	SystemConfiguration configuration = SystemConfiguration(filename);
@@ -19,6 +20,7 @@ System::~System(){
 	std::cout << "Destroying System object..." << std::endl;
 };
 
+// ----------------------------- Methods -----------------------------
 /* Routine to extract the information contained in the SystemConfiguration object from
 parsing the input text file */
 void System::initializeSystemAttributes(const SystemConfiguration& configuration){
@@ -26,8 +28,8 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	hamiltonianMatrices = configuration.systemInfo.hamiltonian;
 	overlapMatrices     = configuration.systemInfo.overlap;
 
-	norbitals = arma::sum(orbitals);
-	basisdim  = norbitals*natoms;
+	norbitals_ = arma::sum(orbitals);
+	basisdim_  = norbitals*natoms;
 }
 
 /* Bloch hamiltonian for posterior diagonalization. Input: arma::vec k (wave number) */
