@@ -19,12 +19,15 @@ class System : public Crystal{
 
     // Const references to expose relevant attributes in a read-only way
     public:
+        // Returns number of orbitals per atom
         const int& norbitals = norbitals_;
+        // Returns size of basis used/hamiltonian dimension
         const int& basisdim = basisdim_;
 
     //// Methods
     public:
         /* Constructor and destructor */
+        System();
         System(std::string);    
         ~System();
 

@@ -7,6 +7,11 @@
 
 
 // -------------------- Constructor and destructor --------------------
+
+System::System(){
+	throw std::invalid_argument("Error: System requires one argument (systemfile)");
+}
+
 System::System(std::string filename) : Crystal(){
 
 	SystemConfiguration configuration = SystemConfiguration(filename);
