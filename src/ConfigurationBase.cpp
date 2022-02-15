@@ -103,3 +103,20 @@ void ConfigurationBase::printContent() {
         printVector(section);
     }
 }
+
+double ConfigurationBase::parseFraction(std::string& content){
+    std::istringstream iss(content);
+    double numerator, denominator, fraction;
+    std::string numeratorStr, denominatorStr;
+    std::getline(iss, numeratorStr, '/');
+    std::getline(iss, denominatorStr);
+    numerator = std::stod(numeratorStr);
+    denominator = std::stod(denominatorStr);
+    try{
+        fraction = numerator / denominator;
+    }
+    catch(std::exception& e){
+        fraction = numerator;
+    }
+    return fraction;
+}

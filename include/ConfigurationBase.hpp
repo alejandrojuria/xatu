@@ -58,6 +58,7 @@ class ConfigurationBase {
         };
 
         void printContent();
+        double parseFraction(std::string&);
     
     protected:
         void restartFileStream();

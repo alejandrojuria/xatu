@@ -5,6 +5,7 @@ class SystemConfiguration : public ConfigurationBase {
 
     struct configuration {
             int ndim;
+            double filling;
             arma::mat bravaisLattice;
             arma::mat motif;
             arma::cx_cube hamiltonian;

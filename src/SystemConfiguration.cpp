@@ -6,7 +6,7 @@ SystemConfiguration::SystemConfiguration(){
 };
 
 SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBase(filename){
-    expectedArguments = {"dimension", "bravaislattice", "motif", "norbitals", "bravaisvectors", "hamiltonian"};
+    expectedArguments = {"dimension", "bravaislattice", "motif", "norbitals", "filling", "bravaisvectors", "hamiltonian"};
     parseContent();
     checkArguments();
     checkContentCoherence();
@@ -24,8 +24,7 @@ void SystemConfiguration::parseContent(){
 
         if (arg == "dimension"){
             if(content.size() != 1){throw std::logic_error("Expected only one line for 'Dimension'");}
-            std::string line = content[0];
-            systemInfo.ndim = parseScalar<int>(line);
+            systemInfo.ndim = parseScalar<int>(content[0]);
         }
         else if(arg == "bravaislattice"){ 
             systemInfo.bravaisLattice = parseVectors(content);
@@ -36,6 +35,12 @@ void SystemConfiguration::parseContent(){
         }
         else if (arg == "norbitals"){
             systemInfo.norbitals = parseOrbitals(content);
+        }
+        else if (arg == "filling"){
+            if(content.size() != 1){
+                throw std::logic_error("Expected only one line in 'filling' field");
+            }
+            systemInfo.filling = parseFraction(content[0]);
         }
         else if (arg == "bravaisvectors") {
             systemInfo.bravaisVectors = parseVectors(content);

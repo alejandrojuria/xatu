@@ -7,7 +7,7 @@ ExcitonConfiguration::ExcitonConfiguration(){
 };
 
 ExcitonConfiguration::ExcitonConfiguration(std::string filename) : ConfigurationBase(filename){
-    this->expectedArguments = {"ncell", "nbands", "nrmbands", "filling", "bands", "Q", "useApproximation"};
+    this->expectedArguments = {"ncell", "nbands", "nrmbands", "bands", "Q", "useApproximation"};
     parseContent();
     checkArguments();
     checkContentCoherence();
@@ -38,9 +38,6 @@ void ExcitonConfiguration::parseContent(){
         }
         else if(arg == "nrmbands"){ 
             excitonInfo.nrmbands = parseScalar<int>(content[0]);
-        }
-        else if(arg == "filling"){ 
-            excitonInfo.filling = parseFraction(content[0]);
         }
         else if(arg == "bands"){
             // uint does not work with arma::urowvec, so we use typedef arma::uword
@@ -74,23 +71,6 @@ void ExcitonConfiguration::parseContent(){
     }
 
 };
-
-double ExcitonConfiguration::parseFraction(std::string& content){
-    std::istringstream iss(content);
-    double numerator, denominator, fraction;
-    std::string numeratorStr, denominatorStr;
-    std::getline(iss, numeratorStr, '/');
-    std::getline(iss, denominatorStr);
-    numerator = std::stod(numeratorStr);
-    denominator = std::stod(denominatorStr);
-    try{
-        fraction = numerator / denominator;
-    }
-    catch(std::exception& e){
-        fraction = numerator;
-    }
-    return fraction;
-}
 
 
 void ExcitonConfiguration::checkContentCoherence(){

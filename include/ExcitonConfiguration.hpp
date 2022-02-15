@@ -23,5 +23,4 @@ class ExcitonConfiguration : public ConfigurationBase{
     private:
         virtual void parseContent();
         void checkContentCoherence();
-        double parseFraction(std::string&);
 };
