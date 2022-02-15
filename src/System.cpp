@@ -32,9 +32,11 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	orbitals            = configuration.systemInfo.norbitals;
 	hamiltonianMatrices = configuration.systemInfo.hamiltonian;
 	overlapMatrices     = configuration.systemInfo.overlap;
+	filling_			= configuration.systemInfo.filling;
 
-	norbitals_ = arma::sum(orbitals);
-	basisdim_  = norbitals*natoms;
+	norbitals_  = arma::sum(orbitals);
+	basisdim_   = norbitals*natoms;
+	fermiLevel_ = (int)(filling * basisdim) - 1;
 }
 
 /* Bloch hamiltonian for posterior diagonalization. Input: arma::vec k (wave number) */

@@ -12,7 +12,9 @@ class System : public Crystal{
     
     //// Attributes
     private:
-        int norbitals_, basisdim_;
+        int norbitals_, basisdim_, fermiLevel_;
+        double filling_;
+
         arma::urowvec orbitals;
         arma::cx_cube hamiltonianMatrices;
         arma::cx_cube overlapMatrices;
@@ -23,6 +25,11 @@ class System : public Crystal{
         const int& norbitals = norbitals_;
         // Returns size of basis used/hamiltonian dimension
         const int& basisdim = basisdim_;
+        // Returns value of system filling
+        const double& filling = filling_;
+        // Returns band number corresponding to the Fermi level
+        const int& fermiLevel = fermiLevel_;
+
 
     //// Methods
     public:
