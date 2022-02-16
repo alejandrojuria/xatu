@@ -96,6 +96,72 @@ GExciton::~GExciton(){
     std::cout << "Deleting exciton object... " << std::endl;
 }
 
+
+/* ------------------------------ Setters ------------------------------ */
+void GExciton::setUnitCells(int ncell){
+    if(ncell > 0){
+        ncell_ = ncell;
+    }
+    else{
+        std::cout << "ncell must be a positive number" << std::endl;
+    }
+}
+
+void GExciton::setBands(const arma::ivec& bands){
+    bands_ = bands;
+    std::vector<arma::s64> valence, conduction;
+    for(int i = 0; i < bands.n_elem; i++){
+        if (bands(i) <= 0){
+            valence.push_back(bands(i) + fermiLevel);
+        }
+        else{
+            conduction.push_back(bands(i) + fermiLevel);
+        }
+    }
+    this->valenceBands_ = arma::ivec(valence);
+    this->conductionBands_ = arma::ivec(conduction);
+}
+
+void GExciton::setBands(int nbands, int nrmbands){
+    if(nbands > 0 && nrmbands > 0){
+        this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands + 1, fermiLevel - nrmbands);
+        this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, fermiLevel + nbands);
+        this->bands_ = arma::join_rows(valenceBands, conductionBands);
+    }
+    else{
+        std::cout << "Included bands and removed bands must be positive numbers" << std::endl;
+    }
+}
+
+void GExciton::setQ(const arma::rowvec& Q){
+    if(Q.n_elem == 3){
+        Q_ = Q;
+    }
+    else{
+        std::cout << "Q vector must be 3d" << std::endl;
+    }
+    
+}
+
+void GExciton::setParameters(const arma::rowvec& parameters){
+    if(parameters.n_elem == 3){
+        eps_m_ = parameters(0);
+        eps_s_ = parameters(1);
+        r0_    = parameters(2);
+    }
+    else{
+        std::cout << "parameters array must be 3d (eps_m, eps_s, r0)" << std::endl;
+    }
+}
+
+void GExciton::setParameters(double eps_m, double eps_s, double r0){
+    // TODO: Introduce additional comprobations regarding value of parameters (positive)
+    eps_m_ = eps_m;
+    eps_s_ = eps_s;
+    r0_    = r0;
+}
+
+
 /*      =============================================
 !       Purpose: Compute Struve function H0(x)
 !       Input :  x   --- Argument of H0(x) ( x ò 0 )

@@ -70,6 +70,16 @@ arma::cx_mat System::overlap(arma::rowvec k, bool isTriangular){
 	return s;
 }
 
+void System::setFilling(double filling){
+	if (filling > 0 && filling < 1){
+		filling_ = filling;
+		fermiLevel_ = (int)(filling * norbitals);
+	}
+	else{
+		std::cout << "Filling must be between 0 and 1" << std::endl;
+	}
+}
+
 // /*------------------ Utilities/Additional observables ------------------*/
 
 // /* Routine to apply the inversion operator P over a eigenstate */

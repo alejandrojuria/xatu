@@ -38,6 +38,7 @@ class System : public Crystal{
         System(std::string);    
         ~System();
 
+        void setFilling(double);
 
         /* Bloch Hamiltonian */
         arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false);

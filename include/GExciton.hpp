@@ -99,12 +99,9 @@ class GExciton : public System {
         void setUnitCells(int);
         void setBands(int, int);
         void setBands(const arma::ivec&);
-        void setFilling(double);
         void setQ(const arma::rowvec&);
         void setParameters(const arma::rowvec&);
         void setParameters(double, double, double);
-
-
 
     private:
         // Methods for BSE matrix initialization
