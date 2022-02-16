@@ -26,7 +26,6 @@ class GExciton : public System {
         arma::ivec bands_, valenceBands_, conductionBands_;
         arma::rowvec Q_;
         double cutoff_;
-        arma::mat kpoints_;
         arma::cx_mat HBS_;
 
         // Internal attributes
@@ -65,8 +64,6 @@ class GExciton : public System {
         const arma::ivec& valenceBands = valenceBands_;
         // List of conduction bands that form the exciton relative to the Fermi level
         const arma::ivec& conductionBands = conductionBands_;
-        // Returns matrix with all k points
-        const arma::mat& kpoints = kpoints_;
         // Returns Bethe-Salpeter Hamiltonian
         const arma::cx_mat& HBS = HBS_;
         // Returns dielectric constant of embedding medium
@@ -85,7 +82,7 @@ class GExciton : public System {
 
         // Specify number of bands participating (int)
         GExciton(std::string filename, int ncell = 20, int nbands = 1, int nrmbands = 0, 
-                const arma::rowvec& parameters = {1, 5, 1}, const const arma::rowvec& Q = {0., 0., 0.});
+                const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
         // Specify which bands participate (vector with band numbers)
         GExciton(std::string filename, int ncell = 200, const arma::ivec& bands = {0, 1}, 
@@ -102,6 +99,7 @@ class GExciton : public System {
         void setQ(const arma::rowvec&);
         void setParameters(const arma::rowvec&);
         void setParameters(double, double, double);
+        void setCutoff(double);
 
     private:
         // Methods for BSE matrix initialization
@@ -146,6 +144,7 @@ class GExciton : public System {
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
         arma::imat specifyBasisSubset(const arma::ivec& bands);
         void createSOCBasis();
+        void shiftBZ(const arma::rowvec&);
         
         // BSE initialization and energies
         void BShamiltonian(const arma::imat& basis = {}, bool useApproximation = true);

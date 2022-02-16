@@ -50,7 +50,7 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
 
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
-    this->kpoints_ = brillouinZoneMesh(ncell);
+    brillouinZoneMesh(ncell);
     this->nk_ = kpoints.n_rows;
     this->excitonbasisdim_ = nk*bands.n_elem;
 
@@ -86,9 +86,12 @@ GExciton::GExciton(std::string filename, int ncell, int nbands, int nrmbands,
 };
 
 
+// This constructor is intented to run directly 
 GExciton::GExciton(std::string modelfile, std::string excitonfile) : System(modelfile){
     ExcitonConfiguration excitonconfig = ExcitonConfiguration(excitonfile);
     initializeExcitonAttributes(excitonconfig);
+    bool useApproximation = excitonconfig.excitonInfo.useApproximation;
+    initializeHamiltonian(useApproximation);
 }
 
 // Destructor
@@ -154,13 +157,24 @@ void GExciton::setParameters(const arma::rowvec& parameters){
     }
 }
 
+void GExciton::setCutoff(double cutoff){
+    if(cutoff > 0){
+        cutoff_ = cutoff;
+        if(cutoff > ncell){
+            std::cout << "Warning: cutoff is higher than number of unit cells" << std::endl;
+        }
+    }
+    else{
+        std::cout << "cutoff must be a positive number" << std::endl;
+    }
+}
+
 void GExciton::setParameters(double eps_m, double eps_s, double r0){
     // TODO: Introduce additional comprobations regarding value of parameters (positive)
     eps_m_ = eps_m;
     eps_s_ = eps_s;
     r0_    = r0;
 }
-
 
 /*      =============================================
 !       Purpose: Compute Struve function H0(x)
@@ -300,8 +314,11 @@ std::complex<double> GExciton::tExchange(std::complex<double> VQ,
     return X;
 };
 
-void GExciton::initializeExcitonAttributes(const ExcitonConfiguration&){
-    //TODO
+void GExciton::initializeExcitonAttributes(const ExcitonConfiguration& config){
+    ncell_ = config.excitonInfo.ncell;
+    bands_ = config.excitonInfo.bands;
+    Q_ = config.excitonInfo.Q;
+
 };
 
 void GExciton::initializePotentialMatrix(){
@@ -398,7 +415,7 @@ void GExciton::initializeBasis(){
 arma::imat GExciton::createBasis(const arma::ivec& conductionBands, 
                                 const arma::ivec& valenceBands){
 
-    arma::imat states = arma::zeros(excitonbasisdim, 3);
+    arma::imat states = arma::zeros<arma::imat>(excitonbasisdim, 3);
     int it = 0;
     for (int i = 0; i < nk; i++){
         for (int k = 0; k < (int)conductionBands.n_elem; k++){
@@ -462,7 +479,7 @@ Generates only basis for bulk excitons.
 This routine does not work with vec bands (for now) -> Now it works? (overloading constructors) */
 void GExciton::createSOCBasis(){
 
-    arma::imat states = arma::zeros(excitonbasisdim, 3);
+    arma::imat states = arma::zeros<arma::imat>(excitonbasisdim, 3);
 
     int counter = 0;
     for (int vIndex = 0; vIndex < valenceBands.n_elem; vIndex++){
@@ -571,7 +588,7 @@ void GExciton::generateBandDictionary(){
 void GExciton::initializeResultsH0(){
 
     int nTotalBands = bandList.n_elem;
-    double radius = arma::norm(bravaisLattice.row(0)) * ncell/2.5;
+    double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
     arma::mat cells = truncateSupercell(ncell, radius);
 
     cx_cube eigvecKStack(basisdim, nTotalBands, nk);
@@ -612,7 +629,6 @@ void GExciton::initializeResultsH0(){
         for (int j = 0; j < nk; j++){
             ftStack(i, j) = fourierTransform(kpoints.row(i) - kpoints.row(j), cells, true);
         }
-        
 
         // Formatted progress indicator
 		percent = (100 * (i + 1)) / nk ;
@@ -642,7 +658,8 @@ void GExciton::initializeResultsH0(){
 };
 
 
-void GExciton::initializeHamiltonian(bool useApproximation){
+/* Routine to initialize the required variables to construct the Bethe-Salpeter Hamiltonian */
+void GExciton:: initializeHamiltonian(bool useApproximation){
     std::cout << "Diagonalizing H0 for all k points... " << std::endl;
     initializeResultsH0();
 
@@ -651,7 +668,6 @@ void GExciton::initializeHamiltonian(bool useApproximation){
         initializePotentialMatrix();
     };
 }
-
 
 
 /* Initialize BSE hamiltonian matrix and kinetic matrix. Recursive approach:
