@@ -19,17 +19,25 @@ class Crystal {
         int ndim_, natoms_, ncells;
         double a, c;
         arma::mat bravaisLattice_, motif_, unitCellList_;
-        arma::mat reciprocalLattice_;
+        arma::mat reciprocalLattice_, kpoints_;
         std::map<std::string, int> atomToIndex;
 
     // Const references to attributes (read-only)
     public:
+        // Returns system dimension
         const int& ndim = ndim_;
+        // Returns number of atoms in the motif
         const int& natoms = natoms_;
+        // Returns Bravais lattice vectors of system
         const arma::mat& bravaisLattice = bravaisLattice_;
+        // Returns position of atoms in motif
         const arma::mat& motif = motif_;
+        // Returns list of Bravais vectors whose atom connect with the unit cell at the origin
         const arma::mat& unitCellList = unitCellList_;
+        // Returns reciprocal lattice vectors
         const arma::mat& reciprocalLattice = reciprocalLattice_;
+        // Returns kpoints
+        const arma::mat& kpoints = kpoints_;
 
     //// Methods
     protected:
@@ -45,7 +53,9 @@ class Crystal {
         arma::mat getReciprocalLattice();
 
         /* Mesh generation routines */
-        arma::mat brillouinZoneMesh(int);
+        void brillouinZoneMesh(int);
+        void reducedBrillouinZoneMesh(int, int);
+        void shiftBZ(const arma::rowvec&);
         arma::mat c3BzMesh(int);
         arma::mat wignerSeitzSupercell(int);
         arma::mat truncateSupercell(int, double);

@@ -48,32 +48,62 @@ void Crystal::calculateReciprocalLattice(){
 
 /* Routine to compute a mesh of the first Brillouin zone using the
         Monkhorst-Pack algorithm. Returns a list of k vectors. 
-		Takes two parameters:
-		int n: Number of points to generate along one direction.
-		int ny = 0. Defaults to 0. If given, generates*/
-arma::mat Crystal::brillouinZoneMesh(int n){
+		Always returns a mesh centered on the Gamma point, for both n even
+		or odd. 
+		int n: Number of points to generate along one direction. */
+void Crystal::brillouinZoneMesh(int n){
 
 	int nk = pow(n, ndim);
 	arma::mat kpoints(pow(n, ndim), 3);
 	arma::mat combinations = generateCombinations(n, ndim);
-	int it = 0;
-	bool removeBoundary = false;
-
+	if (n % 2 == 1){
+		combinations -= 1./2;
+	}
+	
 	for (int i = 0; i < nk; i++){
 		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
-		if(removeBoundary){
-			if(!arma::all(combinations.row(i))){
-				continue;
-			};
-		}
 		for (int j = 0; j < ndim; j++){
 			kpoint += (2*combinations.row(i)(j) - n)/(2*n)*reciprocalLattice_.row(j);
+		}
+		kpoints.row(i) = kpoint;
+	}
+	kpoints_ = kpoints;
+}
+
+/* Routine to obtain a kpoint mesh which is a subset of the full BZ mesh. */
+void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
+	int nk = pow(n, ndim);
+	arma::mat kpoints(pow(n, ndim), 3);
+	arma::mat combinations = generateCombinations(n, ndim);
+	if (n % 2 == 1){
+		combinations -= 1./2;
+	}
+	
+	int it = 0;
+	for (int i = 0; i < nk; i++){
+		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
+		// Remove "boundary" k so that mesh is symmery under k <-> -k
+		if(!arma::all(combinations.row(i))){
+			continue;
+		};
+		for (int j = 0; j < ndim; j++){
+			kpoint += (2*combinations.row(i)(j) - n)/(2*ncell)*reciprocalLattice_.row(j);
 		}
 		kpoints.row(it) = kpoint;
 		it++;
 	}
-	return kpoints;
+	kpoints_ = kpoints;
 }
+
+void Crystal::shiftBZ(const arma::rowvec& shift){
+	if(kpoints.empty()){
+		std::cout << "To call this method kpoints must be initiallized first" << std::endl;
+	}
+	for(int i = 0; i < kpoints.n_rows; i++){
+		kpoints_.row(i) += shift;
+	}
+}
+
 
 /* Routine to generate a mesh for the BZ that preserves the C3 
 symmetry of the hexagonal lattice */
