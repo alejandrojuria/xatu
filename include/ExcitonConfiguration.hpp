@@ -5,7 +5,7 @@ class ExcitonConfiguration : public ConfigurationBase{
 
     struct configuration {
         int ncell, nbands, nrmbands, filling;
-        arma::urowvec bands = {};
+        arma::ivec bands = {};
         arma::rowvec Q;
         bool useApproximation;
         double cutoff;

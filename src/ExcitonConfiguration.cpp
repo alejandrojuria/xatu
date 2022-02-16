@@ -41,8 +41,8 @@ void ExcitonConfiguration::parseContent(){
         }
         else if(arg == "bands"){
             // uint does not work with arma::urowvec, so we use typedef arma::uword
-            std::vector<arma::uword> bands = parseLine<arma::uword>(content[0]);
-            excitonInfo.bands = arma::urowvec(bands);
+            std::vector<arma::s64> bands = parseLine<arma::s64>(content[0]);
+            excitonInfo.bands = arma::ivec(bands);
         }
         else if(arg == "Q"){
             std::vector<double> Q = parseLine<double>(content[0]);
