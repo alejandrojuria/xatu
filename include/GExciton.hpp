@@ -29,8 +29,8 @@ class GExciton : public System {
         arma::cx_mat HBS_;
 
         // Internal attributes
-        arma::mat eigvalKStack, eigvalKQStack;
-        arma::cx_cube eigvecKStack, eigvecKQStack;
+        arma::mat eigvalKStack_, eigvalKQStack_;
+        arma::cx_cube eigvecKStack_, eigvecKQStack_;
         arma::cx_mat ftStack;
         std::complex<double> ftX;
         arma::mat potentialMat;
@@ -39,8 +39,7 @@ class GExciton : public System {
         double pairEnergy;
         
         arma::uvec bandList;
-        arma::imat basisStates;
-        std::map<int, int> bandToIndex;
+        arma::imat basisStates_;
         
 
     public:
@@ -70,6 +69,15 @@ class GExciton : public System {
         const double& eps_s = eps_s_;
         // Returns effective screening length r0
         const double& r0 = r0_;
+        const arma::mat& eigvalKStack = eigvalKStack_;
+        const arma::mat& eigvalKQStack = eigvalKQStack_;
+        const arma::cx_cube& eigvecKStack = eigvecKStack_;
+        const arma::cx_cube& eigvecKQStack = eigvecKQStack_;
+        const arma::imat& basisStates = basisStates_;
+
+        // BEWARE: This dictionary had to be exposed to be able to access it,
+        // do not call from outside of methods.
+        std::map<int, int> bandToIndex;
 
     // ----------------------------------- Methods -----------------------------------
     // Constructor & Destructor
@@ -125,8 +133,7 @@ class GExciton : public System {
         void initializeBasis();
         void initializeResultsH0();
         void initializePotentialMatrix();
-        void initializeHamiltonian(bool useApproximation = true);
-
+        
         // Utilities
         void generateBandDictionary();
         void createMesh();
@@ -142,9 +149,9 @@ class GExciton : public System {
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
         arma::imat specifyBasisSubset(const arma::ivec& bands);
         void createSOCBasis();
-        void shiftBZ(const arma::rowvec&);
         
         // BSE initialization and energies
+        void initializeHamiltonian(bool useApproximation = true);
         void BShamiltonian(const arma::imat& basis = {}, bool useApproximation = true);
         arma::vec computeEnergies(const arma::cx_vec&);
 

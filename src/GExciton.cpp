@@ -20,7 +20,6 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
     // Constructor for GExciton class. If bands vector is given, it is used in all
     // calculations instead of parameters nbands, nrmbands.
     // int ncell: Number of unit cells along ONE direction.
-    
     // Initialize basic attributes
     this->ncell_      = ncell;
     this->totalCells_ = pow(ncell, ndim);
@@ -29,6 +28,11 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
     this->eps_m_      = parameters(0);
     this->eps_s_      = parameters(1);
     this->r0_         = parameters(2);
+    this->cutoff_     = ncell/2.5; // Default value, seems to preserve crystal point group
+
+    if(r0 == 0){
+        throw std::invalid_argument("Error: r0 must be non-zero");
+    }
 
     if (bands.n_elem > basisdim){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
@@ -51,7 +55,7 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
     brillouinZoneMesh(ncell);
-    this->excitonbasisdim_ = nk*bands.n_elem;
+    this->excitonbasisdim_ = nk*valenceBands.n_elem*conductionBands.n_elem;
 
     if (!bands.empty()){
         std::cout << "Initializing basis for BSE... " << std::flush;
@@ -63,17 +67,18 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
 };
 
 GExciton::GExciton(std::string filename, int ncell, int nbands, int nrmbands, 
-                  const arma::rowvec& Q, const arma::rowvec& parameters) : 
+                  const arma::rowvec& parameters, const arma::rowvec& Q) : 
           GExciton(filename, ncell, {}, parameters, Q) {
     
+    std::cout << __LINE__ << std::endl;
     if (2*nbands > basisdim){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
         exit(1);
     }
     this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands + 1, fermiLevel - nrmbands);
     this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, fermiLevel + nbands);
-    this->bands_ = arma::join_rows(valenceBands, conductionBands);
-    this->excitonbasisdim_ = nk*bands.n_elem;
+    this->bands_ = arma::join_cols(valenceBands, conductionBands);
+    this->excitonbasisdim_ = nk*valenceBands.n_elem*conductionBands.n_elem;
 
     if (!bands.empty()){
         std::cout << "Initializing basis for BSE... " << std::flush;
@@ -222,21 +227,21 @@ double GExciton::potential(double r){
     double eps_bar = (eps_m + eps_s)/2;
     double SH0;
     double cutoff = arma::norm(bravaisLattice.row(0)) * ncell/2.5 + 1E-5;
-
-    // cout << "c: " << c << endl;
-    // cout << "r0: " << r0 << endl;
     double R = abs(r)/r0;
+    double potential_value;
     if(r == 0){
         STVH0(a/r0, &SH0);
-        return ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(a/r0));
+        potential_value = ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(a/r0));
     }
     else if (r > cutoff){
-        return 0.0;
+        potential_value = 0.0;
     }
     else{
         STVH0(R, &SH0);
-        return ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(R));
+        potential_value = ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(R));
     };
+
+    return potential_value;
     
 };
 
@@ -405,7 +410,7 @@ std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
 /* Overloading createBasis method to work with class attributes instead of given ones
 */
 void GExciton::initializeBasis(){
-    this->basisStates = createBasis(conductionBands, valenceBands);
+    this->basisStates_ = createBasis(conductionBands, valenceBands);
     //createSOCBasis();
 };
 
@@ -428,7 +433,7 @@ arma::imat GExciton::createBasis(const arma::ivec& conductionBands,
         };
     };
 
-    basisStates = states;
+    basisStates_ = states;
     bandList = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 
     return states;
@@ -495,7 +500,7 @@ void GExciton::createSOCBasis(){
     };
 
     this->bandList = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
-    this->basisStates = states;
+    this->basisStates_ = states;
 };
 
 
@@ -589,6 +594,7 @@ void GExciton::initializeResultsH0(){
 
     int nTotalBands = bandList.n_elem;
     double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
+    // By default
     arma::mat cells = truncateSupercell(ncell, radius);
 
     cx_cube eigvecKStack(basisdim, nTotalBands, nk);
@@ -649,10 +655,10 @@ void GExciton::initializeResultsH0(){
     cx_cube atomicGCoefsKstack = eigvecKStack;
     cx_cube atomicGCoefsKQstack = eigvecKQStack;
 
-    this->eigvalKStack = eigvalKStack;
-    this->eigvalKQStack = eigvalKQStack;
-    this->eigvecKStack = eigvecKStack;
-    this->eigvecKQStack = eigvecKQStack;
+    this->eigvalKStack_ = eigvalKStack;
+    this->eigvalKQStack_ = eigvalKQStack;
+    this->eigvecKStack_ = eigvecKStack;
+    this->eigvecKQStack_ = eigvecKQStack;
     this->ftStack = ftStack;
     this->ftX = fourierTransform(Q, cells, false);
 };
@@ -701,11 +707,14 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
     // To be able to parallelize over the triangular matrix, we build
     int loopLength = basisDimBSE*(basisDimBSE + 1)/2.;
 
+    // https://stackoverflow.com/questions/242711/algorithm-for-index-numbers-of-triangular-matrix-coefficients
     #pragma omp parallel for schedule(static, 1)
     for (int n = 0; n < loopLength; n++){
-        int i = (int)(n/basisDimBSE);
-        int j = (int)(n - i*basisDimBSE);
-            
+        int ii = loopLength - 1 - n;
+        int k  = floor((sqrt(8*ii + 1) - 1)/2);
+        int i = basisDimBSE - 1 - k;
+        int j = basisDimBSE - 1 - ii + k*(k+1)/2;
+    
         double k_index = basisStates(i, 2);
         int v = bandToIndex[basisStates(i, 0)];
         int c = bandToIndex[basisStates(i, 1)];
@@ -747,8 +756,9 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
         else{
             HBS_(i, j) =  - (D - X);
         };
-    };
-
+        
+    }
+        
     HBS_ = HBS + HBS.t();
     std::cout << "Done" << std::endl;
 };
