@@ -1,4 +1,6 @@
 #include "Crystal.hpp"
+#include <numeric>
+
 
 /* Initialize Crystal attributes from SystemConfiguration object */
 void Crystal::initializeCrystalAttributes(const SystemConfiguration& configuration){
@@ -95,65 +97,62 @@ void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
 	kpoints_ = kpoints;
 }
 
+
+/* Routine to shift the center of the BZ mesh to a given point */
 void Crystal::shiftBZ(const arma::rowvec& shift){
+	if(shift.n_elem != 3){
+		std::cout << "shift vector must be 3d" << std::endl;
+		return; 
+	}
 	if(kpoints.empty()){
 		std::cout << "To call this method kpoints must be initiallized first" << std::endl;
+		return;
 	}
 	for(int i = 0; i < kpoints.n_rows; i++){
 		kpoints_.row(i) += shift;
 	}
 }
 
-
-/* Routine to generate a mesh for the BZ that preserves the C3 
-symmetry of the hexagonal lattice */
-arma::mat Crystal::c3BzMesh(int n){
-
-	int nk = pow(n, ndim);
-	nk = nk - (2*n - 1);
-	int it = 0;
-	arma::mat kpoints_block(nk, 3);
-	arma::mat kpoints(3*nk + 3*n - 2, 3);
-	double norm = arma::norm(reciprocalLattice_.row(0));
-    arma::rowvec K = norm/sqrt(3)*(reciprocalLattice_.row(0)/2. -
-                                	reciprocalLattice_.row(1)/2.)/arma::norm(
-                                    reciprocalLattice_.row(0)/2. -
-                                    reciprocalLattice_.row(1)/2.)/2;
-	arma::rowvec K_rotated = rotateC3(K);
-
-	arma::mat combinations = generateCombinations(n, ndim);
-
-	for (int i = 0; i < combinations.n_rows; i++){
-		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
-		if(combinations.row(i)(0) == 0 || combinations.row(i)(1) == 0){
-			continue;
+/* Routine to restrict the kpoint mesh so that it has C3 symmetry. 
+Note that this routine is intended to be used with systems with C3 symmetry */
+void Crystal::preserveC3(){
+	arma::vec norms = arma::diagvec((kpoints * kpoints.t()));
+	std::vector<int> indices(norms.n_elem);
+	std::iota(indices.begin(), indices.end(), 1);
+	arma::uvec indices = arma::regspace<arma::uvec>(0, norms.n_elem);
+	int coincidence = 0;
+	std::vector<int> coincidences;
+	std::vector<int> indicesToRemove;
+	for(const double norm : norms){
+		if (norm == 0){ continue; } // Skip kpoint zero
+		for(const int index : indices){
+			if (norm == norms[index]){
+				coincidence++;
+				coincidences.push_back(index);
+			}
 		}
-		kpoint =  combinations.row(i)(0)/(n-1)*K + 
-				  combinations.row(i)(1)/(n-1)*K_rotated;
-		kpoints_block.row(it) = kpoint;
-		it++;
+		for (const int index : coincidences){
+			// Pop coincidence indices from indices
+			// .erase() requires an iterator as parameter
+			indices.erase(indices.begin() + index);
+			if(coincidence < 3){
+				indicesToRemove.push_back(index);		
+			}
+		}
 	}
-	for (int i = 0; i < nk; i++){
-		arma::rowvec kpoint = kpoints_block.row(i);
-		arma::rowvec kpoint_rotated = rotateC3(kpoint);
-		arma::rowvec kpoint_rotated_twice = rotateC3(kpoint_rotated);
-
-		kpoints.row(i) = kpoint;
-		kpoints.row(nk + i) = kpoint_rotated;
-		kpoints.row(2*nk + i) = kpoint_rotated_twice;
+	// Generate kpoint matrix without the non-conserving C3 points
+	std::vector<arma::uword> complementaryIndices;
+	bool isRemoved;
+	for(int i = 0; i < norms.n_elem; i++){
+		isRemoved = false;
+		for(const int index : indicesToRemove){
+			isRemoved = (i == index) ? true : false;
+		}
+		if(!isRemoved){
+			complementaryIndices.push_back(i);
+		}
 	}
-	for (int i = 1; i < n; i++){
-		arma::rowvec kpoint = (double)i/(n-1)*K;
-		arma::rowvec kpoint_rotated = rotateC3(kpoint);
-		arma::rowvec kpoint_rotated_twice = rotateC3(kpoint_rotated);
-
-		kpoints.row(3*nk + i - 1) = kpoint;
-		kpoints.row(3*nk + n + i - 2) = kpoint_rotated;
-		kpoints.row(3*nk + 2*n + i - 3) = kpoint_rotated_twice;
-	}
-	kpoints.row(kpoints.n_rows - 1) = arma::rowvec{0, 0, 0};
-
-	return kpoints;
+	kpoints_ = kpoints_.rows(arma::uvec(complementaryIndices));
 }
 
 void Crystal::extractLatticeParameters(){

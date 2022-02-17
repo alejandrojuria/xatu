@@ -56,7 +56,7 @@ class Crystal {
         void brillouinZoneMesh(int);
         void reducedBrillouinZoneMesh(int, int);
         void shiftBZ(const arma::rowvec&);
-        arma::mat c3BzMesh(int);
+        void preserveC3();
         arma::mat wignerSeitzSupercell(int);
         arma::mat truncateSupercell(int, double);
         arma::mat generateCombinations(int n, int ndim);
