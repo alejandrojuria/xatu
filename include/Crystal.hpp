@@ -16,7 +16,7 @@ class Crystal {
     
     //// Attributes
     protected:
-        int ndim_, natoms_, ncells;
+        int ndim_, natoms_, nk_, ncells;
         double a, c;
         arma::mat bravaisLattice_, motif_, unitCellList_;
         arma::mat reciprocalLattice_, kpoints_;
@@ -38,6 +38,8 @@ class Crystal {
         const arma::mat& reciprocalLattice = reciprocalLattice_;
         // Returns kpoints
         const arma::mat& kpoints = kpoints_;
+        // Number of k points
+        const int& nk = nk_;
 
     //// Methods
     protected:
@@ -59,8 +61,7 @@ class Crystal {
         void preserveC3();
         arma::mat wignerSeitzSupercell(int);
         arma::mat truncateSupercell(int, double);
-        arma::mat generateCombinations(int n, int ndim);
-        arma::mat generateCombinationsGamma(int n, int ndim);
+        arma::mat generateCombinations(int n, int ndim, bool centered = false);
 
         /* Crystal operations */
         arma::cx_mat inversionOperator(const arma::cx_vec&);

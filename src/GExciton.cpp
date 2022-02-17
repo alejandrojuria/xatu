@@ -51,7 +51,6 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
     // Initialize derived attributes
     std::cout << "Creating BZ mesh... " << std::flush;
     brillouinZoneMesh(ncell);
-    this->nk_ = kpoints.n_rows;
     this->excitonbasisdim_ = nk*bands.n_elem;
 
     if (!bands.empty()){
@@ -74,6 +73,7 @@ GExciton::GExciton(std::string filename, int ncell, int nbands, int nrmbands,
     this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands + 1, fermiLevel - nrmbands);
     this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, fermiLevel + nbands);
     this->bands_ = arma::join_rows(valenceBands, conductionBands);
+    this->excitonbasisdim_ = nk*bands.n_elem;
 
     if (!bands.empty()){
         std::cout << "Initializing basis for BSE... " << std::flush;

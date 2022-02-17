@@ -70,6 +70,7 @@ void Crystal::brillouinZoneMesh(int n){
 		kpoints.row(i) = kpoint;
 	}
 	kpoints_ = kpoints;
+	nk_ = kpoints.n_rows;
 }
 
 /* Routine to obtain a kpoint mesh which is a subset of the full BZ mesh. */
@@ -95,6 +96,7 @@ void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
 		it++;
 	}
 	kpoints_ = kpoints;
+	nk_ = kpoints.n_rows;
 }
 
 
@@ -153,6 +155,7 @@ void Crystal::preserveC3(){
 		}
 	}
 	kpoints_ = kpoints_.rows(arma::uvec(complementaryIndices));
+	nk_ = kpoints.n_rows;
 }
 
 void Crystal::extractLatticeParameters(){
@@ -185,7 +188,7 @@ arma::mat Crystal::wignerSeitzSupercell(int Ncell){
 
 	// Generate combinations of [-1,0,1] to determine relevant lattice
 	// vectors
-	arma::mat lattice_combinations = generateCombinationsGamma(3, ndim);
+	arma::mat lattice_combinations = generateCombinations(3, ndim, true);
 	double norm = arma::norm(bravaisLattice.row(0));
 	std::vector<arma::rowvec> lattice_vectors;
 
@@ -278,14 +281,15 @@ bool Crystal::isInsideWsCell(const arma::rowvec& point,
 	return is_inside;
 };
 
-arma::mat Crystal::generateCombinations(int nvalues, int ndim){
+arma::mat Crystal::generateCombinations(int nvalues, int ndim, bool centered){
 	int ncombinations = pow(nvalues, ndim);
 	arma::vec ones = arma::ones(nvalues);
 	arma::mat combinations(ncombinations, ndim);
 	arma::vec auxvector;
 	arma::rowvec combination(ndim);
+	int shift = centered ? (int)nvalues/2 : 0;
 	for(int n = 0; n < ndim; n++){
-		arma::vec values = arma::regspace(0, nvalues - 1);
+		arma::vec values = arma::regspace(0, nvalues - 1) - shift;
 		for(int i = 0; i < ndim - n - 1; i++){
 			values = arma::kron(ones, values);
 		}
@@ -295,34 +299,6 @@ arma::mat Crystal::generateCombinations(int nvalues, int ndim){
 		combinations.col(n) = values;
 	}
 
-	return combinations;
-}
-
-arma::mat Crystal::generateCombinationsGamma(int nvalues, int ndim){
-	if (nvalues%2 == 0){
-		nvalues++;
-	}
-	int ncombinations = pow(nvalues, ndim);
-	arma::vec ones = arma::ones(nvalues);
-	arma::mat combinations(ncombinations, ndim);
-	arma::vec auxvector;
-	arma::rowvec combination(ndim);
-	std::cout << __LINE__ << std::endl;
-	for(int n = 0; n < ndim; n++){
-		arma::vec values = arma::regspace(-(int)nvalues/2, (int)nvalues/2);
-		for(int i = 0; i < ndim - n - 1; i++){
-			values = arma::kron(ones, values);
-		}
-		std::cout << __LINE__ << std::endl;
-		for(int j = 0; j < n; j++){
-			values = arma::kron(values, ones);
-		}
-		std::cout << __LINE__ << std::endl;
-		combinations.col(n) = values;
-		std::cout << __LINE__ << std::endl;
-	}
-
-	std::cout << __LINE__ << std::endl;
 	return combinations;
 }
 

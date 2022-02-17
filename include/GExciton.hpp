@@ -21,7 +21,7 @@ class GExciton : public System {
     // ----------------------------------- Attributes -----------------------------------
     private:
         // Read-only parameters
-        int ncell_, totalCells_, nk_, nbands_, nrmbands_, excitonbasisdim_;
+        int ncell_, totalCells_, nbands_, nrmbands_, excitonbasisdim_;
         double eps_m_, eps_s_, r0_;
         arma::ivec bands_, valenceBands_, conductionBands_;
         arma::rowvec Q_;
@@ -48,8 +48,6 @@ class GExciton : public System {
         const int& ncell = ncell_;
         // Total number of unit cells
         const int& totalCells = totalCells_;
-        // Number of k points
-        const int& nk = nk_;
         // Dimension of electron-hole pair basis used to build excitons
         const int& excitonbasisdim = excitonbasisdim_;
         // Number of bands participating in exciton formation, starting from the Fermi level
