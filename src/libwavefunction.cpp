@@ -160,8 +160,8 @@ double realSpaceWavefunction(GExciton& exciton, const arma::cx_vec& BSEcoefs,
 
 
             amplitude = 0;
-            arma::rowvec basisState = exciton.basisStates.row(i);
-            arma::rowvec basisState2 = exciton.basisStates.row(j);
+            arma::irowvec basisState = exciton.basisStates.row(i);
+            arma::irowvec basisState2 = exciton.basisStates.row(j);
 
             int v1 = exciton.bandToIndex[basisState(0)];
             int v2 = exciton.bandToIndex[basisState2(0)];
@@ -222,7 +222,7 @@ std::complex<double> densityMatrix(GExciton& exciton, const arma::cx_vec& BSEcoe
     int nv = exciton.valenceBands.n_elem;
 
     for (int i = 0; i < exciton.basisStates.n_rows; i++){
-        arma::rowvec state = exciton.basisStates.row(i);
+        arma::irowvec state = exciton.basisStates.row(i);
         int v = state(0);
         int c = state(1);
         int vI = i%nv;

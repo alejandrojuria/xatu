@@ -59,7 +59,7 @@ void Crystal::brillouinZoneMesh(int n){
 	arma::mat kpoints(pow(n, ndim), 3);
 	arma::mat combinations = generateCombinations(n, ndim);
 	if (n % 2 == 1){
-		combinations -= 1./2;
+		combinations += 1./2;
 	}
 	
 	for (int i = 0; i < nk; i++){
@@ -71,6 +71,7 @@ void Crystal::brillouinZoneMesh(int n){
 	}
 	kpoints_ = kpoints;
 	nk_ = kpoints.n_rows;
+	std::cout << nk << std::endl;
 }
 
 /* Routine to obtain a kpoint mesh which is a subset of the full BZ mesh. */
@@ -79,7 +80,7 @@ void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
 	arma::mat kpoints(pow(n, ndim), 3);
 	arma::mat combinations = generateCombinations(n, ndim);
 	if (n % 2 == 1){
-		combinations -= 1./2;
+		combinations += 1./2;
 	}
 	
 	int it = 0;
@@ -110,6 +111,7 @@ void Crystal::shiftBZ(const arma::rowvec& shift){
 		std::cout << "To call this method kpoints must be initiallized first" << std::endl;
 		return;
 	}
+	std::cout << "Shifting BZ..." << std::endl;
 	for(int i = 0; i < kpoints.n_rows; i++){
 		kpoints_.row(i) += shift;
 	}
@@ -119,13 +121,12 @@ void Crystal::shiftBZ(const arma::rowvec& shift){
 Note that this routine is intended to be used with systems with C3 symmetry */
 void Crystal::preserveC3(){
 	arma::vec norms = arma::diagvec((kpoints * kpoints.t()));
-	std::vector<int> indices(norms.n_elem);
+	std::vector<int> indices(norms.n_elem), coincidences, indicesToRemove;
+	int coincidence;
 	std::iota(indices.begin(), indices.end(), 1);
-	arma::uvec indices = arma::regspace<arma::uvec>(0, norms.n_elem);
-	int coincidence = 0;
-	std::vector<int> coincidences;
-	std::vector<int> indicesToRemove;
+	
 	for(const double norm : norms){
+		coincidence = 0;
 		if (norm == 0){ continue; } // Skip kpoint zero
 		for(const int index : indices){
 			if (norm == norms[index]){
@@ -145,7 +146,7 @@ void Crystal::preserveC3(){
 	// Generate kpoint matrix without the non-conserving C3 points
 	std::vector<arma::uword> complementaryIndices;
 	bool isRemoved;
-	for(int i = 0; i < norms.n_elem; i++){
+	for(arma::uword i = 0; i < norms.n_elem; i++){
 		isRemoved = false;
 		for(const int index : indicesToRemove){
 			isRemoved = (i == index) ? true : false;
@@ -172,7 +173,7 @@ void Crystal::extractLatticeParameters(){
 
 	double reference_height = motif.row(0)(2);
 	double c = 0;
-	for (int i = 0; i < motif.n_rows; i++){
+	for (arma::uword i = 0; i < motif.n_rows; i++){
 		double diff = abs(motif.row(i)(2) - reference_height);
 		if (diff > c){
 			c = diff;
@@ -192,7 +193,7 @@ arma::mat Crystal::wignerSeitzSupercell(int Ncell){
 	double norm = arma::norm(bravaisLattice.row(0));
 	std::vector<arma::rowvec> lattice_vectors;
 
-	for (int i = 0; i < lattice_combinations.n_rows; i++){
+	for (arma::uword i = 0; i < lattice_combinations.n_rows; i++){
 		arma::rowvec lattice_vector = arma::zeros<arma::rowvec>(3);
 		for (int j = 0; j < ndim; j++){
 			lattice_vector += lattice_combinations.row(i)(j) * bravaisLattice.row(j);
@@ -215,7 +216,7 @@ arma::mat Crystal::wignerSeitzSupercell(int Ncell){
 
 	// Determine perpendicular planes to each midpoint
 	arma::mat planes(midpoints.n_rows, 3);
-	for (int i = 0; i < midpoints.n_rows; i++){
+	for (arma::uword i = 0; i < midpoints.n_rows; i++){
 		double A = midpoints.row(i)(0);
 		double B = midpoints.row(i)(1);
 		double d = -A*A - B*B;
@@ -302,9 +303,9 @@ arma::mat Crystal::generateCombinations(int nvalues, int ndim, bool centered){
 	return combinations;
 }
 
-arma::mat Crystal::truncateSupercell(int Ncell, double radius){
+arma::mat Crystal::truncateSupercell(int ncell, double radius){
 
-	arma::mat combinations = generateCombinations(Ncell, ndim);
+	arma::mat combinations = generateCombinations(ncell, ndim, true);
 	std::vector<arma::rowvec> cells_vector;
 	for (int i = 0; i < combinations.n_rows; i++){
 		arma::rowvec lattice_vector = arma::zeros<arma::rowvec>(3);
@@ -330,7 +331,7 @@ or on reciprocal space to enforce C3 symmetry */
 arma::rowvec Crystal::rotateC3(const arma::rowvec& position){
 	double theta = 2*PI/3;
 	arma::mat C3rotation = {{cos(theta), -sin(theta), 0},
-							{sin(theta), cos(theta) , 0},
+							{sin(theta),  cos(theta), 0},
 							{         0,		   0, 1}};
 	arma::vec rotated_position = C3rotation*position.t();
 

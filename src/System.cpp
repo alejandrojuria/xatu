@@ -29,6 +29,7 @@ System::~System(){
 /* Routine to extract the information contained in the SystemConfiguration object from
 parsing the input text file */
 void System::initializeSystemAttributes(const SystemConfiguration& configuration){
+	
 	orbitals            = configuration.systemInfo.norbitals;
 	hamiltonianMatrices = configuration.systemInfo.hamiltonian;
 	overlapMatrices     = configuration.systemInfo.overlap;
