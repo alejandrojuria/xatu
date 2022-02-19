@@ -47,7 +47,7 @@ void ConfigurationBase::checkArguments(){
     };
     for (auto arg = expectedArguments.begin(); arg!= expectedArguments.end(); arg++){
             if(!(std::find(foundArguments.begin(), foundArguments.end(), *arg) != foundArguments.end())){
-                throw std::logic_error("Missing arguments in config. file");
+                throw std::logic_error("Missing arguments in config. file: missing " + *arg);
             }
         }
 };
@@ -111,8 +111,8 @@ double ConfigurationBase::parseFraction(std::string& content){
     std::getline(iss, numeratorStr, '/');
     std::getline(iss, denominatorStr);
     numerator = std::stod(numeratorStr);
-    denominator = std::stod(denominatorStr);
     try{
+        denominator = std::stod(denominatorStr);
         fraction = numerator / denominator;
     }
     catch(std::exception& e){

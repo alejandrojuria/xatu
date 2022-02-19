@@ -708,7 +708,7 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
     int loopLength = basisDimBSE*(basisDimBSE + 1)/2.;
 
     // https://stackoverflow.com/questions/242711/algorithm-for-index-numbers-of-triangular-matrix-coefficients
-    #pragma omp parallel for schedule(static, 1)
+    //#pragma omp parallel for schedule(static, 1)
     for (int n = 0; n < loopLength; n++){
         int ii = loopLength - 1 - n;
         int k  = floor((sqrt(8*ii + 1) - 1)/2);
