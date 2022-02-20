@@ -226,7 +226,7 @@ void GExciton::STVH0(double X, double *SH0) {
 double GExciton::potential(double r){
     double eps_bar = (eps_m + eps_s)/2;
     double SH0;
-    double cutoff = arma::norm(bravaisLattice.row(0)) * ncell/2.5 + 1E-5;
+    double cutoff = arma::norm(bravaisLattice.row(0)) * cutoff_ + 1E-5;
     double R = abs(r)/r0;
     double potential_value;
     if(r == 0){
@@ -259,7 +259,7 @@ std::complex<double> GExciton::fourierTransform(arma::rowvec k, const arma::mat&
             double module = arma::norm(cell);
             Vk += potential(module)*std::exp(imag*arma::dot(k, cell));
 	    }
-        Vk *= 1*pow(ncell, ndim);
+        Vk *= totalCells;
     }
 
     else{ // This might be wrong if already using truncated cells
@@ -282,7 +282,7 @@ std::complex<double> GExciton::tDirect(std::complex<double> Vk,
                              const arma::cx_vec& coefsK2Q)
                              {
     
-    std::complex<double> D = 1./pow(pow(ncell, ndim), ndim);
+    std::complex<double> D = 1./pow(totalCells, 2);
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK2Q);
     cx_double I_second_pair = arma::cdot(coefsK2, coefsK);
 
@@ -304,7 +304,7 @@ std::complex<double> GExciton::tExchange(std::complex<double> VQ,
                                const arma::cx_vec& coefsK2Q)
                                {
     
-    std::complex<double> X = 1./pow(pow(ncell, ndim), ndim);
+    std::complex<double> X = 1./pow(totalCells, 2);
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK);
     cx_double I_second_pair = arma::cdot(coefsK2, coefsK2Q);
 
