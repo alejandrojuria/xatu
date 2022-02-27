@@ -12,6 +12,7 @@ void Crystal::initializeCrystalAttributes(const SystemConfiguration& configurati
     
     natoms_ = motif.n_rows;
 	ncells = unitCellList.n_rows;
+	nk_ = 0; // Mesh has to be explicitly initialized
 
     calculateReciprocalLattice();
     extractLatticeParameters();
@@ -55,6 +56,8 @@ void Crystal::calculateReciprocalLattice(){
 		int n: Number of points to generate along one direction. */
 void Crystal::brillouinZoneMesh(int n){
 
+	std::cout << "Creating BZ mesh... " << std::flush;
+
 	int nk = pow(n, ndim);
 	arma::mat kpoints(pow(n, ndim), 3);
 	arma::mat combinations = generateCombinations(n, ndim);
@@ -71,23 +74,27 @@ void Crystal::brillouinZoneMesh(int n){
 	}
 	kpoints_ = kpoints;
 	nk_ = kpoints.n_rows;
-	std::cout << nk << std::endl;
+	std::cout << "Done. Number of k points: " << nk << std::endl;
 }
 
-/* Routine to obtain a kpoint mesh which is a subset of the full BZ mesh. */
+/* Routine to obtain a kpoint mesh which is a subset of the full BZ mesh. 
+If n is even, we substract one so that the mesh is symmetric under inversion */
 void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
+
+	std::cout << "Creating BZ mesh... " << std::flush;
+
+	n = (n % 2 == 0) ? n - 1 : n;
 	int nk = pow(n, ndim);
 	arma::mat kpoints(pow(n, ndim), 3);
 	arma::mat combinations = generateCombinations(n, ndim);
-	if (n % 2 == 1){
-		combinations += 1./2;
-	}
+	combinations += 1./2;
 	
 	int it = 0;
 	for (int i = 0; i < nk; i++){
 		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
 		// Remove "boundary" k so that mesh is symmery under k <-> -k
 		if(!arma::all(combinations.row(i))){
+			arma::cout << combinations.row(i) << arma::endl;
 			continue;
 		};
 		for (int j = 0; j < ndim; j++){
@@ -98,11 +105,13 @@ void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
 	}
 	kpoints_ = kpoints;
 	nk_ = kpoints.n_rows;
+	std::cout << "Done. Number of k points: " << nk << std::endl;
 }
 
 
 /* Routine to shift the center of the BZ mesh to a given point */
 void Crystal::shiftBZ(const arma::rowvec& shift){
+	arma::cout << "Shifting BZ mesh by vector: " << shift << arma::endl;
 	if(shift.n_elem != 3){
 		std::cout << "shift vector must be 3d" << std::endl;
 		return; 
@@ -111,7 +120,6 @@ void Crystal::shiftBZ(const arma::rowvec& shift){
 		std::cout << "To call this method kpoints must be initiallized first" << std::endl;
 		return;
 	}
-	std::cout << "Shifting BZ..." << std::endl;
 	for(int i = 0; i < kpoints.n_rows; i++){
 		kpoints_.row(i) += shift;
 	}

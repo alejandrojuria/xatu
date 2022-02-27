@@ -1,18 +1,28 @@
 import matplotlib.pyplot as plt 
 import numpy as np 
 
-file = open("exciton_convergence", "r")
+file = open("eigval_convergence_reduced_mesh_f2.out", "r")
+
+for _ in range(4):
+    file.readline()
+
 lines = file.readlines()
 
-nk = []
-E = []
-for line in lines[1:]:
+screening = []
+E, T, V = [], [], []
+for line in lines:
     line = line.split("\t")
-    nk.append(int(line[0]))
+    screening.append(float(line[0]))
     E.append(float(line[1]))
+    T.append(float(line[2]))
+    V.append(float(line[3]))
 
-plt.plot(nk, E, 'g-')
-plt.xlabel("nk")
+plt.plot(screening, E, 'g-')
+plt.plot(screening, T, 'r-')
+plt.plot(screening, V, 'b-')
+plt.legend(["Total energy", "Band energy", "Potential energy"])
+
+plt.xlabel(r"$r_0 (\AA)$, ")
 plt.ylabel(r'$E_X (eV)$')
-plt.title("Exciton energy convergence with nk")
+plt.title("Exciton energy convergence with screening length")
 plt.show()

@@ -15,7 +15,7 @@ def rotate_C3(position):
     return rotated_position
 
 # --------------------- Plot bands ---------------------
-file = open("./bi_ribbon_kwf_approx_N40", "r")
+file = open("./k_wf.out", "r")
 file.readline() # Skip header
 lines = file.readlines()
 kpoints = []
@@ -50,8 +50,7 @@ plt.scatter(kpoints[:, 0], kpoints[:, 1], c=coefs)
 plt.colorbar()
 #plt.scatter(rotated_kpoints[:, 0], rotated_kpoints[:, 1], c=coefs)
 #plt.scatter(rotated_kpoints[:, 0], rotated_kpoints[:, 1], c=coefs, cmap="Reds")
-plt.xlim((-0.5, 0.5))
-plt.ylim((-0.5, 0.5))
+
 
 #fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 #ax.plot_trisurf(kpoints[:, 0], kpoints[:, 1], coefs)

@@ -52,17 +52,8 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
     this->valenceBands_ = arma::ivec(valence);
     this->conductionBands_ = arma::ivec(conduction);
 
-    // Initialize derived attributes
-    std::cout << "Creating BZ mesh... " << std::flush;
-    brillouinZoneMesh(ncell);
-    this->excitonbasisdim_ = nk*valenceBands.n_elem*conductionBands.n_elem;
-
-    if (!bands.empty()){
-        std::cout << "Initializing basis for BSE... " << std::flush;
-        initializeBasis();
-        generateBandDictionary();
-
-        std::cout << " Correctly initialized Exciton object" << std::endl;
+    if(!bands.empty()){
+        std::cout << "Correctly initialized Exciton object" << std::endl;
     }
 };
 
@@ -70,7 +61,6 @@ GExciton::GExciton(std::string filename, int ncell, int nbands, int nrmbands,
                   const arma::rowvec& parameters, const arma::rowvec& Q) : 
           GExciton(filename, ncell, {}, parameters, Q) {
     
-    std::cout << __LINE__ << std::endl;
     if (2*nbands > basisdim){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
         exit(1);
@@ -80,14 +70,7 @@ GExciton::GExciton(std::string filename, int ncell, int nbands, int nrmbands,
     this->bands_ = arma::join_cols(valenceBands, conductionBands);
     this->excitonbasisdim_ = nk*valenceBands.n_elem*conductionBands.n_elem;
 
-    if (!bands.empty()){
-        std::cout << "Initializing basis for BSE... " << std::flush;
-        initializeBasis();
-        generateBandDictionary();
-
-        std::cout << " Correctly initialized Exciton object" << std::endl;
-    }
-
+    std::cout << "Correctly initialized Exciton object" << std::endl;
 };
 
 
@@ -644,8 +627,8 @@ void GExciton::initializeResultsH0(){
             std::cout.flush();
             displayNext += step;
         }
-
     };
+    std::cout << std::endl;
     // ftStack(0) = 0.0;
 
     // !!!!!!!!!!! Routines have to be fixed
@@ -666,6 +649,20 @@ void GExciton::initializeResultsH0(){
 
 /* Routine to initialize the required variables to construct the Bethe-Salpeter Hamiltonian */
 void GExciton:: initializeHamiltonian(bool useApproximation){
+
+    if(bands.empty()){
+        throw std::invalid_argument("Error: Exciton object must have some bands");
+    }
+    if(nk == 0){
+        throw std::invalid_argument("Error: BZ mesh must be initialized first");
+    }
+
+    this->excitonbasisdim_ = nk*valenceBands.n_elem*conductionBands.n_elem;
+
+    std::cout << "Initializing basis for BSE... " << std::flush;
+    initializeBasis();
+    generateBandDictionary();
+
     std::cout << "Diagonalizing H0 for all k points... " << std::endl;
     initializeResultsH0();
 
@@ -696,6 +693,7 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
     };
 
     int basisDimBSE = basisStates.n_rows;
+    std::cout << "BSE dimension : " << basisDimBSE << std::endl;
 
     HBS_ = arma::zeros<cx_mat>(basisDimBSE, basisDimBSE);
     HK   = arma::zeros<arma::mat>(basisDimBSE, basisDimBSE);
@@ -708,7 +706,7 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
     int loopLength = basisDimBSE*(basisDimBSE + 1)/2.;
 
     // https://stackoverflow.com/questions/242711/algorithm-for-index-numbers-of-triangular-matrix-coefficients
-    //#pragma omp parallel for schedule(static, 1)
+    #pragma omp parallel for
     for (int n = 0; n < loopLength; n++){
         int ii = loopLength - 1 - n;
         int k  = floor((sqrt(8*ii + 1) - 1)/2);
