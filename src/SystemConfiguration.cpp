@@ -87,14 +87,12 @@ arma::mat SystemConfiguration::parseMotif(std::vector<std::string>& content){
             throw std::invalid_argument("Motif must be of shape (x,y,z,'species')");
         }
         if ((iss >> species).fail()){
-            if (systemInfo.atomToIndex.size() == 0 && index == 0){
-                species = "Default";
-            }
-            else { throw std::logic_error("Error: Must specify all species in motif"); }
+            species = "Default";
         }
         auto it = systemInfo.atomToIndex.find(species);
         if (it == systemInfo.atomToIndex.end()){
             systemInfo.atomToIndex[species] = index;
+            index++;
         }
         atom = { x, y, z, (float)index };
 

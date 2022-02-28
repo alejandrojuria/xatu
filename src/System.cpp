@@ -36,7 +36,7 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	filling_			= configuration.systemInfo.filling;
 
 	norbitals_  = arma::sum(orbitals);
-	basisdim_   = norbitals*natoms;
+	basisdim_   = norbitals*natoms; // Wrong; valid only for single species solid
 	fermiLevel_ = (int)(filling * basisdim) - 1;
 }
 
@@ -50,9 +50,7 @@ arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
 		h += hamiltonianMatrices.slice(i) * std::exp(-imag*arma::dot(k, cell));
 	};
 
-	if (isTriangular){
-		h += h.t();
-	}
+	h += h.t();
 
 	return h;
 };
