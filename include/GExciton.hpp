@@ -3,10 +3,11 @@
 #include <complex>
 #include <omp.h>
 #include <stdlib.h>
+
 #include "Zigzag.hpp"
 #include "System.hpp"
 #include "ExcitonConfiguration.hpp"
-
+#include "Result.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -148,7 +149,7 @@ class GExciton : public System {
     public:
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
         arma::imat specifyBasisSubset(const arma::ivec& bands);
-        void createSOCBasis();
+        void useSpinfulBasis();
         
         // BSE initialization and energies
         void initializeHamiltonian(bool useApproximation = true);

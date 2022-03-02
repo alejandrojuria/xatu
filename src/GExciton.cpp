@@ -465,7 +465,7 @@ arma::imat GExciton::specifyBasisSubset(const arma::ivec& bands){
 in blocks of defined spin (so that they are diagonal for later calculation of eigenstates of BSE)
 Generates only basis for bulk excitons.
 This routine does not work with vec bands (for now) -> Now it works? (overloading constructors) */
-void GExciton::createSOCBasis(){
+void GExciton::useSpinfulBasis(){
 
     arma::imat states = arma::zeros<arma::imat>(excitonbasisdim, 3);
 
