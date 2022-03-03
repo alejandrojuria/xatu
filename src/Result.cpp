@@ -125,7 +125,31 @@ void Result::writeReciprocalAmplitude(int stateindex, FILE* textfile){
 };
 
 void Result::writeExtendedReciprocalAmplitude(int stateindex, FILE* textfile){
+    fprintf(textfile, "kx\tky\tkz\tProb.\n");
+    arma::cx_vec state = eigvec.col(stateindex);
+    int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
+    double boxLimit = boundingBoxBZ();
 
+    for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        double coef = 0;
+        for(int nband = 0; nband < nbandsCombinations; nband++){
+            coef += abs(state(nbandsCombinations*i + nband))*abs(state(nbandsCombinations*i + nband));
+        };
+        coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
+        
+        arma::mat cells = exciton.generateCombinations(2, exciton.ndim, true);
+        for(unsigned int i = 0; i < cells.n_rows; i++){
+            arma::rowvec cell = cells.row(i)(0)*exciton.reciprocalLattice.row(0) + 
+                                cells.row(i)(1)*exciton.reciprocalLattice.row(1);
+            arma::rowvec displaced_k = exciton.kpoints.row(i) + cell;
+            if(displaced_k(0) < boxLimit && displaced_k(1) < boxLimit){
+                fprintf(textfile, "%11.8lf\t%11.8lf\t%11.8lf\t%11.8lf\n", 
+                    displaced_k(0), displaced_k(1), displaced_k(2), coef);
+            }
+        }
+        
+    };
+    fprintf(textfile, "#\n");
 }
 
 // Probably requires refactor into additional function to be able to distinguish
@@ -304,6 +328,16 @@ double Result::fourierTransformExciton(int stateindex, const arma::rowvec& elect
     double result = std::real(ft);
 
     return result;
+}
+
+// Routine to determine the size of a box that contains the reciprocal unit cell as given
+// by the BZ mesh. Intended to use with full BZ meshes. Returns half the side of the box.
+double Result::boundingBoxBZ(){
+    double max_x = arma::max(exciton.kpoints.col(0));
+    double max_y = arma::max(exciton.kpoints.row(1));
+
+    double value = (max_x > max_y) ? max_x : max_y;
+    return value;
 }
 
 /* ------------------------------ UNUSED ROUTINES (TO BE REMOVED) ------------------------------*/
