@@ -25,6 +25,8 @@ class GExciton : public System {
         int ncell_, totalCells_, nbands_, nrmbands_, excitonbasisdim_;
         double eps_m_, eps_s_, r0_;
         arma::ivec bands_, valenceBands_, conductionBands_;
+        arma::uvec bandList_;
+        arma::imat basisStates_;
         arma::rowvec Q_;
         double cutoff_;
         arma::cx_mat HBS_;
@@ -35,12 +37,9 @@ class GExciton : public System {
         arma::cx_mat ftStack;
         std::complex<double> ftX;
         arma::mat potentialMat;
-        arma::mat HK;
+        arma::mat HK_;
         
         double pairEnergy;
-        
-        arma::uvec bandList;
-        arma::imat basisStates_;
         
 
     public:
@@ -56,6 +55,8 @@ class GExciton : public System {
         const int& nrmbands = nrmbands_;
         // List of bands used to build the exciton
         const arma::ivec& bands = bands_;
+        // List of bands used to build the exciton relative to the Fermi level
+        const arma::uvec& bandList = bandList_;
         // 3d array with the center-of-mass momentum of the exciton
         const arma::rowvec& Q = Q_;
         // List of valence bands that form the exciton relative to the Fermi level
@@ -64,6 +65,8 @@ class GExciton : public System {
         const arma::ivec& conductionBands = conductionBands_;
         // Returns Bethe-Salpeter Hamiltonian
         const arma::cx_mat& HBS = HBS_;
+        // Returns kinetic term of BSE
+        const arma::mat& HK = HK_;
         // Returns dielectric constant of embedding medium
         const double& eps_m = eps_m_;
         // Returns dielectric constante of substrate
@@ -154,11 +157,9 @@ class GExciton : public System {
         // BSE initialization and energies
         void initializeHamiltonian(bool useApproximation = true);
         void BShamiltonian(const arma::imat& basis = {}, bool useApproximation = true);
-        arma::vec computeEnergies(const arma::cx_vec&);
+        Result diagonalize();
 
-        // Observables
-        arma::cx_vec spinX(const arma::cx_vec&);
-        
+        // Fermi golden rule        
         arma::cx_vec wavePacket(double, double);
         arma::cx_mat fixDegeneracy(const arma::cx_vec&, const arma::cx_vec&, int iterations = 5);
         double pairDensityOfStates(const arma::ivec&, const arma::ivec&, double, double);

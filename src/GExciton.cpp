@@ -65,9 +65,11 @@ GExciton::GExciton(std::string filename, int ncell, int nbands, int nrmbands,
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
         exit(1);
     }
-    this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands + 1, fermiLevel - nrmbands);
-    this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, fermiLevel + nbands);
-    this->bands_ = arma::join_cols(valenceBands, conductionBands);
+    this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands - nrmbands + 1, 
+                                                     fermiLevel - nrmbands);
+    this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, 
+                                                        fermiLevel + nbands + nrmbands);
+    this->bands_ = arma::join_cols(valenceBands, conductionBands) - fermiLevel;
     this->excitonbasisdim_ = nk*valenceBands.n_elem*conductionBands.n_elem;
 
     std::cout << "Correctly initialized Exciton object" << std::endl;
@@ -417,7 +419,7 @@ arma::imat GExciton::createBasis(const arma::ivec& conductionBands,
     };
 
     basisStates_ = states;
-    bandList = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
+    bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 
     return states;
 };
@@ -482,7 +484,7 @@ void GExciton::useSpinfulBasis(){
         };
     };
 
-    this->bandList = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
+    this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
     this->basisStates_ = states;
 };
 
@@ -696,7 +698,7 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
     std::cout << "BSE dimension : " << basisDimBSE << std::endl;
 
     HBS_ = arma::zeros<cx_mat>(basisDimBSE, basisDimBSE);
-    HK   = arma::zeros<arma::mat>(basisDimBSE, basisDimBSE);
+    HK_   = arma::zeros<arma::mat>(basisDimBSE, basisDimBSE);
 
     std::complex<double> ft;
     // std::complex<double> ftX = fourierTransform(Q);
@@ -748,7 +750,7 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
         if (i == j){
             HBS_(i, j) = (eigvalKQStack.col(kQ_index)(c) - 
                             eigvalKStack.col(k_index)(v))/2. - (D - X)/2.;
-            HK(i, j) = eigvalKQStack(c, kQ_index) - eigvalKStack(v, k_index);
+            HK_(i, j) = eigvalKQStack(c, kQ_index) - eigvalKStack(v, k_index);
             
         }
         else{
@@ -761,79 +763,16 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
     std::cout << "Done" << std::endl;
 };
 
-/* Compute expected value of tight-binding energy and potential term for 
-an exciton eigenstate.
-Input: cx_vec eigvec, cx_mat HBS, cx_mat HK. 
-Output: Vector 2x1 (<T>, <V>) */
-vec GExciton::computeEnergies(const cx_vec& eigvec){
+// Routine to diagonalize the BSE and return a Result object
+Result GExciton::diagonalize(){
+    std::cout << "Diagonalizing BSE... " << std::flush;
+    arma::vec eigval;
+    arma::cx_mat eigvec;
+    arma::eig_sym(eigval, eigvec, HBS);
+    std::cout << "Done" << std::endl;
 
-    std::complex<double> kineticEnergy = arma::cdot(eigvec, HK*eigvec);
-
-    cx_mat HV = HBS - HK;
-    std::complex<double> potentialEnergy = arma::cdot(eigvec, HV*eigvec);
-
-    vec energies = {kineticEnergy.real(), potentialEnergy.real()};
-    return energies;
-};
-
-/* Routine to compute the expected Sz spin value of the electron
-and hole that form a given exciton. */
-cx_vec GExciton::spinX(const cx_vec& coefs){
-
-    // Initialize Sz for both electron and hole to zero
-    cx_double electronSpin = 0;
-    cx_double holeSpin = 0;
-    double totalSpin = 0;
-    int dimX = basisStates.n_rows;
-
-	cx_vec spinEigvalues = {1./2, 1./2, 1./2, 1./2, -1./2, -1./2, -1./2, -1./2};
-	cx_vec spinVector = arma::kron(arma::ones(basisdim/norbitals, 1), spinEigvalues);
-	cx_vec eigvec, spinEigvec;
-
-    // Initialize hole spin and electron spin operators
-    int nbands = bandList.n_elem;
-    int nbandsSq = nbands*nbands;
-
-    arma::cx_mat spinHole = arma::zeros<arma::cx_mat>(dimX, dimX);
-    arma::cx_mat spinElectron = arma::zeros<arma::cx_mat>(dimX, dimX);
-
-    arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nbands, nbands);
-    arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(nbands, nbands);
-
-    arma::cx_mat vMatrix = arma::eye<cx_mat>(nbands, nbands);
-    arma::cx_mat cMatrix = arma::eye<cx_mat>(nbands, nbands);
-
-    for(int k = 0; k < nk; k++){
-
-        for(int i = 0; i < nbands; i++){
-            int vIndex = bandToIndex[valenceBands(i)];
-            int cIndex = bandToIndex[conductionBands(i)];
-            for(int j = 0; j < nbands; j++){
-                int vIndex2 = bandToIndex[valenceBands(j)];
-                int cIndex2 = bandToIndex[conductionBands(j)];
-                eigvec = eigvecKStack.slice(k).col(vIndex);
-                spinEigvec = eigvec % spinVector;
-                eigvec = eigvecKStack.slice(k).col(vIndex2);
-                spinHoleReduced(i,j) = arma::cdot(eigvec, spinEigvec);
-
-                eigvec = eigvecKQStack.slice(k).col(cIndex);
-                spinEigvec = eigvec % spinVector;
-                eigvec = eigvecKQStack.slice(k).col(cIndex2);
-                spinElectronReduced(i,j) = arma::cdot(eigvec, spinEigvec);
-            }
-        }
-        spinHole.submat(k*nbandsSq, k*nbandsSq, (k+1)*nbandsSq - 1, (k+1)*nbandsSq - 1) = arma::kron(cMatrix, spinHoleReduced);
-        spinElectron.submat(k*nbandsSq, k*nbandsSq, (k+1)*nbandsSq - 1, (k+1)*nbandsSq - 1) = arma::kron(spinElectronReduced, vMatrix);
-    }
-
-    // Perform tensor products with the remaining quantum numbers
-    holeSpin = -arma::cdot(coefs, spinHole*coefs);
-    electronSpin = arma::cdot(coefs, spinElectron*coefs);
-    totalSpin = real((holeSpin + electronSpin));
-    
-    cx_vec results = {holeSpin, electronSpin, totalSpin};
-    return results;
-};
+    return Result(*this, eigval, eigvec);
+}
 
 // ------------- Routines to compute Fermi Golden Rule -------------
 
