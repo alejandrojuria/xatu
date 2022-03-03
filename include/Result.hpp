@@ -25,6 +25,17 @@ class Result{
         void writeExtendedReciprocalAmplitude(int, FILE*);
         void writeRealspaceAmplitude(int, FILE*);
 
+        arma::cx_mat RScoefficientCalc(int, int);
+        double atomCoefficientSquared(int, const arma::rowvec&, const arma::rowvec&, 
+                              const arma::cx_mat&);
+        double fourierTransformExciton(int, const arma::rowvec&, const arma::rowvec&);
+
+        double realSpaceWavefunction(GExciton&, const arma::cx_vec&, int, int, const arma::rowvec& eCell, const arma::rowvec& hCell);
+        std::complex<double> densityMatrixElement(GExciton&, int, int, int, int);
+
+        std::complex<double> densityMatrix(GExciton&, const arma::cx_vec&, int, int);
+        std::complex<double> densityMatrixK(int, GExciton&, const arma::cx_vec&, int, int);
+
     private:
         int findExcitonPeak(int);
 };
