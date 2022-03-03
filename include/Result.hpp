@@ -6,18 +6,17 @@ class Result{
 
     private:
         GExciton& exciton;
-        arma::mat eigval;
-        arma::cx_cube eigvec;
+        arma::vec eigval;
+        arma::cx_mat eigvec;
 
     public:
-        Result();
-        Result(GExciton&, arma::mat&, arma::cx_cube&);
+        Result(GExciton&, arma::vec&, arma::cx_mat&);
         ~Result();
 
         // Observables
-        double computeKineticEnergy(int);
-        double computePotentialEnergy(int);
-        double computeBindingEnergy(int);
+        double kineticEnergy(int);
+        double potentialEnergy(int);
+        double bindingEnergy(int, double gap = -1);
         double determineGap();
         arma::cx_vec spinX(int);
 
@@ -25,4 +24,7 @@ class Result{
         void writeReciprocalAmplitude(int, FILE*);
         void writeExtendedReciprocalAmplitude(int, FILE*);
         void writeRealspaceAmplitude(int, FILE*);
+
+    private:
+        int findExcitonPeak(int);
 };
