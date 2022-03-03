@@ -23,7 +23,8 @@ class Result{
         // Output and plotting
         void writeReciprocalAmplitude(int, FILE*);
         void writeExtendedReciprocalAmplitude(int, FILE*);
-        void writeRealspaceAmplitude(int, FILE*);
+        void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*);
+        void writeEigenvalues(FILE*);
 
         arma::cx_mat RScoefficientCalc(int, int);
         double atomCoefficientSquared(int, const arma::rowvec&, const arma::rowvec&, 

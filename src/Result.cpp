@@ -108,7 +108,6 @@ arma::cx_vec Result::spinX(int stateindex){
     return results;
 }
 
-
 void Result::writeReciprocalAmplitude(int stateindex, FILE* textfile){
     fprintf(textfile, "kx\tky\tkz\tProb.\n");
     arma::cx_vec state = eigvec.col(stateindex);
@@ -129,8 +128,50 @@ void Result::writeExtendedReciprocalAmplitude(int stateindex, FILE* textfile){
 
 }
 
-void Result::writeRealspaceAmplitude(int stateindex, FILE* textfile){
+// Probably requires refactor into additional function to be able to distinguish
+// real space probabilities and the writing itself.
+void Result::writeRealspaceAmplitude(int stateindex, int holeIndex, 
+                                     const arma::rowvec& holeCell, FILE* textfile){
+    
+    
+    arma::rowvec holePosition = exciton.motif.row(holeIndex) + holeCell;
+    arma::cx_mat RScoefs = RScoefficientCalc(stateindex, holeIndex);
+    fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n", holePosition(0), holePosition(1), 0.0);
 
+    double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.cutoff;
+    arma::mat cellCombinations = exciton.truncateSupercell(exciton.ncell, radius);
+    arma::vec coefs = arma::zeros(cellCombinations.n_rows*exciton.motif.n_rows);
+    int it = 0;
+    double coefSum = 0;
+
+    // Compute probabilities
+    for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
+        arma::rowvec cell = cellCombinations.row(cellIndex);
+        for (unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
+            coefs(it) = atomCoefficientSquared(atomIndex, cell, holeCell, RScoefs);
+            coefSum += coefs(it);
+            it++;
+        }
+    }
+
+    // Write probabilities to file
+    it = 0;
+    for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
+        arma::rowvec cell = cellCombinations.row(cellIndex);
+        for(unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
+            arma::rowvec position = exciton.motif.row(atomIndex) + cell;
+            fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n",
+                            position(0), position(1), coefs(it)/coefSum);
+        }
+    }
+}
+
+void Result::writeEigenvalues(FILE* textfile){
+    fprintf(textfile, "%d\t", exciton.ncell);
+    for(unsigned int i = 0; i < eigval.n_elem; i++){
+        fprintf(textfile, "%11.7lf\t", eigval(i));
+    }
+    fprintf(textfile, "\n");
 }
 
 
@@ -143,7 +184,7 @@ Input: cx_mat BSE coefficiens, vec kpoints,
 int holePos (1D representation of positions, i.e. index),
 int Ncell, int N, int nEdgeStates.
 Output: cx_vec real-space coefficients; already summed over k */
-arma::cx_mat Result::RScoefficientCalc(int stateindex, int holePos){
+arma::cx_mat Result::RScoefficientCalc(int stateindex, int holeIndex){
 
     arma::cx_vec coefs = eigvec.col(stateindex);
     arma::vec eigValTB;
@@ -165,8 +206,8 @@ arma::cx_mat Result::RScoefficientCalc(int stateindex, int holePos){
 
         /* Precaution when picking the coeffs. associated to holePos, since
         now our basis splits H in two blocks for spin*/
-        arma::cx_mat v = eigVecTB.rows(exciton.norbitals*holePos, 
-                                        exciton.norbitals*(holePos+1) - 1);
+        arma::cx_mat v = eigVecTB.rows(exciton.norbitals*holeIndex, 
+                                        exciton.norbitals*(holeIndex + 1) - 1);
         /*arma::cx_mat v2 = eigVecTB.rows(dimTB/2 + exciton.norbitals/2*holePos, 
                                         dimTB/2 + exciton.norbitals/2*(holePos+1) - 1);
         arma::cx_mat v = arma::join_cols(v1, v2);*/

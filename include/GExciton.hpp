@@ -73,6 +73,9 @@ class GExciton : public System {
         const double& eps_s = eps_s_;
         // Returns effective screening length r0
         const double& r0 = r0_;
+        // Returns cutoff for potential
+        const double& cutoff = cutoff_;
+
         const arma::mat& eigvalKStack = eigvalKStack_;
         const arma::mat& eigvalKQStack = eigvalKQStack_;
         const arma::cx_cube& eigvecKStack = eigvecKStack_;
@@ -80,7 +83,7 @@ class GExciton : public System {
         const arma::imat& basisStates = basisStates_;
 
         // BEWARE: This dictionary had to be exposed to be able to access it,
-        // do not call from outside of methods.
+        // do not call outside of class methods.
         std::map<int, int> bandToIndex;
 
     // ----------------------------------- Methods -----------------------------------
