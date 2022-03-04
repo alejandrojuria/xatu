@@ -8,6 +8,7 @@
 #include "System.hpp"
 #include "ExcitonConfiguration.hpp"
 #include "Result.hpp"
+#include "forward_declaration.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -16,7 +17,6 @@
 #endif
 
 
-// Routines to initialize BSE elements
 class GExciton : public System {
 
     // ----------------------------------- Attributes -----------------------------------

@@ -771,7 +771,9 @@ Result GExciton::diagonalize(){
     arma::eig_sym(eigval, eigvec, HBS);
     std::cout << "Done" << std::endl;
 
-    return Result(*this, eigval, eigvec);
+    Result results = Result(*this, eigval, eigvec);
+
+    return results;
 }
 
 // ------------- Routines to compute Fermi Golden Rule -------------

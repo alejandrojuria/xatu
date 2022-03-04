@@ -1,17 +1,16 @@
 #include "Result.hpp"
 #include <complex>
 
-Result::Result(GExciton& exciton, arma::vec& eigval, arma::cx_mat& eigvec) : 
-    exciton(exciton), eigval(eigval), eigvec(eigvec){};
-
 double Result::kineticEnergy(int stateindex){
-    std::complex<double> energy = arma::cdot(eigvec, exciton.HK*eigvec);
+    arma::cx_vec coefs = eigvec.col(stateindex);
+    std::complex<double> energy = arma::cdot(coefs, exciton.HK*coefs);
     return energy.real();
 }
 
 double Result::potentialEnergy(int stateindex){
+    arma::cx_vec coefs = eigvec.col(stateindex);
     arma::cx_mat HV = exciton.HBS - exciton.HK;
-    std::complex<double> energy = arma::cdot(eigvec, HV*eigvec);
+    std::complex<double> energy = arma::cdot(coefs, HV*coefs);
     return energy.real();
 }
 
