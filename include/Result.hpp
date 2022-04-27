@@ -30,11 +30,23 @@ class Result{
         double determineGap();
         arma::cx_vec spinX(int);
 
+        // Symmetries
+        arma::cx_mat diagonalizeC3(const arma::vec&);
+        arma::cx_mat symmetrizeStates(const arma::cx_vec&, const arma::cx_vec&);
+
         // Output and plotting
+        void writeReciprocalAmplitude(const arma::cx_vec&, FILE*);
         void writeReciprocalAmplitude(int, FILE*);
+        void writePhase(const arma::cx_vec&, FILE*);
+        void writePhase(int, FILE*);
+        void writeExtendedReciprocalAmplitude(const arma::cx_vec&, FILE*);
         void writeExtendedReciprocalAmplitude(int, FILE*);
+        void writeExtendedPhase(const arma::cx_vec&, FILE*);
+        void writeExtendedPhase(int, FILE*);
+        void writeRealspaceAmplitude(const arma::cx_vec&, int, const arma::rowvec&, FILE*);
         void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*);
-        void writeEigenvalues(FILE*);
+        void writeEigenvalues(FILE*, int n = 0);
+        void writeStates(FILE*, int n = 0);
 
         double fourierTransformExciton(int, const arma::rowvec&, const arma::rowvec&);
 
@@ -47,7 +59,7 @@ class Result{
 
     private:
         int findExcitonPeak(int);
-        arma::cx_mat RScoefficientCalc(int, int);
+        arma::cx_mat RScoefficientCalc(const arma::cx_vec&, int);
         double atomCoefficientSquared(int, const arma::rowvec&, const arma::rowvec&, 
                               const arma::cx_mat&);
         double boundingBoxBZ();

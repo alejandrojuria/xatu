@@ -107,41 +107,126 @@ arma::cx_vec Result::spinX(int stateindex){
     return results;
 }
 
-void Result::writeReciprocalAmplitude(int stateindex, FILE* textfile){
+arma::cx_mat Result::diagonalizeC3(const arma::vec& states){
+    arma::mat C3 = exciton.C3ExcitonBasisRep();
+    arma::cx_mat degenerateSubspaceC3 = arma::zeros<arma::cx_mat>(states.n_elem, states.n_elem);
+    arma::cx_vec state = eigvec.col(states(0));
+    arma::cout << "First C3: " << arma::cdot(state, C3*state) << arma::endl;
+    arma::cout << "Second C3: " << arma::cdot(state, C3*C3*state) << arma::endl;
+    arma::cout << "Third C3: " << arma::cdot(state, C3*C3*C3*state) << arma::endl;
+    for(unsigned int i = 0; i < states.n_elem; i++){
+        for(unsigned int j = 0; j < states.n_elem; j++){
+            arma::cx_vec rowState = eigvec.col(states(i));
+            arma::cx_vec columnState = eigvec.col(states(j));
+
+            degenerateSubspaceC3(i, j) = arma::cdot(rowState, C3*columnState);
+        }
+    }
+
+    std::cout << degenerateSubspaceC3 << std::endl;
+    arma::cx_vec eigvalC3;
+    arma::cx_mat eigvecC3;
+    arma::eig_gen(eigvalC3, eigvecC3, degenerateSubspaceC3);
+    std::cout << "C3 eigval:\n" << eigvalC3 << std::endl;
+    return eigvecC3;
+}
+
+arma::cx_mat Result::symmetrizeStates(const arma::cx_vec& state, const arma::cx_vec& degState){
+    arma::mat C3 = exciton.C3ExcitonBasisRep();
+    double alpha, phase;
+    arma::vec values = arma::linspace(0, 1, 100);
+    arma::vec phaseValues = arma::linspace(0, 2*PI, 100);
+    std::complex<double> imag(0, 1);
+    arma::cx_vec linearCombination, rotated;
+    double target = -1;
+    double scalar;
+    for(double value : values){
+        for(double theta : phaseValues){
+            linearCombination = state*value*exp(imag*theta) + degState*sqrt(1 - value*value);
+            rotated = C3*linearCombination;
+            scalar = abs(arma::dot(linearCombination, rotated));
+            if(target < scalar){
+                target = scalar;
+                alpha = value;
+            }
+        }
+    }
+    std::cout << "alpha value is: " << alpha << std::endl;
+    arma::cx_vec symmetrizedState    = state*alpha*exp(imag*phase) + degState*sqrt(1 - alpha*alpha);
+    arma::cx_vec degSymmetrizedState = state*sqrt(1 - alpha*alpha) - degState*alpha*exp(imag*phase);
+    arma::cx_mat states(exciton.excitonbasisdim, 2);
+    states.col(0) = symmetrizedState;
+    states.col(1) = degSymmetrizedState;
+
+    return states;
+}
+
+
+void Result::writeReciprocalAmplitude(const arma::cx_vec& statecoefs, FILE* textfile){
     fprintf(textfile, "kx\tky\tkz\tProb.\n");
-    arma::cx_vec state = eigvec.col(stateindex);
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
     for (int i = 0; i < exciton.kpoints.n_rows; i++){
         double coef = 0;
         for(int nband = 0; nband < nbandsCombinations; nband++){
-            coef += abs(state(nbandsCombinations*i + nband))*abs(state(nbandsCombinations*i + nband));
+            coef += abs(statecoefs(nbandsCombinations*i + nband))*
+                    abs(statecoefs(nbandsCombinations*i + nband));
         };
         coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
         fprintf(textfile, "%11.8lf\t%11.8lf\t%11.8lf\t%11.8lf\n", 
                     exciton.kpoints.row(i)(0), exciton.kpoints.row(i)(1), exciton.kpoints.row(i)(2), coef);
     };
     fprintf(textfile, "#\n");
+}
+
+void Result::writeReciprocalAmplitude(int stateindex, FILE* textfile){
+    arma::cx_vec statecoefs = eigvec.col(stateindex);
+    writeReciprocalAmplitude(statecoefs, textfile);
 };
 
-void Result::writeExtendedReciprocalAmplitude(int stateindex, FILE* textfile){
-    fprintf(textfile, "kx\tky\tkz\tProb.\n");
-    arma::cx_vec state = eigvec.col(stateindex);
+/* Method to write the phase and module of each exciton coefficient. Note that this
+routine is only intended to be used with excitons formed only with one electron-hole combination
+for each k. */
+void Result::writePhase(const arma::cx_vec& statecoefs, FILE* textfile){
+    if(exciton.bandList.n_elem != 2){
+        throw std::logic_error("writePhase requires only one valence and conduction bands");
+    }
+    fprintf(textfile, "kx\tky\tkz\tMod.\tArg.\n");
+    int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
+    double module, phase;
+    for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        module = abs(statecoefs(i));
+        phase = arg(statecoefs(i));
+        fprintf(textfile, "%11.8lf\t%11.8lf\t%11.8lf\t%11.8lf\t%11.8lf\n", 
+                    exciton.kpoints.row(i)(0), exciton.kpoints.row(i)(1), exciton.kpoints.row(i)(2), 
+                    module, phase);
+    };
+    fprintf(textfile, "#\n");
+}
+
+void Result::writePhase(int stateindex, FILE* textfile){
+    arma::cx_vec coefs = eigvec.col(stateindex);
+    writePhase(coefs, textfile);
+}
+
+void Result::writeExtendedReciprocalAmplitude(const arma::cx_vec& statecoefs, FILE* textfile){
+    fprintf(textfile, "kx\tky\tkz\tProbtProb.\n");
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
     double boxLimit = boundingBoxBZ();
 
     for (int i = 0; i < exciton.kpoints.n_rows; i++){
         double coef = 0;
         for(int nband = 0; nband < nbandsCombinations; nband++){
-            coef += abs(state(nbandsCombinations*i + nband))*abs(state(nbandsCombinations*i + nband));
+            coef += abs(statecoefs(nbandsCombinations*i + nband))*
+                    abs(statecoefs(nbandsCombinations*i + nband));
         };
         coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
         
-        arma::mat cells = exciton.generateCombinations(2, exciton.ndim, true);
-        for(unsigned int i = 0; i < cells.n_rows; i++){
-            arma::rowvec cell = cells.row(i)(0)*exciton.reciprocalLattice.row(0) + 
-                                cells.row(i)(1)*exciton.reciprocalLattice.row(1);
+        arma::mat cells = exciton.generateCombinations(3, exciton.ndim, true);
+        for(unsigned int n = 0; n < cells.n_rows; n++){
+            arma::rowvec cell = cells.row(n)(0)*exciton.reciprocalLattice.row(0) + 
+                                cells.row(n)(1)*exciton.reciprocalLattice.row(1);
             arma::rowvec displaced_k = exciton.kpoints.row(i) + cell;
-            if(displaced_k(0) < boxLimit && displaced_k(1) < boxLimit){
+            if(abs(displaced_k(0)) < boxLimit && abs(displaced_k(1)) < boxLimit){
                 fprintf(textfile, "%11.8lf\t%11.8lf\t%11.8lf\t%11.8lf\n", 
                     displaced_k(0), displaced_k(1), displaced_k(2), coef);
             }
@@ -151,22 +236,64 @@ void Result::writeExtendedReciprocalAmplitude(int stateindex, FILE* textfile){
     fprintf(textfile, "#\n");
 }
 
-// Probably requires refactor into additional function to be able to distinguish
-// real space probabilities and the writing itself.
-void Result::writeRealspaceAmplitude(int stateindex, int holeIndex, 
+void Result::writeExtendedReciprocalAmplitude(int stateindex, FILE* textfile){
+    arma::cx_vec statecoefs = eigvec.col(stateindex);
+    writeExtendedReciprocalAmplitude(statecoefs, textfile);
+}
+
+void Result::writeExtendedPhase(const arma::cx_vec& statecoefs, FILE* textfile){
+    if(exciton.bandList.n_elem != 2){
+        throw std::logic_error("writeExtendedPhase requires only one valence and conduction bands");
+    }
+    fprintf(textfile, "kx\tky\tkz\tMod.\tArg.\n");
+    int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
+    double boxLimit = boundingBoxBZ();
+    double module, phase;
+    for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        module = abs(statecoefs(i));
+        module /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
+
+        phase = arg(statecoefs(i));
+        
+        arma::mat cells = exciton.generateCombinations(3, exciton.ndim, true);
+        for(unsigned int n = 0; n < cells.n_rows; n++){
+            arma::rowvec cell = cells.row(n)(0)*exciton.reciprocalLattice.row(0) + 
+                                cells.row(n)(1)*exciton.reciprocalLattice.row(1);
+            arma::rowvec displaced_k = exciton.kpoints.row(i) + cell;
+            if(abs(displaced_k(0)) < boxLimit && abs(displaced_k(1)) < boxLimit){
+                fprintf(textfile, "%11.8lf\t%11.8lf\t%11.8lf\t%11.8lf\t%11.8lf\n", 
+                    displaced_k(0), displaced_k(1), displaced_k(2), module, phase);
+            }
+        }
+        
+    };
+    fprintf(textfile, "#\n");
+}
+
+void Result::writeExtendedPhase(int stateindex, FILE* textfile){
+    arma::cx_vec statecoefs = eigvec.col(stateindex);
+    writeExtendedPhase(statecoefs, textfile);
+}
+
+void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeIndex,
                                      const arma::rowvec& holeCell, FILE* textfile){
-    
-    
+
+    std::cout << __LINE__ << std::endl;
     arma::rowvec holePosition = exciton.motif.row(holeIndex) + holeCell;
-    arma::cx_mat RScoefs = RScoefficientCalc(stateindex, holeIndex);
+    std::cout << __LINE__ << std::endl;
+    arma::cx_mat RScoefs = RScoefficientCalc(statecoefs, holeIndex);
+    std::cout << __LINE__ << std::endl;
     fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n", holePosition(0), holePosition(1), 0.0);
 
     double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.cutoff;
+    std::cout << __LINE__ << std::endl;
     arma::mat cellCombinations = exciton.truncateSupercell(exciton.ncell, radius);
+    std::cout << __LINE__ << std::endl;
     arma::vec coefs = arma::zeros(cellCombinations.n_rows*exciton.motif.n_rows);
     int it = 0;
     double coefSum = 0;
 
+    std::cout << __LINE__ << std::endl;
     // Compute probabilities
     for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
         arma::rowvec cell = cellCombinations.row(cellIndex);
@@ -176,6 +303,7 @@ void Result::writeRealspaceAmplitude(int stateindex, int holeIndex,
             it++;
         }
     }
+    std::cout << __LINE__ << std::endl;
 
     // Write probabilities to file
     it = 0;
@@ -186,17 +314,60 @@ void Result::writeRealspaceAmplitude(int stateindex, int holeIndex,
             fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n",
                             position(0), position(1), coefs(it)/coefSum);
         }
-    }
+    }                                    
+
 }
 
-void Result::writeEigenvalues(FILE* textfile){
-    fprintf(textfile, "%d\t", exciton.ncell);
-    for(unsigned int i = 0; i < eigval.n_elem; i++){
+void Result::writeRealspaceAmplitude(int stateindex, int holeIndex, 
+                                     const arma::rowvec& holeCell, FILE* textfile){
+
+    arma::cx_vec statecoefs = eigvec.col(stateindex);
+    writeRealspaceAmplitude(statecoefs, holeIndex, holeCell, textfile);
+
+}
+
+/* Method to write the eigenvalues into a file. Requires pointer to file, and has optional
+argument n to specify the number of eigenvalues to write (ascending order). */
+void Result::writeEigenvalues(FILE* textfile, int n){
+
+    if(n > exciton.ncell || n < 0){
+        throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
+    }
+
+    fprintf(textfile, "%d\t", exciton.excitonbasisdim);
+    int maxEigval = (n == 0) ? exciton.excitonbasisdim : n;  
+    for(unsigned int i = 0; i < maxEigval; i++){
         fprintf(textfile, "%11.7lf\t", eigval(i));
     }
     fprintf(textfile, "\n");
 }
 
+/* Method to write eigenstates into a file. Has optional argument n to specify the number of states
+to write (in ascending energy order) */
+void Result::writeStates(FILE* textfile, int n){
+    if(n > exciton.ncell || n < 0){
+        throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
+    }
+    // First write basis
+    fprintf(textfile, "%d\n", exciton.excitonbasisdim);
+    for(unsigned int i = 0; i < exciton.excitonbasisdim; i++){
+        arma::irowvec state = exciton.basisStates.row(i);
+        arma::rowvec kpoint = exciton.kpoints.row(state(2));
+        int v = state(0);
+        int c = state(1);
+        fprintf(textfile, "%11.7lf\t%11.7lf\t%11.7lf\t%d\t%d\n", 
+                kpoint(0), kpoint(1), kpoint(2), v, c);
+    }
+
+    int nstates = (n == 0) ? exciton.excitonbasisdim : n;  
+    for(unsigned int i = 0; i < nstates; i++){
+        for(unsigned int j = 0; j < exciton.excitonbasisdim; j++){
+            fprintf(textfile, "%11.7lf\t%11.7lf\t", 
+                    real(eigvec.col(i)(j)), imag(eigvec.col(i)(j)));
+        }
+        fprintf(textfile, "\n");
+    }
+}
 
 /* Routine to calculate the coefficients of the exciton real-space 
 wavefunction, each one associated to each atom of the lattice.
@@ -207,9 +378,8 @@ Input: cx_mat BSE coefficiens, vec kpoints,
 int holePos (1D representation of positions, i.e. index),
 int Ncell, int N, int nEdgeStates.
 Output: cx_vec real-space coefficients; already summed over k */
-arma::cx_mat Result::RScoefficientCalc(int stateindex, int holeIndex){
+arma::cx_mat Result::RScoefficientCalc(const arma::cx_vec& statecoefs, int holeIndex){
 
-    arma::cx_vec coefs = eigvec.col(stateindex);
     arma::vec eigValTB;
     arma::cx_mat eigVecTB;
     int kBlock = 0;
@@ -240,7 +410,7 @@ arma::cx_mat Result::RScoefficientCalc(int stateindex, int holeIndex){
 
         //arma::cx_mat M = arma::kron(c, arma::conj(v));
         arma::cx_mat M = arma::kron(c, v);
-        arma::cx_vec A = coefs(arma::span(kBlock, kBlockEnd - 1));
+        arma::cx_vec A = statecoefs(arma::span(kBlock, kBlockEnd - 1));
         //arma::cout << "M: " << M << arma::endl;
         //arma::cout << "A: " << A << arma::endl;
 
@@ -333,7 +503,7 @@ double Result::fourierTransformExciton(int stateindex, const arma::rowvec& elect
 // by the BZ mesh. Intended to use with full BZ meshes. Returns half the side of the box.
 double Result::boundingBoxBZ(){
     double max_x = arma::max(exciton.kpoints.col(0));
-    double max_y = arma::max(exciton.kpoints.row(1));
+    double max_y = arma::max(exciton.kpoints.col(1));
 
     double value = (max_x > max_y) ? max_x : max_y;
     return value;
