@@ -77,6 +77,18 @@ void Crystal::brillouinZoneMesh(int n){
 	std::cout << "Done. Number of k points: " << nk << std::endl;
 }
 
+arma::mat Crystal::brillouinZoneMeshCrystalCoordinates(int n){
+	int nk = pow(n, ndim);
+	arma::mat kpoints(pow(n, ndim), 3);
+	arma::mat combinations = generateCombinations(n, ndim);
+	if (n % 2 == 1){
+		combinations += 1./2;
+	}
+	combinations = (2*combinations - n)/(2*n);
+
+	return combinations;
+}
+
 /* Routine to obtain a kpoint mesh which is a subset of the full BZ mesh. 
 If n is even, we substract one so that the mesh is symmetric under inversion */
 void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
@@ -125,6 +137,8 @@ void Crystal::shiftBZ(const arma::rowvec& shift){
 	}
 }
 
+
+
 /* Routine to restrict the kpoint mesh so that it has C3 symmetry. 
 Note that this routine is intended to be used with systems with C3 symmetry */
 void Crystal::preserveC3(){
@@ -165,6 +179,58 @@ void Crystal::preserveC3(){
 	}
 	kpoints_ = kpoints_.rows(arma::uvec(complementaryIndices));
 	nk_ = kpoints.n_rows;
+}
+
+
+/* Routine to generate a mesh for the BZ that preserves the C3 
+symmetry of the hexagonal lattice */
+void Crystal::brillouinZoneC3Mesh(int n){
+
+	int nk = pow(n, ndim);
+	nk = nk - (2*n - 1);
+	int it = 0;
+	arma::mat kpoints_block(nk, 3);
+	arma::mat kpoints(3*nk + 3*n - 2, 3);
+	double norm = arma::norm(reciprocalLattice_.row(0));
+    arma::rowvec K = norm/sqrt(3)*(reciprocalLattice_.row(0)/2. -
+                                	reciprocalLattice_.row(1)/2.)/arma::norm(
+                                    reciprocalLattice_.row(0)/2. -
+                                    reciprocalLattice_.row(1)/2.)/2;
+	arma::rowvec K_rotated = rotateC3(K);
+
+	arma::mat combinations = generateCombinations(n, ndim);
+
+	for (int i = 0; i < combinations.n_rows; i++){
+		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
+		if(combinations.row(i)(0) == 0 || combinations.row(i)(1) == 0){
+			continue;
+		}
+		kpoint =  combinations.row(i)(0)/(n-1)*K + 
+				  combinations.row(i)(1)/(n-1)*K_rotated;
+		kpoints_block.row(it) = kpoint;
+		it++;
+	}
+	for (int i = 0; i < nk; i++){
+		arma::rowvec kpoint = kpoints_block.row(i);
+		arma::rowvec kpoint_rotated = rotateC3(kpoint);
+		arma::rowvec kpoint_rotated_twice = rotateC3(kpoint_rotated);
+
+		kpoints.row(i) = kpoint;
+		kpoints.row(nk + i) = kpoint_rotated;
+		kpoints.row(2*nk + i) = kpoint_rotated_twice;
+	}
+	for (int i = 1; i < n; i++){
+		arma::rowvec kpoint = (double)i/(n-1)*K;
+		arma::rowvec kpoint_rotated = rotateC3(kpoint);
+		arma::rowvec kpoint_rotated_twice = rotateC3(kpoint_rotated);
+
+		kpoints.row(3*nk + i - 1) = kpoint;
+		kpoints.row(3*nk + n + i - 2) = kpoint_rotated;
+		kpoints.row(3*nk + 2*n + i - 3) = kpoint_rotated_twice;
+    }
+    kpoints.row(kpoints.n_rows - 1) = arma::rowvec{0, 0, 0};
+    this->kpoints_ = kpoints;
+    this->nk_ = kpoints.n_rows;
 }
 
 void Crystal::extractLatticeParameters(){
@@ -311,6 +377,21 @@ arma::mat Crystal::generateCombinations(int nvalues, int ndim, bool centered){
 	return combinations;
 }
 
+arma::mat Crystal::supercellCutoff(int cutoff){
+	arma::mat combinations = generateCombinations(cutoff, ndim, true);
+	arma::mat cells = arma::zeros(combinations.n_rows, 3);
+
+	for (int i = 0; i < combinations.n_rows; i++){
+		arma::rowvec lattice_vector = arma::zeros<arma::rowvec>(3);
+		for (int j = 0; j < ndim; j++){
+			lattice_vector += combinations.row(i)(j) * bravaisLattice.row(j);
+		};
+		cells.row(i) = lattice_vector;
+	};
+
+	return cells;
+}
+
 arma::mat Crystal::truncateSupercell(int ncell, double radius){
 
 	arma::mat combinations = generateCombinations(ncell, ndim, true);
@@ -341,7 +422,49 @@ arma::rowvec Crystal::rotateC3(const arma::rowvec& position){
 	arma::mat C3rotation = {{cos(theta), -sin(theta), 0},
 							{sin(theta),  cos(theta), 0},
 							{         0,		   0, 1}};
-	arma::vec rotated_position = C3rotation*position.t();
+	
+	arma::vec rotated_position = arma::inv(C3rotation)*(position.t());
 
 	return rotated_position.t();
+};
+
+void Crystal::calculateInverseReciprocalMatrix(){
+	arma::mat coefs = arma::zeros(ndim, ndim);
+	coefs = reciprocalLattice * reciprocalLattice.t();
+	arma::mat inverse;
+	try{
+		inverse = arma::inv(coefs);	
+	}
+	catch(std::runtime_error e){
+		std::cout << "Unable to compute inverse reciprocal coefficients" << std::endl;
+		throw;
+	}
+	this->inverseReciprocalMatrix = inverse;
+}
+
+// Given a kpoint, find its reciprocal coordinates to determine if it is outside
+// of the BZ mesh. If it is, shift it by a reciprocal lattice vector so it falls
+// on a point of the mesh. Intended to be used only with mesh of full BZ.
+int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
+	if(inverseReciprocalMatrix.empty()){
+		throw std::logic_error("Inverse reciprocal matrix has to be computed first.");
+	}
+	arma::vec independentTerm = reciprocalLattice * kpoint.t();
+	arma::vec coefs = inverseReciprocalMatrix * independentTerm * 2*ncell;
+	coefs = (ncell % 2 == 1) ? coefs - 1/2 : coefs; 
+	coefs = arma::round(coefs);
+
+	for(int i = 0; i < coefs.n_elem; i++){
+		if (coefs(i) >= ncell){
+			coefs(i) -= 2*ncell;
+		}
+		else if(coefs(i) < -ncell){
+			coefs(i) += 2*ncell;
+		}
+		coefs(i) += ncell;
+		coefs(i) /= 2;
+	}
+	int index = coefs(0) + coefs(1)*ncell;
+
+	return index;
 }
