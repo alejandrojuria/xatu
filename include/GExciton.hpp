@@ -30,11 +30,13 @@ class GExciton : public System {
         arma::rowvec Q_;
         double cutoff_;
         arma::cx_mat HBS_;
+        std::string gauge_ = "lattice";
 
         // Internal attributes
         arma::mat eigvalKStack_, eigvalKQStack_;
         arma::cx_cube eigvecKStack_, eigvecKQStack_;
         arma::cx_mat ftStack;
+        arma::cx_cube ftMotifStack;
         std::complex<double> ftX;
         arma::mat potentialMat;
         arma::mat HK_;
@@ -75,6 +77,8 @@ class GExciton : public System {
         const double& r0 = r0_;
         // Returns cutoff for potential
         const double& cutoff = cutoff_;
+        // Returns gauge for Bloch states
+        const std::string& gauge = gauge_;
 
         const arma::mat& eigvalKStack = eigvalKStack_;
         const arma::mat& eigvalKQStack = eigvalKQStack_;
@@ -113,12 +117,21 @@ class GExciton : public System {
         void setParameters(const arma::rowvec&);
         void setParameters(double, double, double);
         void setCutoff(double);
+        void setGauge(std::string);
 
     private:
         // Methods for BSE matrix initialization
         void STVH0(double, double*);
         double potential(double);
         std::complex<double> fourierTransform(arma::rowvec k, const arma::mat&, bool useApproximation = true);
+        double analyticFourierTransform(arma::rowvec);
+        double fourierTransformFromCoefs(const arma::vec&, const arma::vec&, const arma::rowvec&, int);
+        std::complex<double> motifFourierTransform(int, int, const arma::rowvec&, const arma::mat&);
+        arma::cx_vec extendMotifFT(const arma::cx_vec&);
+        std::complex<double> blochCoherenceFactor(const arma::cx_vec&, const arma::cx_vec&, 
+                                                  const arma::rowvec&, const arma::rowvec&,
+                                                  const arma::rowvec&);
+
         std::complex<double> tDirect(std::complex<double>,
                                      const arma::cx_vec&, 
                                      const arma::cx_vec&,
@@ -130,10 +143,24 @@ class GExciton : public System {
                                     const arma::cx_vec&, 
                                     const arma::cx_vec&);
         std::complex<double> exactInteractionTerm(const arma::cx_vec&, 
-                                 const arma::cx_vec&,
-                                 const arma::cx_vec&, 
-                                 const arma::cx_vec&,
-                                 const arma::rowvec&);
+                                                const arma::cx_vec&,
+                                                const arma::cx_vec&, 
+                                                const arma::cx_vec&,
+                                                const arma::rowvec&);
+        std::complex<double> exactInteractionTermMFT(const arma::cx_vec&, 
+                                                const arma::cx_vec&,
+                                                const arma::cx_vec&, 
+                                                const arma::cx_vec&,
+                                                const arma::cx_vec&);
+        std::complex<double> interactionTermFT(const arma::cx_vec&, 
+                                                const arma::cx_vec&,
+                                                const arma::cx_vec&, 
+                                                const arma::cx_vec&,
+                                                const arma::rowvec&, 
+                                                const arma::rowvec&,
+                                                const arma::rowvec&, 
+                                                const arma::rowvec&,
+                                                int nrcells = 15);
 
         // Initializers
         void initializeExcitonAttributes(const ExcitonConfiguration&);
@@ -146,7 +173,11 @@ class GExciton : public System {
         void createMesh();
         void fixBandCrossing(arma::vec&, arma::cx_mat&);
         int determineKIndex(double k);
-        arma::cx_cube atomicGCoefs(const arma::cx_cube&);
+
+        // Gauge fixing
+        arma::cx_vec latticeToAtomicGauge(const arma::cx_vec&, const arma::rowvec&);
+        arma::cx_vec atomicToLatticeGauge(const arma::cx_vec&, const arma::rowvec&);
+        arma::cx_mat fixGlobalPhase(arma::cx_mat&);
 
         // Routines to compute Fermi Golden Rule
         arma::cx_mat fixDegeneracyIteration(const arma::cx_vec&, const arma::cx_vec&);
@@ -156,6 +187,9 @@ class GExciton : public System {
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
         arma::imat specifyBasisSubset(const arma::ivec& bands);
         void useSpinfulBasis();
+
+        // Symmetries
+        arma::mat C3ExcitonBasisRep();
         
         // BSE initialization and energies
         void initializeHamiltonian(bool useApproximation = true);
@@ -166,7 +200,7 @@ class GExciton : public System {
         arma::cx_vec wavePacket(double, double);
         arma::cx_mat fixDegeneracy(const arma::cx_vec&, const arma::cx_vec&, int iterations = 5);
         double pairDensityOfStates(const arma::ivec&, const arma::ivec&, double, double);
-        double fermiGoldenRule(const arma::cx_vec&, double);  
+        double fermiGoldenRule(const arma::cx_vec&, double);
 };
 
 
