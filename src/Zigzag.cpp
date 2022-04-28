@@ -26,41 +26,45 @@ Zigzag::~Zigzag(){
 
 void Zigzag::initializeConstants(){
 	//// ------------ Global variable initialization ------------
+
+	this->ndim_ = 1;
+
 	//// Lattice parameters
-	a = 4.5332;
-	c = 1.585;
+	this->a_ = 4.5332;
+	this->c_ = 1.585;
 
 	//// Tight-binding parameters
 	// On-site energies
-	Es = -10.906;
-	Ep = -0.486;
+	this->Es = -10.906;
+	this->Ep = -0.486;
 
 	// Interaction amplitudes
-	Vsss = -0.608;
-	Vsps = 1.320;
-	Vpps = 1.854;
-	Vppp = -0.600;
+	this->Vsss = -0.608;
+	this->Vsps = 1.320;
+	this->Vpps = 1.854;
+	this->Vppp = -0.600;
 
 	// Spin-orbit coupling 
-	lambda = 0.0;
+	this->lambda = 0.0;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
-	zeeman = 1E-7;
+	this->zeeman = 1E-7;
 
 	// Infinitesimal on-site energy to split edges
-	onsiteEdge = 0.0;
+	this->onsiteEdge = 0.0;
 
 	//// Lattice vectors
 	// Bravais basis
 	a1 = { sqrt(3) / 2, 1.0 / 2, 0.0 };
 	a1 *= a;
-
-
 	a2 = { sqrt(3) / 2, -1.0 / 2, 0.0 };
 	a2 *= a;
+	this->bravaisLattice_ = arma::mat{ a1, a2 };
 
 	// Motif
-	tau = { a / sqrt(3), 0, -c };
+	arma::rowvec origin = {0., 0., 0.};
+	tau = { a / sqrt(3), 0, -c,  0};
+	this->motif_ = arma::mat{origin, tau};
 
 	// First neighbours
 	n1 = a1 - tau;
@@ -83,7 +87,7 @@ void Zigzag::setZeeman(double Zeeman){
 /* Routine to calculate the positions of the atoms inside the unit cell
 Input: int N (cells in the finite direction). Output: mat motiv */
 void Zigzag::createMotif(){
-	motif = zeros(3, 2*(N + 1));
+	arma::mat motif = zeros(3, 2*(N + 1));
 	motif.col(0) = arma::vec({0,0,0});
 	motif.col(1) = n1;
 	motif.col(2) = a1;

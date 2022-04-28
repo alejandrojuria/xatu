@@ -7,7 +7,7 @@ void Crystal::initializeCrystalAttributes(const SystemConfiguration& configurati
     ndim_           = configuration.systemInfo.ndim;
     bravaisLattice_ = configuration.systemInfo.bravaisLattice;
     motif_          = configuration.systemInfo.motif;
-    atomToIndex   = configuration.systemInfo.atomToIndex;
+    atomToIndex     = configuration.systemInfo.atomToIndex;
 	unitCellList_   = configuration.systemInfo.bravaisVectors;
     
     natoms_ = motif.n_rows;
@@ -256,7 +256,7 @@ void Crystal::extractLatticeParameters(){
 	if (c == 0){
 		c = 1;
 	}
-	this->c = c;
+	this->c_ = c;
 }
 
 arma::mat Crystal::wignerSeitzSupercell(int Ncell){

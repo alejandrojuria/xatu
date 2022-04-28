@@ -1,6 +1,7 @@
 #pragma once
 #include <armadillo>
 #include <string>
+#include "System.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -9,7 +10,7 @@
 #endif
 
 
-class Zigzag{
+class Zigzag : public System{
     
     public:
         //// Attributes
@@ -18,14 +19,12 @@ class Zigzag{
         double Es, Ep, Vsss, Vsps, Vpps, Vppp;
         double lambda, zeeman, onsiteEdge;
         std::string zeeman_axis;
-        arma::vec a1, a2, tau;
-        arma::vec n1, n2, n3;
-        arma::mat motif;
-        arma::vec Gamma, K, M;
+        arma::rowvec a1, a2, tau;
+        arma::rowvec n1, n2, n3;
+        arma::rowvec Gamma, K, M;
         arma::mat M0, M1, M2p, M2m;
         arma::cx_mat Mso, Mzeeman;
         arma::cx_mat H0, Ha, Hsoc, Hzeeman;
-        arma::vec kpoints;
 
     //// Methods
     // Constructor and destructor

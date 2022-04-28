@@ -11,7 +11,7 @@
 class System : public Crystal{
     
     //// Attributes
-    private:
+    protected:
         int norbitals_, basisdim_, fermiLevel_;
         double filling_;
 
