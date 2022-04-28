@@ -56,7 +56,7 @@ void ExcitonConfiguration::parseContent(){
         }
         else if(arg == "eps"){
             std::vector<double> eps = parseLine<double>(content[0]);
-            excitonInfo.eps = arma::rowvec(eps);
+            excitonInfo.eps = arma::vec(eps);
         }
         else if(arg == "r0"){
             excitonInfo.r0 = parseScalar<double>(content[0]);

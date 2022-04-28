@@ -35,7 +35,7 @@ class System : public Crystal{
     public:
         /* Constructor and destructor */
         System();
-        System(std::string);    
+        System(std::string);  
         ~System();
 
         void setFilling(double);

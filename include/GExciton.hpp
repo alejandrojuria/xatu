@@ -3,6 +3,7 @@
 #include <complex>
 #include <omp.h>
 #include <stdlib.h>
+#include <memory>
 
 #include "Zigzag.hpp"
 #include "System.hpp"
@@ -92,21 +93,32 @@ class GExciton : public System {
 
     // ----------------------------------- Methods -----------------------------------
     // Constructor & Destructor
-    public:
-        //// Overload constructor:
-        // Default constructor can not be called (system file is always required)
+    private:
+        // Remove default constructor
         GExciton();
+        // Private constructor to leverage to another method parameter initialization
+        GExciton(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
 
+    public:
         // Specify number of bands participating (int)
         GExciton(std::string filename, int ncell = 20, int nbands = 1, int nrmbands = 0, 
-                const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
+                 const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
         // Specify which bands participate (vector with band numbers)
-        GExciton(std::string filename, int ncell = 200, const arma::ivec& bands = {0, 1}, 
-                const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
+        GExciton(std::string filename, int ncell = 20, const arma::ivec& bands = {0, 1}, 
+                 const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
         
         // Use two files: the mandatory one for system config., and one for exciton config.
         GExciton(std::string systemfile, std::string excitonfile);
+
+        // Initialize exciton passing directly a System object instead of a file using removed bands
+        GExciton(System&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
+                 const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
+
+        // Initialize exciton passing directly a System object instead of a file using bands vector
+        GExciton(System&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
+                 const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
+
         ~GExciton();
 
         // Setters
@@ -163,6 +175,7 @@ class GExciton : public System {
                                                 int nrcells = 15);
 
         // Initializers
+        void initializeExcitonAttributes(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
         void initializeExcitonAttributes(const ExcitonConfiguration&);
         void initializeBasis();
         void initializeResultsH0();
@@ -171,6 +184,7 @@ class GExciton : public System {
         // Utilities
         void generateBandDictionary();
         void createMesh();
+        
         void fixBandCrossing(arma::vec&, arma::cx_mat&);
         int determineKIndex(double k);
 

@@ -15,9 +15,9 @@
 class Crystal {
     
     //// Attributes
-    protected:
-        int ndim_, natoms_, nk_, ncells;
-        double a, c;
+    private:
+        int ndim_, natoms_, nk_, ncells_;
+        double a_, c;
         arma::mat bravaisLattice_, motif_, unitCellList_;
         arma::mat reciprocalLattice_, kpoints_;
         std::map<std::string, int> atomToIndex;
@@ -41,6 +41,10 @@ class Crystal {
         const arma::mat& kpoints = kpoints_;
         // Number of k points
         const int& nk = nk_;
+        // Lattice parameter
+        const double& a = a_;
+        // Number of unit cells connected to the origin
+        const int& ncells = ncells_;
 
     //// Methods
     protected:

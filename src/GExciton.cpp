@@ -14,14 +14,8 @@ GExciton::GExciton(){
     throw std::invalid_argument("Error: GExciton must be invoked with at least one parameter (systemfile)");
 };
 
-GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands, 
-                  const arma::rowvec& parameters, const arma::rowvec& Q) : 
-          System(filename){
-
-    // Constructor for GExciton class. If bands vector is given, it is used in all
-    // calculations instead of parameters nbands, nrmbands.
-    // int ncell: Number of unit cells along ONE direction.
-    // Initialize basic attributes
+void GExciton::initializeExcitonAttributes(int ncell, const arma::ivec& bands, 
+                                      const arma::rowvec& parameters, const arma::rowvec& Q){
     this->ncell_      = ncell;
     this->totalCells_ = pow(ncell, ndim);
     this->Q_          = Q;
@@ -34,6 +28,13 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
     if(r0 == 0){
         throw std::invalid_argument("Error: r0 must be non-zero");
     }
+}
+
+GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands, 
+                  const arma::rowvec& parameters, const arma::rowvec& Q) : 
+                  System(filename) {
+
+    initializeExcitonAttributes(ncell, bands, parameters, Q);
 
     if (bands.n_elem > basisdim){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
@@ -83,6 +84,52 @@ GExciton::GExciton(std::string modelfile, std::string excitonfile) : System(mode
     bool useApproximation = excitonconfig.excitonInfo.useApproximation;
     initializeHamiltonian(useApproximation);
 }
+
+GExciton::GExciton(System& system, int ncell, const arma::ivec& bands, 
+                  const arma::rowvec& parameters, const arma::rowvec& Q) : 
+                  System(system) {
+
+    initializeExcitonAttributes(ncell, bands, parameters, Q);
+
+    if (bands.n_elem > basisdim){
+        cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
+        exit(1);
+    }
+
+    // arma::ivec is implemented with typedef s64
+    std::vector<arma::s64> valence, conduction;
+    for(int i = 0; i < bands.n_elem; i++){
+        if (bands(i) <= 0){
+            valence.push_back(bands(i) + fermiLevel);
+        }
+        else{
+            conduction.push_back(bands(i) + fermiLevel);
+        }
+    }
+    this->valenceBands_ = arma::ivec(valence);
+    this->conductionBands_ = arma::ivec(conduction);
+
+    if(!bands.empty()){
+        std::cout << "Correctly initialized Exciton object" << std::endl;
+    }
+};
+
+GExciton::GExciton(System& system, int ncell, int nbands, int nrmbands, 
+                  const arma::rowvec& parameters, const arma::rowvec& Q) : 
+          GExciton(system, ncell, {}, parameters, Q) {
+    
+    if (2*nbands > basisdim){
+        cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
+        exit(1);
+    }
+    this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands - nrmbands + 1, 
+                                                     fermiLevel - nrmbands);
+    this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, 
+                                                        fermiLevel + nbands + nrmbands);
+    this->bands_ = arma::join_cols(valenceBands, conductionBands) - fermiLevel;
+
+    std::cout << "Correctly initialized Exciton object" << std::endl;
+};
 
 // Destructor
 GExciton::~GExciton(){

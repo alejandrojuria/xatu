@@ -16,7 +16,6 @@ class Result{
         // Returns eigenstates of BSE
         const arma::cx_mat& eigvec = m_eigvec;
 
-
     public:
         Result(GExciton& exciton_, arma::vec& eigval_, arma::cx_mat& eigvec_) : 
                 exciton(exciton_),

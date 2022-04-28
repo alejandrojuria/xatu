@@ -11,7 +11,7 @@ void Crystal::initializeCrystalAttributes(const SystemConfiguration& configurati
 	unitCellList_   = configuration.systemInfo.bravaisVectors;
     
     natoms_ = motif.n_rows;
-	ncells = unitCellList.n_rows;
+	ncells_ = unitCellList.n_rows;
 	nk_ = 0; // Mesh has to be explicitly initialized
 
     calculateReciprocalLattice();
@@ -243,7 +243,7 @@ void Crystal::extractLatticeParameters(){
 	catch (std::string e){
 			std::cerr << e;
 	}
-	this->a = arma::norm(bravaisLattice.row(0));
+	this->a_ = arma::norm(bravaisLattice.row(0));
 
 	double reference_height = motif.row(0)(2);
 	double c = 0;

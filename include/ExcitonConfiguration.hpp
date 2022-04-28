@@ -9,7 +9,7 @@ class ExcitonConfiguration : public ConfigurationBase{
         arma::rowvec Q;
         bool useApproximation;
         double cutoff;
-        arma::rowvec eps = {};
+        arma::vec eps = {};
         double r0, d;
     };
 
