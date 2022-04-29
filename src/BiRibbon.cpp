@@ -3,12 +3,12 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "Zigzag.hpp"
+#include "BiRibbon.hpp"
 
 using namespace arma;
 using namespace std::chrono;
 
-Zigzag::Zigzag(int N, std::string zeeman_axis){
+BiRibbon::BiRibbon(int N, std::string zeeman_axis){
 
 	this->N = N;
 	this->zeeman_axis = zeeman_axis;
@@ -20,14 +20,18 @@ Zigzag::Zigzag(int N, std::string zeeman_axis){
 
 };
 
-Zigzag::~Zigzag(){
+BiRibbon::~BiRibbon(){
 	cout << "Destroying Zigzag object..." << endl;
 };
 
-void Zigzag::initializeConstants(){
+void BiRibbon::initializeConstants(){
 	//// ------------ Global variable initialization ------------
 
-	this->ndim_ = 1;
+    // System class attributes
+	this->ndim_      = 1;
+    this->norbitals_ = 4;
+    this->orbitals   = arma::urowvec{(arma::u64)norbitals};
+    this->filling_   = 5./8;
 
 	//// Lattice parameters
 	this->a_ = 4.5332;
@@ -54,17 +58,16 @@ void Zigzag::initializeConstants(){
 	this->onsiteEdge = 0.0;
 
 	//// Lattice vectors
-	// Bravais basis
+	// Bulk Bravais basis
 	a1 = { sqrt(3) / 2, 1.0 / 2, 0.0 };
 	a1 *= a;
 	a2 = { sqrt(3) / 2, -1.0 / 2, 0.0 };
 	a2 *= a;
-	this->bravaisLattice_ = arma::mat{ a1, a2 };
+    // Ribbon Bravais lattice
+	this->bravaisLattice_ = arma::mat{ a1 - a2 };
 
 	// Motif
-	arma::rowvec origin = {0., 0., 0.};
 	tau = { a / sqrt(3), 0, -c,  0};
-	this->motif_ = arma::mat{origin, tau};
 
 	// First neighbours
 	n1 = a1 - tau;
@@ -80,30 +83,35 @@ void Zigzag::initializeConstants(){
 };
 
 /* Setter to access Zeeman term, which is private */
-void Zigzag::setZeeman(double Zeeman){
+void BiRibbon::setZeeman(double Zeeman){
 	this->zeeman = Zeeman;
 };
 
 /* Routine to calculate the positions of the atoms inside the unit cell
 Input: int N (cells in the finite direction). Output: mat motiv */
-void Zigzag::createMotif(){
-	arma::mat motif = zeros(3, 2*(N + 1));
-	motif.col(0) = arma::vec({0,0,0});
-	motif.col(1) = n1;
-	motif.col(2) = a1;
-	motif.col(3) = a1 + n2;
+void BiRibbon::createMotif(){
+	arma::mat motif = arma::zeros(2*(N + 1), 4);
+	motif.row(0) = arma::vec({0,0,0});
+	motif.row(1) = n1;
+	motif.row(2) = a1;
+	motif.row(3) = a1 + n2;
 
 	for(int n = 2; n <= N; n++){
 		if(n%2 == 0){
-			motif.col(2*n) = (a1 + a2)*n/2;
-			motif.col(2*n + 1) = (a1 + a2)*n/2 + n1;
+			motif.row(2*n) = (a1 + a2)*n/2;
+			motif.row(2*n + 1) = (a1 + a2)*n/2 + n1;
 		}
 		else{
-			motif.col(2*n) = (a1 + a2)*(n-1)/2 + a1;
-			motif.col(2*n + 1) = (a1 + a2)*(n-1)/2 + motif.col(3);
+			motif.row(2*n) = (a1 + a2)*(n-1)/2 + a1;
+			motif.row(2*n + 1) = (a1 + a2)*(n-1)/2 + motif.col(3);
 		};
 	};
-	motif = motif.t();
+
+    // Initiallize remaining System attributes
+    this->motif_      = motif;
+    this->natoms_     = motif.n_rows;
+    this->basisdim_   = natoms*norbitals;
+    this->fermiLevel_ = (int)basisdim*filling;
 };
 
 
@@ -111,7 +119,7 @@ void Zigzag::createMotif(){
 
 /* Kronecker product to incorporate spin to a matrix (spinless interactions).
    Input: 4x4 matrix. Output: 8x8 matrix */
-mat Zigzag::matrixWithSpin(const mat& matrix) {
+mat BiRibbon::matrixWithSpin(const mat& matrix) {
 	mat id2 = arma::eye(2, 2);
 	mat M = arma::zeros(8, 8);
 	// Previous implementation; a bit wierd
@@ -130,7 +138,7 @@ mat Zigzag::matrixWithSpin(const mat& matrix) {
 
 /* Create tight-binding matrix for system with one s orbital and three p orbitals, based on Slater-Koster
    approximation. Input: 3x1 vector. Output: 8x8 matrix */
-mat Zigzag::tightbindingMatrix(const vec& n) {
+mat BiRibbon::tightbindingMatrix(const vec& n) {
 	double vNorm = norm(n);
 	vec ndir = { n(0)/vNorm, n(1)/vNorm, n(2)/vNorm };
 	mat M = arma::zeros(4, 4);
@@ -151,7 +159,7 @@ mat Zigzag::tightbindingMatrix(const vec& n) {
 
 /* Initialize tight-binding block matrices and spin-orbit coupling of the hamiltonian for Bi bilayers
    Void function since we want multiple return (to update previously declared matrices) */
-void Zigzag::initializeBlockMatrices() {
+void BiRibbon::initializeBlockMatrices() {
 
 	std::complex<double> imagNum(0, 1);
 
@@ -212,15 +220,15 @@ void Zigzag::initializeBlockMatrices() {
    NB: Requires previous initialization of block matrices !!!
    Expected input: integer N (size of the system along the finite direction) Output: None (void function); updates
    previously declared bloch hamiltonian matrices */
-void Zigzag::prepareHamiltonian() {
+void BiRibbon::prepareHamiltonian() {
 	if (N < 2) {
 		std::cout << "Invalid value for N (Expected N >= 2)" << std::endl;
 		return;
 	};
 
 	int hDim = 2 * (N + 1) * 8;
-	H0 = arma::zeros<cx_mat>(hDim, hDim);
-	Ha = arma::zeros<cx_mat>(hDim, hDim);
+	arma::cx_mat H0 = arma::zeros<cx_mat>(hDim, hDim);
+	arma::cx_mat Ha = arma::zeros<cx_mat>(hDim, hDim);
 
 	mat H0block1 = arma::kron(eye(4, 4), M0 / 2);
 	mat H0block2 = arma::kron(eye(4, 4), M0 / 2);
@@ -263,8 +271,8 @@ void Zigzag::prepareHamiltonian() {
 		i = j;
 	};
 
-	Hsoc = kron(arma::eye(2 * (N + 1), 2 * (N + 1)), Mso);
-	Hzeeman = kron(arma::eye<cx_mat>(2 * (N + 1), 2 * (N + 1)), Mzeeman);
+	arma::cx_mat Hsoc = kron(arma::eye(2 * (N + 1), 2 * (N + 1)), Mso);
+	arma::cx_mat Hzeeman = kron(arma::eye<cx_mat>(2 * (N + 1), 2 * (N + 1)), Mzeeman);
 
 	for(int i = 0; i < 8; i++){
 		H0(0 + i, 0 + i) += onsiteEdge;
@@ -273,40 +281,16 @@ void Zigzag::prepareHamiltonian() {
 		H0(2*(N+1)*8 - 2*8 + i, 2*(N+1)*8 - 2*8 + i) -= onsiteEdge;
 	};
 
-	this->H0 = H0;
-	this->Ha = Ha;
-	this->Hsoc = Hsoc;
-	this->Hzeeman = Hzeeman;
+    this->unitCellList_ = arma::mat{arma::rowvec{0., 0., 0.}, bravaisLattice.row(0)};
+    this->ncells_       = unitCellList.n_rows;
+    this->hamiltonianMatrices = arma::zeros<arma::cx_cube>(basisdim, basisdim, ncells);
+    this->hamiltonianMatrices.slice(0) = H0 + Hsoc + Hzeeman;
+    this->hamiltonianMatrices.slice(1) = Ha;
 };
 
-/* Initialize Bloch hamiltonian for posterior diagonalization. Input: double k (wave number), H0, Ha 2*8*(N+1)x2*8*(N+1) matrices,
-   and Hsoc 2*8*(N+1)x2*8*(N+1) complex matrix */
-cx_mat Zigzag::hamiltonian(double k) {
-
-	cx_mat h = arma::zeros<cx_mat>(H0.n_rows, H0.n_cols);
-	std::complex<double> i(0, 1);
-	h = H0 + Hzeeman +
-	    Ha * std::exp(-i * k * a) + Ha.t() * std::exp(i * k * a) + Hsoc;
-
-	return h;
-};
-
-/*------------------ Utilities/Additional observables ------------------*/
-
-/* Write a text file to save calculation results and posterios graphical representation */
-void Zigzag::writeEigenvaluesToFile(FILE* file, const vec& eigenval, double k) {
-
-	fprintf(file, "%11.8f\t", k);
-	for (unsigned int it = 0; it < eigenval.n_elem; it++) {
-		fprintf(file, "%11.8f\t", eigenval(it));
-	}
-	fprintf(file, "\n");
-
-	return;
-};
 
 /* Routine to apply the inversion operator P over a eigenstate */
-cx_mat Zigzag::inversionOperator(const cx_vec& eigenvector){
+cx_mat BiRibbon::inversionOperator(const cx_vec& eigenvector){
 
 	int dimTB = 2*(N+1)*8;
 	cx_mat P = arma::zeros<cx_mat>(dimTB/8, dimTB/8);
@@ -323,114 +307,3 @@ cx_mat Zigzag::inversionOperator(const cx_vec& eigenvector){
 	return P*eigenvector;
 };
 
-/* Routine to calculate the expected value of the spin projection
-Sz of a TB eigenstate. */
-double Zigzag::expectedSpinZValue(const arma::cx_vec& eigvec){
-
-	int dimTB = 2*(N+1)*8;
-	cx_vec spinEigvalues = {1./2, -1./2, 1./2, 1./2, 1./2, -1./2, -1./2, -1./2};
-	cx_vec spinVector = arma::kron(arma::ones(dimTB/8, 1), spinEigvalues);
-
-	cx_vec spinEigvec = eigvec % spinVector;
-
-	return real(arma::cdot(eigvec, spinEigvec));
-};
-
-/* Routine to calculate the expected value of the spin projection
-Sz of a TB eigenstate. */
-double Zigzag::expectedSpinYValue(const arma::cx_vec& eigvec){
-
-	int dimTB = 2*(N+1)*8;
-	std::complex<double> i(0,1);
-	cx_mat operatorSy = arma::zeros<cx_mat>(8, 8);
-	operatorSy(0,1) = -i;
-	operatorSy(1,0) = i;
-	operatorSy.submat(2,5, 4,7) = -i*arma::eye<cx_mat>(3,3);
-	operatorSy.submat(5,2, 7,4) = i*arma::eye<cx_mat>(3,3);
-
-	cx_mat syMatrix = 0.5*arma::kron(arma::eye<cx_mat>(dimTB/8, dimTB/8), operatorSy);
-
-	cx_vec spinEigvec = syMatrix*eigvec;
-	
-	return abs(arma::cdot(eigvec, spinEigvec));
-};
-
-/* Routine to calculate the expected value of the spin projection
-Sz of a TB eigenstate. */
-double Zigzag::expectedSpinXValue(const arma::cx_vec& eigvec){
-
-	int dimTB = 2*(N+1)*8;
-	cx_mat operatorSx = arma::zeros<cx_mat>(8, 8);
-	operatorSx(0,1) = 1;
-	operatorSx(1,0) = 1;
-	operatorSx.submat(2,5, 4,7) = arma::eye<cx_mat>(3,3);
-	operatorSx.submat(5,2, 7,4) = arma::eye<cx_mat>(3,3);
-
-	cx_mat sxMatrix = 0.5*arma::kron(arma::eye<cx_mat>(dimTB/8, dimTB/8), operatorSx);
-
-	cx_vec spinEigvec = sxMatrix*eigvec;
-	
-	return abs(arma::cdot(eigvec, spinEigvec));
-};
-
-
-/* Definition of non-interacting retarded Green function */
-std::complex<double> Zigzag::rGreenF(double energy, double delta, double eigEn){
-
-	std::complex<double> i(0,1);
-	return 1./((energy + i*delta) - eigEn);
-};
-
-/* Routine to calcule the density of states at a given energy,
-associated to a given set of eigenvalues (e.g. bulk or edge).
-NB: It is NOT normalized. */
-double Zigzag::densityOfStates(double energy, double delta, const mat& energies){
-
-		double dos = 0;
-		for(int i = 0; i < (int)energies.n_rows; i++){
-			for(int j = 0; j < (int)energies.n_cols; j++){
-				double eigEn = energies(i,j);
-				dos += -PI*imag(rGreenF(energy, delta, eigEn));
-			};
-		};
-		dos /= energies.n_cols*a; // Divide by number of k's and length a
-
-		return dos;
-}
-
-/* Routine to calculate and write the density of states associated 
-to a given set of eigenenergies. Density of states is normalized to 1
-(integral of DOS over energies equals 1)
-Input: mat energies (eigenvalues), double delta (convergence parameter),
-FILE* dosfile output file
-Output: void (write results to output file) */
-void Zigzag::writeDensityOfStates(const mat& energies, double delta, FILE* dosfile){
-
-	double minE = energies.min();
-	double maxE = energies.max();
-	int nE = 2000; // Number of points in energy mesh
-
-	vec energyMesh = arma::linspace(minE - 0.5, maxE + 0.5, nE);
-
-	// Main loop
-	double totalDos = 0;
-	double dos = 0;
-	// First loop over energies to normalize
-	for(int n = 0; n < (int)energyMesh.n_elem; n++){
-		double energy = energyMesh(n);
-		double deltaE = energyMesh(1) - energyMesh(0);
-
-		dos = densityOfStates(energy, delta, energies);
-		totalDos += dos*deltaE;
-	};
-	// Main loop to write normalized DOS
-	for(int n = 0; n < (int)energyMesh.n_elem; n++){
-		double dos = 0;
-		double energy = energyMesh(n);
-
-		dos = densityOfStates(energy, delta, energies);
-		dos = dos/totalDos; // Normallise
-		fprintf(dosfile, "%lf\t%lf\n", energy, dos);
-	};
-	return;
-};

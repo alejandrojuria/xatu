@@ -47,15 +47,7 @@ class System : public Crystal{
         /* Expected value of spin components */
         double expectedSpinZValue(const arma::cx_vec&);
         double expectedSpinYValue(const arma::cx_vec&);
-        double expectedSpinXValue(const arma::cx_vec&);
-
-        /* Routines for DoS calculation */
-        double densityOfStates(double, double, const arma::mat&);
-        void writeDensityOfStates(const arma::mat&, double, FILE*);
-
-    protected:
-        /* Routines for DoS calculation */
-        std::complex<double> rGreenF(double, double, double);
+        double expectedSpinXValue(const arma::cx_vec&);        
     
     private:
         void initializeSystemAttributes(const SystemConfiguration&);

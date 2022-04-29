@@ -10,7 +10,7 @@
 #endif
 
 
-class Zigzag : public System{
+class BiRibbon : public System{
     
     public:
         //// Attributes
@@ -24,13 +24,12 @@ class Zigzag : public System{
         arma::rowvec Gamma, K, M;
         arma::mat M0, M1, M2p, M2m;
         arma::cx_mat Mso, Mzeeman;
-        arma::cx_mat H0, Ha, Hsoc, Hzeeman;
 
     //// Methods
     // Constructor and destructor
     public:
-        Zigzag(int N = 15, std::string zeeman_axis = "z");    
-        ~Zigzag();
+        BiRibbon(int N = 15, std::string zeeman_axis = "z");    
+        ~BiRibbon();
 
     protected:
         /* Attribute initialization */
@@ -43,23 +42,10 @@ class Zigzag : public System{
         void initializeBlockMatrices();
         void prepareHamiltonian();
 
-        /* Routines for DoS calculation */
-        std::complex<double> rGreenF(double, double, double);
-
     public:
         void setZeeman(double);
-        arma::cx_mat hamiltonian(double k);
 
         /* Some utilities/extra information */
-        void writeEigenvaluesToFile(FILE* file, const arma::vec& eigenval, double k);
         arma::cx_mat inversionOperator(const arma::cx_vec&);
 
-        /* Expected value of spin components */
-        double expectedSpinZValue(const arma::cx_vec&);
-        double expectedSpinYValue(const arma::cx_vec&);
-        double expectedSpinXValue(const arma::cx_vec&);
-
-        /* Routines for DoS calculation */
-        double densityOfStates(double, double, const arma::mat&);
-        void writeDensityOfStates(const arma::mat&, double, FILE*);
 };

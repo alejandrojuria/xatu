@@ -41,7 +41,7 @@ class Crystal {
         const arma::mat& kpoints = kpoints_;
         // Number of k points
         const int& nk = nk_;
-        // Lattice parameter
+        // Lattice parameters
         const double& a = a_;
         const double& c = c_;
         // Number of unit cells connected to the origin
