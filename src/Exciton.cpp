@@ -3,8 +3,9 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "Zigzag.hpp"
+#include "BiRibbon.hpp"
 #include "Exciton.hpp"
+#include "utils.hpp"
 
 using namespace arma;
 using namespace std::chrono;
@@ -12,7 +13,7 @@ using namespace std::chrono;
 
 // Constructor
 Exciton::Exciton(int N, int Ncell, double Q, int nBulkBands, int nEdgeBands, vec specifyEdges) 
-        : Zigzag(N){
+        : BiRibbon(N){
     
     // Initialize basic attributes
     this->Ncell = Ncell;
@@ -249,8 +250,11 @@ std::complex<double> Exciton::exactInteractionTerm(const arma::cx_vec& coefsK1,
 /* Method to create mesh of brillouin zone. Note that the last point will be removed, so the vector is 
 initiallized with nk + 1 points */
 void Exciton::createMesh(){
-    vec kpoints = arma::linspace(-PI/a, PI/a, nk + 1);
-    kpoints = kpoints(arma::span(0, nk - 1));
+    vec kpointsValues = arma::linspace(-PI/a, PI/a, nk + 1);
+    kpointsValues = kpointsValues(arma::span(0, nk - 1));
+
+    this->kpoints = arma::zeros(nk, 3);
+    kpoints.col(1) = kpointsValues;
 
     this->kpoints = kpoints;
 };
@@ -477,14 +481,14 @@ void Exciton::initializeResultsH0(){
     cx_mat h;
 
     for (int i = 0; i < nk; i++){
-		h = hamiltonian(kpoints(i));
+		h = hamiltonian(kpoints.row(i));
         arma::eig_sym(auxEigVal, auxEigvec, h);
     
         eigvalKStack.col(i) = auxEigVal(bandList);
         eigvecKStack.slice(i) = auxEigvec.cols(bandList);
 
         if(Q != 0){
-            h = hamiltonian(kpoints(i) + Q);
+            h = hamiltonian(kpoints.row(i) + Q);
             arma::eig_sym(auxEigVal, auxEigvec, h);
 
             eigvalKQStack.col(i) = auxEigVal(bandList);

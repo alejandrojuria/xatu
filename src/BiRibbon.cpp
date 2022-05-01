@@ -281,8 +281,9 @@ void BiRibbon::prepareHamiltonian() {
 		H0(2*(N+1)*8 - 2*8 + i, 2*(N+1)*8 - 2*8 + i) -= onsiteEdge;
 	};
 
-    this->unitCellList_ = arma::mat{arma::rowvec{0., 0., 0.}, bravaisLattice.row(0)};
-    this->ncells_       = unitCellList.n_rows;
+	this->ncells_ = 2;
+	this->unitCellList_ = arma::zeros(ncells, 3);
+	this->unitCellList_.row(1) = bravaisLattice.row(0);
     this->hamiltonianMatrices = arma::zeros<arma::cx_cube>(basisdim, basisdim, ncells);
     this->hamiltonianMatrices.slice(0) = H0 + Hsoc + Hzeeman;
     this->hamiltonianMatrices.slice(1) = Ha;

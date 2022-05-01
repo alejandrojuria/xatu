@@ -5,11 +5,12 @@
 #include <stdlib.h>
 #include <memory>
 
-#include "Zigzag.hpp"
+#include "BiRibbon.hpp"
 #include "System.hpp"
 #include "ExcitonConfiguration.hpp"
 #include "Result.hpp"
 #include "forward_declaration.hpp"
+#include "utils.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793

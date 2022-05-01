@@ -3,7 +3,8 @@
 #include <complex>
 #include <omp.h>
 #include <stdlib.h>
-#include "Zigzag.hpp"
+
+#include "BiRibbon.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -13,7 +14,7 @@
 
 
 // Routines to initialize BSE elements
-class Exciton : public Zigzag{
+class Exciton : public BiRibbon{
 
     //// Attributes
     private:
@@ -35,7 +36,7 @@ class Exciton : public Zigzag{
         arma::cx_mat HBS;
         arma::mat HK;
         arma::mat basisStates;
-        arma::vec kpoints;
+        arma::mat kpoints;
         arma::uvec valenceBands, conductionBands;
         arma::cx_cube eigvecKStack, eigvecKQStack;
 
