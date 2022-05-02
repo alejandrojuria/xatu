@@ -5,11 +5,34 @@
 
 #include "utils.hpp"
 
-void writeVectorsToFile(const arma::mat& vectors, FILE* textfile){
-    for(unsigned int i = 0; i < vectors.n_rows; i++){
-        arma::rowvec vector = vectors.row(i);
-        fprintf(textfile, "%10.7lf\t%10.7lf\t%10.7lf\n", vector(0), vector(1), vector(2));
-    }
+void writeVectorToFile(arma::vec vector, FILE* file){
+	for (unsigned int i = 0; i < vector.n_elem; i++){
+		fprintf(file, "%f\t", vector(i));
+	}
+	fprintf(file, "\n");
+}
+
+void writeVectorToFile(arma::rowvec vector, FILE* file){
+	for (unsigned int i = 0; i < vector.n_elem; i++){
+		fprintf(file, "%f\t", vector(i));
+	}
+	fprintf(file, "\n");
+}
+
+void writeVectorsToFile(const arma::mat& vectors, FILE* textfile, std::string mode){
+	if (mode == "row"){
+		for(unsigned int i = 0; i < vectors.n_rows; i++){
+			writeVectorToFile((arma::rowvec)vectors.row(i), textfile);
+		}
+	}
+	else if (mode == "col"){
+		for(unsigned int i = 0; i < vectors.n_cols; i++){
+			writeVectorToFile((arma::vec)vectors.col(i), textfile);
+		}
+	}
+	else{
+		std::cout << "Error: writeVectorsToFile: mode not recognized" << std::endl;
+	}
 }
 
 arma::vec readVectorFromFile(std::string filename){

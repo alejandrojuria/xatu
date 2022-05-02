@@ -7,7 +7,9 @@
 #define eps0 8.8541878E-12
 #endif
 
-void writeVectorsToFile(const arma::mat&, FILE*);
+void writeVectorToFile(arma::vec, FILE*);
+void writeVectorToFile(arma::rowvec, FILE*);
+void writeVectorsToFile(const arma::mat&, FILE*, std::string mode = "row");
 arma::vec readVectorFromFile(std::string);
 
 /* Routines for DoS calculation */
