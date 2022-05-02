@@ -34,7 +34,7 @@ class System : public Crystal{
     //// Methods
     public:
         /* Constructor and destructor */
-        System();
+        System(){};
         System(std::string);  
         ~System();
 
@@ -43,6 +43,7 @@ class System : public Crystal{
         /* Bloch Hamiltonian */
         arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false);
         arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false);
+        
 
         /* Expected value of spin components */
         double expectedSpinZValue(const arma::cx_vec&);
