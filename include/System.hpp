@@ -43,13 +43,11 @@ class System : public Crystal{
         /* Bloch Hamiltonian */
         arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false);
         arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false);
-        
 
         /* Expected value of spin components */
         double expectedSpinZValue(const arma::cx_vec&);
         double expectedSpinYValue(const arma::cx_vec&);
         double expectedSpinXValue(const arma::cx_vec&);        
     
-    private:
         void initializeSystemAttributes(const SystemConfiguration&);
 };

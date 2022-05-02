@@ -7,7 +7,11 @@
 #include <string>
 #include <chrono>
 
+#include "GExciton.hpp"
 #include "System.hpp"
+#include "Crystal.hpp"
+#include "Result.hpp"
+#include "utils.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -18,97 +22,90 @@
 using namespace arma;
 using namespace std::chrono;
 
-int main(){
+int main(int argc, char* argv[]){
+
+    std::cout << argc << std::endl;
+
+    if (argc != 2){
+        throw std::invalid_argument("Error: One input file is required (system config.)");
+    };
 
     auto start = high_resolution_clock::now();
+    
+    int ncell = 60;
+    double filling = 1./2;
+    arma::rowvec Q = {0., 0., 0.};
+    arma::rowvec parameters = {1., 1., 10};
+    std::string modelfile = argv[1];    
 
-	// ------------------------ Model output into files ------------------------
+    // ----------------- Model parameters & Output --------------------
+    bool writeEigvals = false;
+    std::string filename = "eigval.out";
+    FILE* textfile_en = fopen(filename.c_str(), "w");
 
-	FILE* textfile = fopen("bands_from_file", "w");
-	bool writeBands = true;
+    bool writeStates = true;
+    std::string filename_st = "states_tb.out";
+    FILE* textfile_st = fopen(filename_st.c_str(), "w");
 
-	// ------------------------ Initialization ------------------------
+    // -------------------------- Main body ---------------------------
 
-    std::string filename = "./models/2band_insulator_model.txt";
-    System system = System(filename);
-	arma::mat kpoints;
+    cout << "-----------------------------------------------------------------------------" << endl;
+    cout << "|                                  Parameters                               |" << endl;
+    cout << "-----------------------------------------------------------------------------" << endl;
+    cout << "N. cells: " << ncell*ncell << endl;
 
-	int Ncell = 100;
-	int nk = 50;
-	if (system.ndim == 1){
-		kpoints = system.brillouinZoneMesh(Ncell);
+    System model = System(modelfile);
+	model.setFilling(filling);
+
+	FILE* filecrystal = fopen("crystal.out", "w");
+	arma::rowvec K = model.reciprocalLattice.row(0)*2./3. + model.reciprocalLattice.row(1)*1./3.;
+	arma::rowvec rotatedK = model.rotateC3(K);
+	arma::rowvec rotatedK2 = model.rotateC3(rotatedK);
+	arma::rowvec M = model.reciprocalLattice.row(0)*1./2.;
+	writeVectorToFile(K, filecrystal);
+	writeVectorToFile(rotatedK, filecrystal);
+	writeVectorToFile(rotatedK2, filecrystal);
+	writeVectorToFile(M, filecrystal);
+	fclose(filecrystal);
+    
+    cout << "-----------------------------------------------------------------------------" << endl;
+    cout << "|                                Initialization                             |" << endl;
+    cout << "-----------------------------------------------------------------------------" << endl;
+
+    model.brillouinZoneMesh(ncell);
+
+    cout << "-----------------------------------------------------------------------------" << endl;
+    cout << "|                                    Results                                |" << endl;
+    cout << "-----------------------------------------------------------------------------" << endl;
+
+	arma::cx_mat h, eigvec;
+	arma::vec eigval;
+    for(int i = 0; i < model.nk; i++){
+		h = model.hamiltonian(model.kpoints.row(i));
+		arma::eig_sym(eigval, eigvec, h);
+
+		if (writeEigvals){
+			for (int j = 0; j < eigval.n_elem; j++){
+				fprintf(textfile_en, "%f\t", eigval(j));
+			}
+		}
+
+		if(writeStates){
+			for (int j = 0; j < eigval.n_elem; j++){
+				for(int n = 0; n < eigval.n_elem; n++){
+					fprintf(textfile_st, "%f\t%f\t", real(eigvec.col(j)(n)), imag(eigvec.col(j)(n)));
+				}
+				fprintf(textfile_st, "\n");
+			}
+		}
 	}
-	else if (system.ndim == 2){
-		
-		double norm = arma::norm(system.reciprocalLattice.row(0));
-		arma::rowvec M = system.reciprocalLattice.row(0)/2.;
-		arma::rowvec K = (system.reciprocalLattice.row(0) + 
-						  system.reciprocalLattice.row(1))/2.;
-		arma::rowvec G = {0., 0., 0.};
-		kpoints = arma::zeros(3*nk + 1, 3);
-		for(int i = 0; i < nk; i++){
-			kpoints.row(i) = G*(nk-i)/nk + K*i/nk;
-		}
-		for(int i = 0; i < nk; i++){
-			kpoints.row(i + nk) = K*(nk-i)/nk + M*i/nk;
-		}
-		for(int i = 0; i < nk; i++){
-			kpoints.row(i + 2*nk) = M*(nk-i)/nk + G*i/nk;
-		}
-		kpoints.row(3*nk) = G;
-		/*
-		int nkdiv = 100;
-		kpoints = arma::zeros(3*nkdiv + 1, 3);
-		for(int i = 0; i < nkdiv; i++){
-			double alpha = (double)i/(nkdiv+1);
-			kpoints.row(i) = G*(1 - alpha) + M*alpha;
-		}
-		for(int i = 0; i < nkdiv; i++){
-			double alpha = (double)i/(nkdiv+1);
-			kpoints.row(i + nkdiv) = M*(1 - alpha) + K*alpha;
-		}
-		for(int i = 0; i < nkdiv; i++){
-			double alpha = (double)i/(nkdiv+1);
-			kpoints.row(i + nkdiv*2) = K*(1 - alpha) + G*alpha;
-		}
-		kpoints.row(3*nkdiv) = G;
+    
+    fclose(textfile_en);
+    fclose(textfile_st);
 
-		kpoints = arma::zeros(3, 3);
-		kpoints.row(0) = K/5;
-		kpoints.row(1) = system.rotateC3(K/5);
-		kpoints.row(2) = system.rotateC3(system.rotateC3(K/5));
-		*/
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    std::cout << "Elapsed time: " << duration.count()/1000.0 << " s" << std::endl;
 
-	};	
-
-	double Q = 0.0;
-
-	// ---------------------------- Main loop ----------------------------
-	cx_vec stored_eigvec;
-	for (int i = 0; i < kpoints.n_rows; i++) {
-
-        arma::vec eigenval;
-        arma::cx_mat eigenvec;
-		arma::cx_mat h = system.hamiltonian(kpoints.row(i), true);
-		arma::eig_sym(eigenval, eigenvec, h);
-		arma::vec eigval = real(eigenval);
-		eigval = arma::sort(eigval);
-
-		if(writeBands){
-            fprintf(textfile, "%d\t", i);
-            for(int j = 0; j < system.basisdim; j++){
-                fprintf(textfile, "%lf\t", eigval(j));
-            };
-            fprintf(textfile, "\n");
-		};
-	};
-
-	// Close all text files
-	fclose(textfile);
-
-	auto stop = high_resolution_clock::now();
-	auto duration = duration_cast<milliseconds>(stop - start);
-	std::cout << duration.count() << " ms" << std::endl;
-
-	return 0;
+    return 0;
 };

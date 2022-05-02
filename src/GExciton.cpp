@@ -797,11 +797,6 @@ void GExciton::initializeResultsH0(){
 
     calculateInverseReciprocalMatrix();
     std::complex<double> imag(0, 1);
-    arma::cx_rowvec sums;
-
-    arma::mat kpoint_crystal = brillouinZoneMeshCrystalCoordinates(ncell);
-    arma::vec Acoefs = readVectorFromFile("models/ftRK/A_coeff.txt");
-    arma::vec Dcoefs = readVectorFromFile("models/ftRK/D_coeff.txt");
 
     for (int i = 0; i < nk; i++){
 		h = hamiltonian(kpoints.row(i));
@@ -830,7 +825,7 @@ void GExciton::initializeResultsH0(){
             //ftStack(i, j) = analyticFourierTransform(kpoints.row(i) - kpoints.row(j));
             //ftStack(i, j) = fourierTransformFromCoefs(Acoefs, Dcoefs, kpoint_crystal.row(i) - kpoint_crystal.row(j), 40);
             
-            for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
+           for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
                 for(int sAtomIndex = 0; sAtomIndex < natoms; sAtomIndex++){
                 ftMotifStack(i, j, fAtomIndex*natoms + sAtomIndex) = 
                 motifFourierTransform(fAtomIndex, sAtomIndex, kpoints.row(i) - kpoints.row(j), cells);
@@ -847,6 +842,8 @@ void GExciton::initializeResultsH0(){
             displayNext += step;
         }
     };
+
+    
 
     std::cout << "\nDone" << std::endl;
 

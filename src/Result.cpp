@@ -209,7 +209,7 @@ void Result::writePhase(int stateindex, FILE* textfile){
 }
 
 void Result::writeExtendedReciprocalAmplitude(const arma::cx_vec& statecoefs, FILE* textfile){
-    fprintf(textfile, "kx\tky\tkz\tProbtProb.\n");
+    fprintf(textfile, "kx\tky\tkz\tProb.\n");
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
     double boxLimit = boundingBoxBZ();
 
