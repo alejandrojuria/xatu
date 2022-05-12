@@ -194,6 +194,13 @@ void GExciton::setParameters(const arma::rowvec& parameters){
     }
 }
 
+void GExciton::setParameters(double eps_m, double eps_s, double r0){
+    // TODO: Introduce additional comprobations regarding value of parameters (positive)
+    eps_m_ = eps_m;
+    eps_s_ = eps_s;
+    r0_    = r0;
+}
+
 void GExciton::setCutoff(double cutoff){
     if(cutoff > 0){
         cutoff_ = cutoff;
@@ -208,17 +215,19 @@ void GExciton::setCutoff(double cutoff){
 
 void GExciton::setGauge(std::string gauge){
     if(gauge != "lattice" && gauge != "atomic"){
-        throw std::invalid_argument("gauge must be either lattice or atomic");
+        throw std::invalid_argument("setGauge(): gauge must be either lattice or atomic");
     }
     gauge_ = gauge;
 }
 
-void GExciton::setParameters(double eps_m, double eps_s, double r0){
-    // TODO: Introduce additional comprobations regarding value of parameters (positive)
-    eps_m_ = eps_m;
-    eps_s_ = eps_s;
-    r0_    = r0;
+void GExciton::setMode(std::string mode){
+    if(mode != "realspace" && mode != "reciprocalspace"){
+        throw std::invalid_argument("setMode(): mode must be either realspace or reciprocalspace");
+    }
+    mode_ = mode;
 }
+
+
 
 /*      =============================================
 !       Purpose: Compute Struve function H0(x)
@@ -318,19 +327,21 @@ std::complex<double> GExciton::fourierTransform(arma::rowvec k, const arma::mat&
 };
 
 double GExciton::analyticFourierTransform(arma::rowvec q){
-    double qnorm = arma::norm(q);
-    double potential;
+    double radius = cutoff*arma::norm(reciprocalLattice.row(0));
+    double potential = 0;
     double eps_bar = (eps_m + eps_s)/2;
     double eps = 1E-5;
+    double unitCellArea = 5.41;
+
+    double qnorm = arma::norm(q);
     if (qnorm < eps){
         potential = 0;
     }
     else{
-        potential = -ec*1E10/(2*eps0*eps_bar*qnorm*(1 + r0*qnorm));
+        potential = 1/(qnorm*(1 + r0*qnorm));
     }
-
-    double unitCellArea = 8.6477;
-    potential = potential/(totalCells*unitCellArea);
+    
+    potential = potential*ec*1E10/(2*eps0*eps_bar*unitCellArea*totalCells);
     return potential;
 }
 
@@ -362,8 +373,8 @@ std::complex<double> GExciton::motifFourierTransform(int fAtomIndex, int sAtomIn
 
     std::complex<double> imag(0,1);
     std::complex<double> Vk = 0.0;
-    arma::rowvec firstAtom = motif.row(sAtomIndex).subvec(0, 2);
-    arma::rowvec secondAtom = motif.row(fAtomIndex).subvec(0, 2);
+    arma::rowvec firstAtom = motif.row(fAtomIndex).subvec(0, 2);
+    arma::rowvec secondAtom = motif.row(sAtomIndex).subvec(0, 2);
 
     for(int n = 0; n < cells.n_rows; n++){
         arma::rowvec cell = cells.row(n);
@@ -394,8 +405,7 @@ std::complex<double> GExciton::tDirect(std::complex<double> Vk,
                              const arma::cx_vec& coefsK, 
                              const arma::cx_vec& coefsKQ,
                              const arma::cx_vec& coefsK2, 
-                             const arma::cx_vec& coefsK2Q)
-                             {
+                             const arma::cx_vec& coefsK2Q){
     
     std::complex<double> D = 1.;
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK2Q);
@@ -416,8 +426,7 @@ std::complex<double> GExciton::tExchange(std::complex<double> VQ,
                                const arma::cx_vec& coefsK, 
                                const arma::cx_vec& coefsKQ,
                                const arma::cx_vec& coefsK2, 
-                               const arma::cx_vec& coefsK2Q)
-                               {
+                               const arma::cx_vec& coefsK2Q){
     
     std::complex<double> X = 1.;
     cx_double I_first_pair = arma::cdot(coefsKQ, coefsK);
@@ -516,10 +525,10 @@ std::complex<double> GExciton::exactInteractionTermMFT(const arma::cx_vec& coefs
 };
 
 /* Exact implementation of interaction term, valid for both direct and exchange */
-std::complex<double> GExciton::interactionTermFT(const arma::cx_vec& coefsKQ, 
+std::complex<double> GExciton::interactionTermFT(const arma::cx_vec& coefsK, 
                                      const arma::cx_vec& coefsK2,
-                                     const arma::cx_vec& coefsK2Q, 
-                                     const arma::cx_vec& coefsK,
+                                     const arma::cx_vec& coefsKQ, 
+                                     const arma::cx_vec& coefsK2Q,
                                      const arma::rowvec& k, 
                                      const arma::rowvec& k2,
                                      const arma::rowvec& kQ, 
@@ -528,25 +537,17 @@ std::complex<double> GExciton::interactionTermFT(const arma::cx_vec& coefsKQ,
     
     std::complex<double> Ic, Iv;
     std::complex<double> term = 0;
-    arma::mat combinations = generateCombinations(nrcells, ndim, true);
-    arma::rowvec reciprocalVector(3);
+    double radius = cutoff * arma::norm(reciprocalLattice.row(0));
+    arma::mat reciprocalVectors = truncateReciprocalSupercell(nrcells, radius);
 
-    for(int i = 0; i < combinations.n_rows; i++){
-        auto coefs = combinations.row(i);
-        reciprocalVector = arma::zeros<arma::rowvec>(3);
-        for(int j = 0; j < coefs.n_elem; j++){
-            reciprocalVector += coefs(j)*reciprocalLattice.row(j);
-        }
+    for(int i = 0; i < reciprocalVectors.n_rows; i++){
+        auto G = reciprocalVectors.row(i);
 
-        Ic = blochCoherenceFactor(coefsKQ, coefsK2Q, kQ, k2Q, reciprocalVector);
-        Iv = blochCoherenceFactor(coefsK2, coefsK, k2, k, reciprocalVector);
+        Ic = blochCoherenceFactor(coefsK2Q, coefsKQ, k2Q, kQ, G);
+        Iv = blochCoherenceFactor(coefsK2, coefsK, k2, k, G);
 
-        term += Ic*conj(Iv)*analyticFourierTransform(k2-k+reciprocalVector);
-        arma::cout << "factor: " << Ic*Iv*analyticFourierTransform(k2-k+reciprocalVector) << arma::endl;
-        arma::cout << "FT:" << analyticFourierTransform(k-k2+reciprocalVector) << arma::endl;
-        arma::cout << "term: " << term << arma::endl;
+        term += conj(Ic)*Iv*analyticFourierTransform(k-k2+G);
     }
-    arma::cout << "------------------" << arma::endl;
 
     
     return term;
@@ -557,11 +558,11 @@ std::complex<double> GExciton::blochCoherenceFactor(const arma::cx_vec& coefs1, 
                                                     const arma::rowvec& G){
 
     std::complex<double> imag(0, 1);
-    arma::cx_vec coefs = arma::conj(latticeToAtomicGauge(coefs1, k1)) % latticeToAtomicGauge(coefs2, k2);
+    arma::cx_vec coefs = arma::conj(coefs1) % coefs2;
     arma::cx_vec phases(natoms);
     for(int i = 0; i < natoms; i++){
         arma::rowvec atomPosition = motif.row(i).subvec(0, 2);
-        phases(i) = exp(imag*arma::dot(-G, atomPosition));
+        phases(i) = exp(imag*arma::dot(k1 - k2 - G, atomPosition));
     }
 
     arma::cx_vec extendedPhases = arma::kron(phases, arma::ones<arma::cx_vec>(norbitals));
@@ -666,53 +667,6 @@ void GExciton::useSpinfulBasis(){
     this->basisStates_ = states;
 };
 
-
-// /* Routine to fix the band crossing at the K=PI/a point, intented
-// to work ONLY for edge states. Does not work for band crossings happening
-// in other in other k points for bulk bands.
-// Input: vec eigenval, cx_mat eigenvec
-// Output: void (updates input references) */
-// void GExciton::fixBandCrossing(vec& eigenval, cx_mat& eigenvec){
-
-//     double auxEigenval;
-//     cx_vec auxEigenvec;
-//     int vband = 2*(N+1)*5 - 2;
-//     int cband = 2*(N+1)*5 + 1;
-
-//     // Valence band
-//     auxEigenval = eigenval(vband);
-// 	eigenval(vband) = eigenval(vband + 1);
-// 	eigenval(vband + 1) = auxEigenval;
-
-// 	auxEigenvec = eigenvec.col(vband);
-// 	eigenvec.col(vband) = eigenvec.col(vband + 1);
-// 	eigenvec.col(vband + 1) = auxEigenvec;
-
-// 	// Conduction band
-// 	auxEigenval = eigenval(cband);
-// 	eigenval(cband) = eigenval(cband - 1);
-// 	eigenval(cband - 1) = auxEigenval;
-
-// 	auxEigenvec = eigenvec.col(cband);
-// 	eigenvec.col(cband) = eigenvec.col(cband - 1);
-// 	eigenvec.col(cband - 1) = auxEigenvec;
-
-//     return;
-// };
-
-
-// /* Routine to calculate the index i associated to k within the 
-// kpoints vector.
-// Input: double k, vec kpoints. Output: index i */
-// int GExciton::determineKIndex(double k){
-//     int ndiv = kpoints.n_elem - 1;
-//     if(k > kpoints[ndiv]){
-//         k -= 2*PI/a;
-//     };
-//     return round((k - kpoints(0))*ndiv/(kpoints(ndiv) - kpoints(0)));
-// };
-
-
 // NOTE: This one may be important (or not, apparently not so much)
 // /* Routine to calculate the coefficients corresponding to wavefunctions
 // in the atomic gauge.
@@ -769,22 +723,27 @@ void GExciton::generateBandDictionary(){
     this->bandToIndex = bandToIndex;
 };
 
+void GExciton::initializeMotifFT(int i, int j, const arma::mat& cells){
+    for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
+        for(int sAtomIndex = 0; sAtomIndex < natoms; sAtomIndex++){
+            ftMotifStack(i, j, fAtomIndex*natoms + sAtomIndex) = 
+            motifFourierTransform(fAtomIndex, sAtomIndex, kpoints.row(i) - kpoints.row(j), cells);
+        }   
+    }
+}
+
 // Routine to save the relevant data in the stack for later computations
 void GExciton::initializeResultsH0(){
 
     int nTotalBands = bandList.n_elem;
     double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
-    // By default
     arma::mat cells = truncateSupercell(ncell, radius);
-    //arma::mat cells = supercellCutoff(ncell);
-    //arma::mat cells = wignerSeitzSupercell(ncell);
 
-    cx_cube eigvecKStack(basisdim, nTotalBands, nk);
-    cx_cube eigvecKQStack(basisdim, nTotalBands, nk);
-    arma::mat eigvalKStack(nTotalBands, nk);
-    arma::mat eigvalKQStack(nTotalBands, nk);
-    arma::cx_mat ftStack(nk, nk);
-    arma::cx_cube ftMotifStack(nk, nk, natoms*natoms);
+    this->eigvecKStack_  = arma::cx_cube(basisdim, nTotalBands, nk);
+    this->eigvecKQStack_ = arma::cx_cube(basisdim, nTotalBands, nk);
+    this->eigvalKStack_  = arma::mat(nTotalBands, nk);
+    this->eigvalKQStack_ = arma::mat(nTotalBands, nk);
+    this->ftMotifStack   = arma::cx_cube(nk, nk, natoms*natoms);
 
     vec auxEigVal(basisdim);
     cx_mat auxEigvec(basisdim, basisdim);
@@ -803,36 +762,31 @@ void GExciton::initializeResultsH0(){
         arma::eig_sym(auxEigVal, auxEigvec, h);
 
         auxEigvec = fixGlobalPhase(auxEigvec);
-        eigvalKStack.col(i) = auxEigVal(bandList);
-        eigvecKStack.slice(i) = auxEigvec.cols(bandList);
+        eigvalKStack_.col(i) = auxEigVal(bandList);
+        eigvecKStack_.slice(i) = auxEigvec.cols(bandList);
 
         if(arma::norm(Q) != 0){
             h = hamiltonian(kpoints.row(i) + Q);
             arma::eig_sym(auxEigVal, auxEigvec, h);
 
             auxEigvec = fixGlobalPhase(auxEigvec);
-            eigvalKQStack.col(i) = auxEigVal(bandList);
-            eigvecKQStack.slice(i) = auxEigvec.cols(bandList);
+            eigvalKQStack_.col(i) = auxEigVal(bandList);
+            eigvecKQStack_.slice(i) = auxEigvec.cols(bandList);
         }
         else{
-            eigvecKQStack.slice(i) = eigvecKStack.slice(i);
-            eigvalKQStack.col(i) = eigvalKStack.col(i);
+            eigvecKQStack_.slice(i) = eigvecKStack.slice(i);
+            eigvalKQStack_.col(i) = eigvalKStack.col(i);
         };
-        // The FT is calculated for vec kpoints starting in zero ALWAYS
-        #pragma omp parallel for
-        for (int j = 0; j < nk; j++){
-            //ftStack(i, j) = fourierTransform(kpoints.row(i) - kpoints.row(j), cells);
-            //ftStack(i, j) = analyticFourierTransform(kpoints.row(i) - kpoints.row(j));
-            //ftStack(i, j) = fourierTransformFromCoefs(Acoefs, Dcoefs, kpoint_crystal.row(i) - kpoint_crystal.row(j), 40);
-            
-           for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
-                for(int sAtomIndex = 0; sAtomIndex < natoms; sAtomIndex++){
-                ftMotifStack(i, j, fAtomIndex*natoms + sAtomIndex) = 
-                motifFourierTransform(fAtomIndex, sAtomIndex, kpoints.row(i) - kpoints.row(j), cells);
-                }   
-            }
-        }        
 
+        // BIGGEST BOTTLENECK OF THE CODE
+        if(this->mode == "realspace"){
+            #pragma omp parallel for
+            for (int j = i; j < nk; j++){
+                initializeMotifFT(j, i, cells);
+
+            }        
+        }
+        
         // Formatted progress indicator
 		percent = (100 * (i + 1)) / nk ;
 		if (percent >= displayNext){
@@ -843,20 +797,7 @@ void GExciton::initializeResultsH0(){
         }
     };
 
-    
-
     std::cout << "\nDone" << std::endl;
-
-    this->eigvalKStack_ = eigvalKStack;
-    this->eigvalKQStack_ = eigvalKQStack;
-    this->eigvecKStack_ = eigvecKStack;
-    this->eigvecKQStack_ = eigvecKQStack;
-    this->ftStack = ftStack;
-    this->ftX = fourierTransform(Q, cells, false);
-    this->ftMotifStack = ftMotifStack;
-
-    // Check 
-
 };
 
 /* Routine to initialize the required variables to construct the Bethe-Salpeter Hamiltonian */
@@ -895,11 +836,7 @@ calculation.
 Input: int N (cells finite direction), vec states, int ncells (periodic 
 direction), int nEdgeStates. Output: None (updates previously declared matrices) 
 BEWARE: Does not work for Q < 0 (Expected to use reflection symmetry)*/
-void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
-
-    double percent;
-    double step = 1;
-    double displayNext = step;
+void GExciton::BShamiltonian(const arma::imat& basis){
 
     arma::imat basisStates = this->basisStates;
     if (!basis.is_empty()){
@@ -912,82 +849,31 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
 
     HBS_ = arma::zeros<cx_mat>(basisDimBSE, basisDimBSE);
     HK_   = arma::zeros<arma::mat>(basisDimBSE, basisDimBSE);
-    arma::cx_vec coefsK, coefsK2, coefsKQ, coefsK2Q;
-
-    arma::cx_double Dr;
-
-    std::complex<double> ft;
-    // std::complex<double> ftX = fourierTransform(Q);
-    double threshold = 1E-10;
-
+    
     // To be able to parallelize over the triangular matrix, we build
     int loopLength = basisDimBSE*(basisDimBSE + 1)/2.;
 
-    // TEST
-    /*arma::vec eigval, eigval2;
-    arma::cx_mat eigvec, eigvec2, h;
-    arma::cx_rowvec sum;
-    cx_double D;
-    std::complex<double> imag(0, 1);
-
-    for(int n = 0; n < nk; n++){
-        for(int m = 0; m < nk; m++){
-            int kIndex = n;
-            int kIndex2 = m;
-            arma::rowvec kpoint = kpoints.row(kIndex);
-            arma::rowvec kpoint2 = kpoints.row(kIndex2);
-
-            h = hamiltonian(kpoint);
-            arma::eig_sym(eigval, eigvec, h);
-            sum = arma::sum(eigvec);
-            for(int i = 0; i < sum.n_elem; i++){
-                eigvec.col(i) *= exp(-imag*arg(sum(i)));
-            }
-
-            h = hamiltonian(kpoint2);
-            arma::eig_sym(eigval2, eigvec2, h);
-            sum = arma::sum(eigvec2);
-            for(int i = 0; i < sum.n_elem; i++){
-                eigvec2.col(i) *= exp(-imag*arg(sum(i)));
-            }
-
-
-            D = exactInteractionTerm(eigvec.col(1), eigvec2.col(0), eigvec2.col(1), eigvec.col(0), kpoint2 - kpoint);
-            arma::cout << "D: " << abs(D) << arma::endl;
-
-            kpoint = rotateC3(kpoints.row(kIndex));
-            kpoint2 = rotateC3(kpoints.row(kIndex2));
-
-            eigvec.row(1) *= exp(-imag*arma::dot(kpoint, bravaisLattice.row(0)));
-            eigvec2.row(1) *= exp(-imag*arma::dot(kpoint2, bravaisLattice.row(0)));
-
-            D = exactInteractionTerm(eigvec.col(1), eigvec2.col(0), eigvec2.col(1), eigvec.col(0), kpoint2 - kpoint);
-            arma::cout << "Dr: " << abs(D) << arma::endl;
-            arma::cout << "------------------------" << arma::endl;
-        }
-    }
-    */
-
     // https://stackoverflow.com/questions/242711/algorithm-for-index-numbers-of-triangular-matrix-coefficients
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for(int n = 0; n < loopLength; n++){
 
+        arma::cx_vec coefsK, coefsK2, coefsKQ, coefsK2Q;
+
         int ii = loopLength - 1 - n;
-        int k  = floor((sqrt(8*ii + 1) - 1)/2);
-        int i = basisDimBSE - 1 - k;
-        int j = basisDimBSE - 1 - ii + k*(k+1)/2;
+        int m  = floor((sqrt(8*ii + 1) - 1)/2);
+        int i = basisDimBSE - 1 - m;
+        int j = basisDimBSE - 1 - ii + m*(m+1)/2;
     
         double k_index = basisStates(i, 2);
         int v = bandToIndex[basisStates(i, 0)];
         int c = bandToIndex[basisStates(i, 1)];
-
         int kQ_index = k_index;
 
         double k2_index = basisStates(j, 2);
         int v2 = bandToIndex[basisStates(j, 0)];
         int c2 = bandToIndex[basisStates(j, 1)];
-
         int k2Q_index = k2_index;
+
 
         // Using the atomic gauge
         if(gauge == "atomic"){
@@ -1004,54 +890,24 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
         }
 
         std::complex<double> D, X;
-        if (useApproximation){
-            std::complex<double> ftD;
-            //ftD = ftStack(k2_index, k_index);
-            //D = tDirect(ftD, coefsK, coefsKQ, coefsK2, coefsK2Q);
-            //X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
-            //D = ftD;
-            arma::rowvec k = kpoints.row(k_index);
-            arma::rowvec k2 = kpoints.row(k2_index);
-            //D = interactionTermFT(coefsKQ, coefsK2, coefsK2Q, coefsK, k, k2, k2, k, 7);
-            D = ftStack(j, i);
-            X = 0;
-
-        }
-        else{
-            //arma::rowvec kD = kpoints.row(k2_index) - kpoints.row(k_index);
-            //D = exactInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, kD);
-
-            //X = exactInteractionTerm(coefsKQ, coefsK2, coefsK, coefsK2Q, Q);
+        if (mode == "realspace"){
             arma::cx_vec motifFT = ftMotifStack.tube(k2_index, k_index);
             D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             X = 0;
-            /*
-            arma::cout << "kj.a1: " << arma::dot(kpoints.row(j), bravaisLattice.row(0))/PI << arma::endl;
-            arma::cout << "Coefs unrot. :\n" << coefsK << arma::endl;
-            std::complex<double> imag(0, 1);
-            coefsK(1) *= exp(-imag*arma::dot(kpoints.row(i), bravaisLattice.row(0)));
-            coefsKQ(1) *= exp(-imag*arma::dot(kpoints.row(i), bravaisLattice.row(0)));
-            coefsK2(1) *= exp(-imag*arma::dot(kpoints.row(j), bravaisLattice.row(0)));
-            coefsK2Q(1) *= exp(-imag*arma::dot(kpoints.row(j), bravaisLattice.row(0)));
+        }
+        else if (mode == "reciprocalspace"){
 
-            kD = rotateC3(kpoints.row(j)) - rotateC3(kpoints.row(i));
-            arma::cx_double Dr = exactInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, kD);
+            arma::rowvec k = kpoints.row(k_index);
+            arma::rowvec k2 = kpoints.row(k2_index);
+            D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, 15);
+            X = 0;
 
-            arma::cout << "Coefs unrot. w/ transf :\n" << coefsK << arma::endl;
-            coefsK *= exp(-imag*arg(arma::sum(coefsK)));
-            arma::cout << "Coefs unrot. w/ transf gauge fix:\n" << coefsK << arma::endl;
-            int kIndex = findEquivalentPointBZ(rotateC3(kpoints.row(j)), ncell);
-            arma::cout << "Coefs rot. :\n" << eigvecKStack.slice(kIndex).col(v) << arma::endl;
-            
-            arma::cout << "D: " << D << arma::endl;
-            arma::cout << "Dr: " << Dr << arma::endl;
-            */
-
-        };
+        }
+        
 
         if (i == j){
-            HBS_(i, j) = (eigvalKQStack.col(kQ_index)(c)/2. - 
-                            eigvalKStack.col(k_index)(v)/2.) - (D - X)/2.;
+            HBS_(i, j) = (eigvalKQStack.col(kQ_index)(c) - 
+                            eigvalKStack.col(k_index)(v))/2. - (D - X)/2.;
             HK_(i, j) = eigvalKQStack(c, kQ_index) - eigvalKStack(v, k_index);
             
         }
@@ -1059,18 +915,12 @@ void GExciton::BShamiltonian(const arma::imat& basis, bool useApproximation){
             HBS_(i, j) =  - (D - X);
         };
         
-        // Formatted progress indicator
-        /*percent = (100 * (n + 1)) / loopLength ;
-        if (percent >= displayNext){
-            cout << "\r" << "[" << std::string(percent / 5, '|') << std::string(100 / 5 - percent / 5, ' ') << "]";
-            cout << percent << "%";
-            std::cout.flush();
-            displayNext += step;
-        }*/
     }
-        
+       
     HBS_ = HBS + HBS.t();
     std::cout << "Done" << std::endl;
+    
+    
 };
 
 // Routine to diagonalize the BSE and return a Result object

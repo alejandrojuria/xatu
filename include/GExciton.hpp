@@ -32,7 +32,10 @@ class GExciton : public System {
         arma::rowvec Q_;
         double cutoff_;
         arma::cx_mat HBS_;
+
+        // Flags
         std::string gauge_ = "lattice";
+        std::string mode_  = "realspace";
 
         // Internal attributes
         arma::mat eigvalKStack_, eigvalKQStack_;
@@ -81,6 +84,8 @@ class GExciton : public System {
         const double& cutoff = cutoff_;
         // Returns gauge for Bloch states
         const std::string& gauge = gauge_;
+        // Return type of interaction matrix elements
+        const std::string& mode = mode_;
 
         const arma::mat& eigvalKStack = eigvalKStack_;
         const arma::mat& eigvalKQStack = eigvalKQStack_;
@@ -131,6 +136,7 @@ class GExciton : public System {
         void setParameters(double, double, double);
         void setCutoff(double);
         void setGauge(std::string);
+        void setMode(std::string);
 
     private:
         // Methods for BSE matrix initialization
@@ -181,6 +187,7 @@ class GExciton : public System {
         void initializeBasis();
         void initializeResultsH0();
         void initializePotentialMatrix();
+        void initializeMotifFT(int, int, const arma::mat&);
         
         // Utilities
         void generateBandDictionary();
@@ -208,7 +215,7 @@ class GExciton : public System {
         
         // BSE initialization and energies
         void initializeHamiltonian(bool useApproximation = true);
-        void BShamiltonian(const arma::imat& basis = {}, bool useApproximation = true);
+        void BShamiltonian(const arma::imat& basis = {});
         Result diagonalize();
 
         // Fermi golden rule        
