@@ -193,9 +193,6 @@ class GExciton : public System {
         void generateBandDictionary();
         void createMesh();
         
-        void fixBandCrossing(arma::vec&, arma::cx_mat&);
-        int determineKIndex(double k);
-
         // Gauge fixing
         arma::cx_vec latticeToAtomicGauge(const arma::cx_vec&, const arma::rowvec&);
         arma::cx_vec atomicToLatticeGauge(const arma::cx_vec&, const arma::rowvec&);
@@ -214,7 +211,7 @@ class GExciton : public System {
         arma::mat C3ExcitonBasisRep();
         
         // BSE initialization and energies
-        void initializeHamiltonian(bool useApproximation = true);
+        void initializeHamiltonian();
         void BShamiltonian(const arma::imat& basis = {});
         Result diagonalize();
 

@@ -82,7 +82,7 @@ GExciton::GExciton(std::string modelfile, std::string excitonfile) : System(mode
     ExcitonConfiguration excitonconfig = ExcitonConfiguration(excitonfile);
     initializeExcitonAttributes(excitonconfig);
     bool useApproximation = excitonconfig.excitonInfo.useApproximation;
-    initializeHamiltonian(useApproximation);
+    initializeHamiltonian();
 }
 
 GExciton::GExciton(System& system, int ncell, const arma::ivec& bands, 
@@ -801,7 +801,7 @@ void GExciton::initializeResultsH0(){
 };
 
 /* Routine to initialize the required variables to construct the Bethe-Salpeter Hamiltonian */
-void GExciton:: initializeHamiltonian(bool useApproximation){
+void GExciton::initializeHamiltonian(){
 
     if(bands.empty()){
         throw std::invalid_argument("Error: Exciton object must have some bands");
@@ -818,11 +818,6 @@ void GExciton:: initializeHamiltonian(bool useApproximation){
 
     std::cout << "Diagonalizing H0 for all k points... " << std::endl;
     initializeResultsH0();
-
-    if (!useApproximation){
-        std::cout << "Calculating potential for all lattice positions... " << std::flush;
-        initializePotentialMatrix();
-    };
 }
 
 
@@ -896,15 +891,12 @@ void GExciton::BShamiltonian(const arma::imat& basis){
             X = 0;
         }
         else if (mode == "reciprocalspace"){
-
             arma::rowvec k = kpoints.row(k_index);
             arma::rowvec k2 = kpoints.row(k2_index);
             D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, 15);
             X = 0;
-
         }
         
-
         if (i == j){
             HBS_(i, j) = (eigvalKQStack.col(kQ_index)(c) - 
                             eigvalKStack.col(k_index)(v))/2. - (D - X)/2.;
@@ -914,13 +906,10 @@ void GExciton::BShamiltonian(const arma::imat& basis){
         else{
             HBS_(i, j) =  - (D - X);
         };
-        
     }
        
     HBS_ = HBS + HBS.t();
     std::cout << "Done" << std::endl;
-    
-    
 };
 
 // Routine to diagonalize the BSE and return a Result object
