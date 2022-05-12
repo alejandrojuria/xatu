@@ -69,6 +69,7 @@ class Crystal {
         void brillouinZoneC3Mesh(int);
         arma::mat wignerSeitzSupercell(int);
         arma::mat truncateSupercell(int, double);
+        arma::mat truncateReciprocalSupercell(int, double);
         arma::mat generateCombinations(int n, int ndim, bool centered = false);
         arma::mat supercellCutoff(int);
 

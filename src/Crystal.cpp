@@ -415,6 +415,29 @@ arma::mat Crystal::truncateSupercell(int ncell, double radius){
 	return cells;
 }
 
+arma::mat Crystal::truncateReciprocalSupercell(int ncell, double radius){
+
+	arma::mat combinations = generateCombinations(ncell, ndim, true);
+	std::vector<arma::rowvec> cells_vector;
+	for (int i = 0; i < combinations.n_rows; i++){
+		arma::rowvec lattice_vector = arma::zeros<arma::rowvec>(3);
+		for (int j = 0; j < ndim; j++){
+			lattice_vector += combinations.row(i)(j) * reciprocalLattice.row(j);
+		};
+		double distance = arma::norm(lattice_vector);
+		if (distance < radius + 1E-5){
+			cells_vector.push_back(lattice_vector);
+		}
+	}
+	int total_cells = cells_vector.size();
+	arma::mat cells = arma::zeros(total_cells, 3);
+	for (int i = 0; i < total_cells; i++){
+		cells.row(i) = cells_vector[i];
+	}
+
+	return cells;
+}
+
 /* Routine to rotate a position by 2pi/3, either on real space
 or on reciprocal space to enforce C3 symmetry */
 arma::rowvec Crystal::rotateC3(const arma::rowvec& position){
