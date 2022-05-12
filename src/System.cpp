@@ -43,7 +43,7 @@ arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
 	std::complex<double> imag(0, 1);
 	for (int i = 0; i < ncells; i++){
 		arma::rowvec cell = unitCellList.row(i);
-		h += hamiltonianMatrices.slice(i) * std::exp(-imag*arma::dot(k, cell));
+		h += hamiltonianMatrices.slice(i) * std::exp(imag*arma::dot(k, cell));
 	};
 
 	h += h.t();
@@ -58,7 +58,7 @@ arma::cx_mat System::overlap(arma::rowvec k, bool isTriangular){
 	std::complex<double> imag(0, 1);
 	for (int i = 0; i < ncells; i++){
 		arma::rowvec cell = unitCellList.row(i);
-		s += overlapMatrices.slice(i) * std::exp(-imag*arma::dot(k, cell));
+		s += overlapMatrices.slice(i) * std::exp(imag*arma::dot(k, cell));
 	};
 
 	s += s.t();
