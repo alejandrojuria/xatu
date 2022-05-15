@@ -104,7 +104,7 @@ void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
 	int it = 0;
 	for (int i = 0; i < nk; i++){
 		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
-		// Remove "boundary" k so that mesh is symmery under k <-> -k
+		// Remove "boundary" k so that mesh is symmetric under k <-> -k
 		if(!arma::all(combinations.row(i))){
 			arma::cout << combinations.row(i) << arma::endl;
 			continue;
@@ -470,7 +470,7 @@ void Crystal::calculateInverseReciprocalMatrix(){
 // on a point of the mesh. Intended to be used only with mesh of full BZ.
 int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 	if(inverseReciprocalMatrix.empty()){
-		throw std::logic_error("Inverse reciprocal matrix has to be computed first.");
+		calculateInverseReciprocalMatrix();
 	}
 	arma::vec independentTerm = reciprocalLattice * kpoint.t();
 	arma::vec coefs = inverseReciprocalMatrix * independentTerm * 2*ncell;
@@ -490,4 +490,4 @@ int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 	int index = coefs(0) + coefs(1)*ncell;
 
 	return index;
-}
+};

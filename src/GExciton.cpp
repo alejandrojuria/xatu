@@ -723,11 +723,13 @@ void GExciton::generateBandDictionary(){
     this->bandToIndex = bandToIndex;
 };
 
-void GExciton::initializeMotifFT(int i, int j, const arma::mat& cells){
+void GExciton::initializeMotifFT(int i, const arma::mat& cells){
+    // Uses hermiticity of V
     for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
-        for(int sAtomIndex = 0; sAtomIndex < natoms; sAtomIndex++){
-            ftMotifStack(i, j, fAtomIndex*natoms + sAtomIndex) = 
-            motifFourierTransform(fAtomIndex, sAtomIndex, kpoints.row(i) - kpoints.row(j), cells);
+        for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
+            ftMotifStack(i, fAtomIndex*natoms + sAtomIndex) = 
+            motifFourierTransform(fAtomIndex, sAtomIndex, kpoints.row(i), cells);
+            ftMotifStack(i, sAtomIndex*natoms + fAtomIndex) = conj(ftMotifStack(i, fAtomIndex*natoms + sAtomIndex));
         }   
     }
 }
@@ -743,7 +745,7 @@ void GExciton::initializeResultsH0(){
     this->eigvecKQStack_ = arma::cx_cube(basisdim, nTotalBands, nk);
     this->eigvalKStack_  = arma::mat(nTotalBands, nk);
     this->eigvalKQStack_ = arma::mat(nTotalBands, nk);
-    this->ftMotifStack   = arma::cx_cube(nk, nk, natoms*natoms);
+    this->ftMotifStack   = arma::cx_mat(nk, natoms*natoms);
 
     vec auxEigVal(basisdim);
     cx_mat auxEigvec(basisdim, basisdim);
@@ -780,11 +782,7 @@ void GExciton::initializeResultsH0(){
 
         // BIGGEST BOTTLENECK OF THE CODE
         if(this->mode == "realspace"){
-            #pragma omp parallel for
-            for (int j = i; j < nk; j++){
-                initializeMotifFT(j, i, cells);
-
-            }        
+            initializeMotifFT(i, cells);     
         }
         
         // Formatted progress indicator
@@ -886,7 +884,8 @@ void GExciton::BShamiltonian(const arma::imat& basis){
 
         std::complex<double> D, X;
         if (mode == "realspace"){
-            arma::cx_vec motifFT = ftMotifStack.tube(k2_index, k_index);
+            int effective_k_index = findEquivalentPointBZ(kpoints.row(k2_index) - kpoints.row(k_index), ncell);
+            arma::cx_vec motifFT = ftMotifStack.row(effective_k_index).st();
             D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             X = 0;
         }
