@@ -41,7 +41,7 @@ class GExciton : public System {
         arma::mat eigvalKStack_, eigvalKQStack_;
         arma::cx_cube eigvecKStack_, eigvecKQStack_;
         arma::cx_mat ftStack;
-        arma::cx_cube ftMotifStack;
+        arma::cx_mat ftMotifStack;
         std::complex<double> ftX;
         arma::mat potentialMat;
         arma::mat HK_;
@@ -83,7 +83,7 @@ class GExciton : public System {
         // Returns cutoff for potential
         const double& cutoff = cutoff_;
         // Returns gauge for Bloch states
-        const std::string& gauge = gauge_;
+        const std::string gauge = gauge_;
         // Return type of interaction matrix elements
         const std::string& mode = mode_;
 
@@ -187,7 +187,7 @@ class GExciton : public System {
         void initializeBasis();
         void initializeResultsH0();
         void initializePotentialMatrix();
-        void initializeMotifFT(int, int, const arma::mat&);
+        void initializeMotifFT(int, const arma::mat&);
         
         // Utilities
         void generateBandDictionary();
