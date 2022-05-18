@@ -217,15 +217,23 @@ void GExciton::setGauge(std::string gauge){
     if(gauge != "lattice" && gauge != "atomic"){
         throw std::invalid_argument("setGauge(): gauge must be either lattice or atomic");
     }
-    gauge_ = gauge;
+    this->gauge_ = gauge;
 }
 
 void GExciton::setMode(std::string mode){
     if(mode != "realspace" && mode != "reciprocalspace"){
         throw std::invalid_argument("setMode(): mode must be either realspace or reciprocalspace");
     }
-    mode_ = mode;
+    this->mode_ = mode;
 }
+
+void GExciton::setReciprocalVectors(int nReciprocalVectors){
+    if(nReciprocalVectors < 0){
+        throw std::invalid_argument("setReciprocalVectors(): given number must be positive");
+    }
+    this->nReciprocalVectors_ = nReciprocalVectors;
+}
+
 
 
 
@@ -892,7 +900,7 @@ void GExciton::BShamiltonian(const arma::imat& basis){
         else if (mode == "reciprocalspace"){
             arma::rowvec k = kpoints.row(k_index);
             arma::rowvec k2 = kpoints.row(k2_index);
-            D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, 15);
+            D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
             X = 0;
         }
         

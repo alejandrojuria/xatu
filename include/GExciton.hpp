@@ -45,6 +45,7 @@ class GExciton : public System {
         std::complex<double> ftX;
         arma::mat potentialMat;
         arma::mat HK_;
+        int nReciprocalVectors_ = 1;
         
         double pairEnergy;
         
@@ -86,6 +87,8 @@ class GExciton : public System {
         const std::string gauge = gauge_;
         // Return type of interaction matrix elements
         const std::string& mode = mode_;
+        // Return number of reciprocal lattice vectors to use in summations (mode="reciprocalspace")
+        const int& nReciprocalVectors = nReciprocalVectors_;
 
         const arma::mat& eigvalKStack = eigvalKStack_;
         const arma::mat& eigvalKQStack = eigvalKQStack_;
@@ -137,6 +140,7 @@ class GExciton : public System {
         void setCutoff(double);
         void setGauge(std::string);
         void setMode(std::string);
+        void setReciprocalVectors(int);
 
     private:
         // Methods for BSE matrix initialization
