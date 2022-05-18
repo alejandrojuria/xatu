@@ -16,6 +16,7 @@ double Result::potentialEnergy(int stateindex){
 
 double Result::bindingEnergy(int stateindex, double gap){
     double energy;
+    arma::cout;
     if (gap == -1){
         gap = determineGap();
     }
