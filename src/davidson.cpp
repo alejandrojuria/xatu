@@ -13,7 +13,7 @@ void davidson_method(
         throw std::invalid_argument("davidson_method: provided matrix must be hermitian");
     }
     
-    arma::cx_mat guess_eigvec = arma::eye<cx_mat>(mat.n_rows, k);
+    arma::cx_mat guess_eigvec = arma::eye<arma::cx_mat>(mat.n_rows, k);
     bool notConverged = true;
     arma::cx_mat proyected_matrix, aux_eigvec;
     arma::vec aux_eigval;
@@ -22,7 +22,7 @@ void davidson_method(
         
 
         // Proyect matrix on 
-        proyected_matrix = arma::dot(guess_eigvec.t(), arma::dot(mat, guess_eigvec));
+        proyected_matrix = guess_eigvec.t()*mat*guess_eigvec;
         arma::eig_sym(eigval, aux_eigvec, proyected_matrix);
 
         if(arma::norm(eigval - aux_eigval) < tol){
@@ -30,14 +30,8 @@ void davidson_method(
         }
 
         eigval = aux_eigval;
-
-
-        
         
 
     }
     
-    
-
-
 }
