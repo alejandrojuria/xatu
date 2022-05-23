@@ -16,7 +16,6 @@ double Result::potentialEnergy(int stateindex){
 
 double Result::bindingEnergy(int stateindex, double gap){
     double energy;
-    arma::cout;
     if (gap == -1){
         gap = determineGap();
     }
@@ -279,44 +278,38 @@ void Result::writeExtendedPhase(int stateindex, FILE* textfile){
 void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeIndex,
                                      const arma::rowvec& holeCell, FILE* textfile){
 
-    std::cout << __LINE__ << std::endl;
-    arma::rowvec holePosition = exciton.motif.row(holeIndex) + holeCell;
-    std::cout << __LINE__ << std::endl;
+    arma::rowvec holePosition = exciton.motif.row(holeIndex).subvec(0, 2) + holeCell;
     arma::cx_mat RScoefs = RScoefficientCalc(statecoefs, holeIndex);
-    std::cout << __LINE__ << std::endl;
     fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n", holePosition(0), holePosition(1), 0.0);
 
     double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.cutoff;
-    std::cout << __LINE__ << std::endl;
     arma::mat cellCombinations = exciton.truncateSupercell(exciton.ncell, radius);
-    std::cout << __LINE__ << std::endl;
     arma::vec coefs = arma::zeros(cellCombinations.n_rows*exciton.motif.n_rows);
     int it = 0;
     double coefSum = 0;
 
-    std::cout << __LINE__ << std::endl;
     // Compute probabilities
     for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
         arma::rowvec cell = cellCombinations.row(cellIndex);
         for (unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
-            coefs(it) = atomCoefficientSquared(atomIndex, cell, holeCell, RScoefs);
+            //coefs(it) = atomCoefficientSquared(atomIndex, cell, holeCell, RScoefs);
+            coefs(it) = realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
             coefSum += coefs(it);
             it++;
         }
     }
-    std::cout << __LINE__ << std::endl;
 
     // Write probabilities to file
     it = 0;
     for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
         arma::rowvec cell = cellCombinations.row(cellIndex);
         for(unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
-            arma::rowvec position = exciton.motif.row(atomIndex) + cell;
+            arma::rowvec position = exciton.motif.row(atomIndex).subvec(0, 2) + cell;
             fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n",
                             position(0), position(1), coefs(it)/coefSum);
+            it++;
         }
     }                                    
-
 }
 
 void Result::writeRealspaceAmplitude(int stateindex, int holeIndex, 
@@ -512,74 +505,52 @@ double Result::boundingBoxBZ(){
 
 /* ------------------------------ UNUSED ROUTINES (TO BE REMOVED) ------------------------------*/
 
-double Result::realSpaceWavefunction(GExciton& exciton, const arma::cx_vec& BSEcoefs,
-                             int electronIndex, int holeIndex,
+double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronIndex, int holeIndex,
                              const arma::rowvec& eCell, const arma::rowvec& hCell){
 
     std::complex<double> imag(0, 1);
     std::complex<double> amplitude = 0;
     std::complex<double> totalAmplitude = 0;
-    arma::cx_vec BSEsquared = arma::conj(BSEcoefs) % BSEcoefs;
-    // std::cout << arma::max(BSEsquared) << std::endl;
-    double maxval = std::real(arma::max(BSEsquared));
 
-    /* for (auto i : BSEsquared){
-        if (std::real(i) > maxval/10){
-            //std::cout << i << std::endl;
-        }
-    }*/
-
-    for (int i = 0; i < exciton.excitonbasisdim; i++){
-        for (int j = 0; j < exciton.excitonbasisdim; j++){
+    
+    for(int alpha = 0; alpha < exciton.norbitals; alpha++){
+        for(int beta = 0; beta < exciton.norbitals; beta++){
 
 
-            amplitude = 0;
-            arma::irowvec basisState = exciton.basisStates.row(i);
-            arma::irowvec basisState2 = exciton.basisStates.row(j);
+            int eIndex = electronIndex + alpha;
+            int hIndex = holeIndex + beta;
 
-            int v1 = exciton.bandToIndex[basisState(0)];
-            int v2 = exciton.bandToIndex[basisState2(0)];
-            int c1 = exciton.bandToIndex[basisState(1)];
-            int c2 = exciton.bandToIndex[basisState2(1)];
-            int kIndex = basisState(2);
-            int k2Index = basisState2(2);
-            arma::rowvec kpoint = exciton.kpoints.row(kIndex);
-            arma::rowvec kpoint2 = exciton.kpoints.row(k2Index);
+            for (int i = 0; i < exciton.excitonbasisdim; i++){
+                for (int j = 0; j < exciton.excitonbasisdim; j++){
 
-            amplitude += std::exp(imag*arma::dot(kpoint - kpoint2, eCell - hCell))*
-                         std::conj(exciton.eigvecKQStack.slice(kIndex).col(c1)(electronIndex))*
-                         exciton.eigvecKStack.slice(kIndex).col(v1)(holeIndex)*
-                         std::conj(exciton.eigvecKStack.slice(k2Index).col(v2)(holeIndex))*
-                         exciton.eigvecKQStack.slice(k2Index).col(c2)(electronIndex);
+                arma::irowvec rowState = exciton.basisStates.row(i);
+                arma::irowvec columnState = exciton.basisStates.row(j);
 
-            if (false){
-                amplitude += std::exp(imag*arma::dot(exciton.Q, eCell - hCell))*
-                         std::conj(exciton.eigvecKQStack.slice(kIndex).col(c1)(electronIndex))*
-                         exciton.eigvecKQStack.slice(k2Index).col(c2)(holeIndex)*
-                         std::conj(exciton.eigvecKStack.slice(k2Index).col(v2)(holeIndex))*
-                         exciton.eigvecKStack.slice(kIndex).col(v1)(electronIndex);
-            
-                amplitude += std::exp(-imag*arma::dot(exciton.Q, eCell - hCell))*
-                            std::conj(exciton.eigvecKStack.slice(k2Index).col(v2)(electronIndex))*
-                            exciton.eigvecKStack.slice(kIndex).col(v1)(holeIndex)*
-                            std::conj(exciton.eigvecKQStack.slice(kIndex).col(c1)(holeIndex))*
-                            exciton.eigvecKQStack.slice(k2Index).col(c2)(electronIndex);
-                
-                amplitude += std::exp(-imag*arma::dot(kpoint - kpoint2, eCell - hCell))*
-                            std::conj(exciton.eigvecKStack.slice(k2Index).col(v2)(electronIndex))*
-                            exciton.eigvecKQStack.slice(k2Index).col(c2)(holeIndex)*
-                            std::conj(exciton.eigvecKQStack.slice(kIndex).col(c1)(holeIndex))*
-                            exciton.eigvecKStack.slice(kIndex).col(v1)(electronIndex);
+                int vR = exciton.bandToIndex[rowState(0)];
+                int vC = exciton.bandToIndex[columnState(0)];
+                int cR = exciton.bandToIndex[rowState(1)];
+                int cC = exciton.bandToIndex[columnState(1)];
+                int kIndexR = rowState(2);
+                int kIndexC = columnState(2);
+                arma::rowvec kpoint = exciton.kpoints.row(kIndexR);
+                arma::rowvec kpoint2 = exciton.kpoints.row(kIndexC);
+
+                amplitude = std::exp(imag*arma::dot(kpoint - kpoint2, eCell - hCell))*
+                            exciton.eigvecKQStack.slice(kIndexR).col(cR)(eIndex)*
+                            std::conj(exciton.eigvecKQStack.slice(kIndexC).col(cC)(eIndex))*
+                            std::conj(exciton.eigvecKStack.slice(kIndexR).col(vR)(hIndex))*
+                            exciton.eigvecKStack.slice(kIndexC).col(vC)(hIndex);
+
+                amplitude *= BSEcoefs(i)*std::conj(BSEcoefs(j));
+                totalAmplitude += amplitude;     
+                }
             }
-
-            amplitude *= std::conj(BSEcoefs(i))*BSEcoefs(j);
-            totalAmplitude += amplitude;     
         }
     }
 
     //arma::cout << totalAmplitude << "---" << std::abs(totalAmplitude) << arma::endl;
     if (std::imag(totalAmplitude) > 1E-5){
-        arma::cout << "Warning: Imaginary part of amplitude is not" << arma::endl;
+        arma::cout << "Warning: Imaginary part of amplitude is not zero" << arma::endl;
     }
     return std::abs(totalAmplitude);
 };

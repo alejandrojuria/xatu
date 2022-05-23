@@ -49,8 +49,8 @@ class Result{
 
         double fourierTransformExciton(int, const arma::rowvec&, const arma::rowvec&);
 
-        double realSpaceWavefunction(GExciton&, const arma::cx_vec&, int, int, 
-                                     const arma::rowvec& eCell, const arma::rowvec& hCell);
+        double realSpaceWavefunction(const arma::cx_vec&, int, int,
+                                     const arma::rowvec&, const arma::rowvec&);
         std::complex<double> densityMatrixElement(GExciton&, int, int, int, int);
 
         std::complex<double> densityMatrix(GExciton&, const arma::cx_vec&, int, int);
