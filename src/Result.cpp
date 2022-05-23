@@ -503,48 +503,30 @@ double Result::boundingBoxBZ(){
     return value;
 }
 
-/* ------------------------------ UNUSED ROUTINES (TO BE REMOVED) ------------------------------*/
-
 double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronIndex, int holeIndex,
                              const arma::rowvec& eCell, const arma::rowvec& hCell){
 
     std::complex<double> imag(0, 1);
-    std::complex<double> amplitude = 0;
     std::complex<double> totalAmplitude = 0;
-
+    arma::cx_vec eigvec = arma::cx_vec(BSEcoefs);
     
     for(int alpha = 0; alpha < exciton.norbitals; alpha++){
         for(int beta = 0; beta < exciton.norbitals; beta++){
 
+        int eIndex = electronIndex + alpha;
+        int hIndex = holeIndex + beta;
 
-            int eIndex = electronIndex + alpha;
-            int hIndex = holeIndex + beta;
+        arma::cx_cube c = exciton.eigvecKQStack.tube(eIndex, exciton.valenceBands.n_elem, 
+                                eIndex, exciton.valenceBands.n_elem + exciton.conductionBands.n_elem - 1);
+        arma::cx_rowvec cFlat = arma::reshape(c, 1, c.n_elem, 1);
+        arma::cx_cube v = exciton.eigvecKStack.tube(hIndex, 0, 
+                                hIndex, exciton.valenceBands.n_elem - 1);
+        arma::cx_rowvec vFlat = arma::reshape(v, 1, v.n_elem, 1);                                
+        arma::cx_rowvec coefs = cFlat % arma::conj(vFlat);
+        arma::cx_mat coefMatrix = arma::kron(coefs, coefs.t());
 
-            for (int i = 0; i < exciton.excitonbasisdim; i++){
-                for (int j = 0; j < exciton.excitonbasisdim; j++){
-
-                arma::irowvec rowState = exciton.basisStates.row(i);
-                arma::irowvec columnState = exciton.basisStates.row(j);
-
-                int vR = exciton.bandToIndex[rowState(0)];
-                int vC = exciton.bandToIndex[columnState(0)];
-                int cR = exciton.bandToIndex[rowState(1)];
-                int cC = exciton.bandToIndex[columnState(1)];
-                int kIndexR = rowState(2);
-                int kIndexC = columnState(2);
-                arma::rowvec kpoint = exciton.kpoints.row(kIndexR);
-                arma::rowvec kpoint2 = exciton.kpoints.row(kIndexC);
-
-                amplitude = std::exp(imag*arma::dot(kpoint - kpoint2, eCell - hCell))*
-                            exciton.eigvecKQStack.slice(kIndexR).col(cR)(eIndex)*
-                            std::conj(exciton.eigvecKQStack.slice(kIndexC).col(cC)(eIndex))*
-                            std::conj(exciton.eigvecKStack.slice(kIndexR).col(vR)(hIndex))*
-                            exciton.eigvecKStack.slice(kIndexC).col(vC)(hIndex);
-
-                amplitude *= BSEcoefs(i)*std::conj(BSEcoefs(j));
-                totalAmplitude += amplitude;     
-                }
-            }
+        eigvec = addExponential(eigvec, eCell - hCell);
+        totalAmplitude += arma::cdot(eigvec, coefMatrix*eigvec);    
         }
     }
 
@@ -554,6 +536,19 @@ double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronI
     }
     return std::abs(totalAmplitude);
 };
+
+arma::cx_vec Result::addExponential(arma::cx_vec& coefs, const arma::rowvec& cell){
+
+    arma::vec product = exciton.kpoints * cell.t();
+    std::complex<double> imag(0, 1);
+    arma::cx_vec exponentials = arma::exp(imag*product);
+    int nBandCombinations = exciton.valenceBands.n_elem*exciton.conductionBands.n_elem;
+    exponentials = arma::kron(exponentials, arma::ones<arma::cx_vec>(nBandCombinations));
+
+    coefs = coefs % exponentials;
+
+    return coefs;
+}
 
 
 // This routine requires having ALL eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.

@@ -62,4 +62,5 @@ class Result{
         double atomCoefficientSquared(int, const arma::rowvec&, const arma::rowvec&, 
                               const arma::cx_mat&);
         double boundingBoxBZ();
+        arma::cx_vec addExponential(arma::cx_vec&, const arma::rowvec&);
 };
