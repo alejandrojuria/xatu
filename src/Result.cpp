@@ -22,6 +22,7 @@ double Result::bindingEnergy(int stateindex, double gap){
     else if (gap < 0){
         std::cout << "Provided gap value must be positive" << std::endl;
     }
+
     energy = eigval(stateindex) - gap;
     return energy;
 }
@@ -32,8 +33,9 @@ double Result::bindingEnergy(int stateindex, double gap){
 double Result::determineGap(){
     int stateindex = 0; // Ground state
     int kIndex = findExcitonPeak(stateindex);
-    int valence = exciton.valenceBands.max();
-    int conduction = exciton.conductionBands.max();
+    int valence = exciton.bandToIndex[exciton.valenceBands.max()];
+    int conduction = exciton.bandToIndex[exciton.conductionBands.min()];
+
     double gap = exciton.eigvalKStack.col(kIndex)(conduction) - 
                  exciton.eigvalKStack.col(kIndex)(valence);
     return gap;
@@ -43,6 +45,7 @@ double Result::determineGap(){
 // usually corresponds with the band gap location
 int Result::findExcitonPeak(int stateindex){
     int index = eigvec.col(stateindex).index_max();
+    index = (int)index/this->exciton.norbitals;
     return index;
 }
 
