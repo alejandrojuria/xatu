@@ -1,5 +1,6 @@
 #pragma once
 #include "armadillo"
+#include "Result.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -7,12 +8,18 @@
 #define eps0 8.8541878E-12
 #endif
 
+/* Output */
 void writeVectorToFile(arma::vec, FILE*);
 void writeVectorToFile(arma::rowvec, FILE*);
 void writeVectorsToFile(const arma::mat&, FILE*, std::string mode = "row");
+std::vector<std::vector<double>>  detectDegeneracies(const arma::vec&, int, double);
+void printEnergies(Result, int n = 8, double threshold = 1E-5);
+
+/* Input */
 arma::vec readVectorFromFile(std::string);
 
 /* Routines for DoS calculation */
 std::complex<double> rGreenF(double, double, double);
 double densityOfStates(double, double, const arma::mat&);
 void writeDensityOfStates(const arma::mat&, double, FILE*);
+

@@ -1,6 +1,9 @@
 #include <armadillo>
 #include <fstream>
 #include <complex>
+#include <iomanip>
+
+#include "Result.hpp"
 
 
 #include "utils.hpp"
@@ -112,3 +115,59 @@ void writeDensityOfStates(const arma::mat& energies, double delta, FILE* dosfile
 	};
 	return;
 };
+
+/* Intended to be used within printEnergies, not in an standalone way. Computes degeneracy of each 
+up to a given precision with cost O(n) */
+std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int n, double threshold = 1E-6){
+    if(n < 0){
+        throw std::invalid_argument("detectDegeneracies: n must be a positive integer");
+    }
+    else if(n > eigval.n_elem){
+        throw std::invalid_argument("detectDegeneracies: n must be lower than total number of eigenstates");
+    }
+
+    std::vector<std::vector<double>> pairs;
+    std::vector<double> pair;
+    double previusEnergy = eigval(0);
+    int degeneracy = 1;
+    double energy;
+    for(int i = 1; i < n; i++){
+        energy = eigval(i);
+        if(std::abs(energy - previusEnergy) < threshold){
+            degeneracy++;
+        }
+        else{
+            pair = std::vector<double>{previusEnergy, (double)degeneracy};
+            pairs.push_back(pair);
+            degeneracy = 1;
+        }
+        previusEnergy = energy;
+    }
+    pair = std::vector<double>{previusEnergy, (double)degeneracy};
+    pairs.push_back(pair);
+
+    return pairs;
+}
+
+/* Routine to pretty print the eigenenergies from the BSE calculation. Computes number of degenerate states 
+corresponding to each energy level. */
+void printEnergies(Result result, int n, double threshold){
+
+    // Print header
+    printf("+---------------+-----------------------------+-----------------------------+\n");
+    printf("|       N       |          Eigval (eV)        |          Degeneracy         |\n");
+    printf("+---------------+-----------------------------+-----------------------------+\n");
+
+    std::vector<std::vector<double>> pairs = detectDegeneracies(result.eigval, n, threshold);
+    int it = 1;
+
+    for(auto pair : pairs){
+        double energy  = pair[0];
+        int degeneracy = (int)pair[1];
+
+        printf("|%15d|%29.7lf|%29d|\n", it, energy, degeneracy);
+        printf("+---------------+-----------------------------+-----------------------------+\n");
+
+        it++;
+    }
+}
