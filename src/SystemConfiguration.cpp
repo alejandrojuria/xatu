@@ -75,27 +75,18 @@ arma::mat SystemConfiguration::parseVectors(std::vector<std::string>& vectors){
 
 arma::mat SystemConfiguration::parseMotif(std::vector<std::string>& content){
     arma::mat motif = arma::zeros(content.size(), 4);
-    double x, y, z;
-    std::string species;
+    double x, y, z, species;
     int index = 0;
     std::vector<double> atom;
 
     for (int i = 0; i < content.size(); i++){
         std::string line = content[i];
         std::istringstream iss(line);
-        if ((iss >> x >> y >> z).fail()){
+        if ((iss >> x >> y >> z >> species).fail()){
             throw std::invalid_argument("Motif must be of shape (x,y,z,'species')");
         }
-        if ((iss >> species).fail()){
-            species = "Default";
-        }
-        auto it = systemInfo.atomToIndex.find(species);
-        if (it == systemInfo.atomToIndex.end()){
-            systemInfo.atomToIndex[species] = index;
-            index++;
-        }
-        atom = { x, y, z, (float)index };
 
+        atom = { x, y, z, species };
         motif.row(i) = arma::rowvec(atom);
     }
 
@@ -202,7 +193,18 @@ void SystemConfiguration::checkContentCoherence() {
     if (!systemInfo.overlap.is_empty() && (systemInfo.overlap.n_slices != systemInfo.hamiltonian.n_slices)) {
         throw std::invalid_argument("Error: Number of overlap matrices must match number of H matrices");
     }
-    if (systemInfo.norbitals.size() != systemInfo.atomToIndex.size()) {
+
+    int nspecies = 1;
+    int previous_species = 0;
+    for(unsigned int atomIndex = 0; atomIndex < systemInfo.motif.n_rows; atomIndex++){
+        int species = systemInfo.motif.row(atomIndex)(3);
+        if (species != previous_species){
+            previous_species = species;
+            nspecies++;
+        }
+    }
+
+    if (systemInfo.norbitals.size() != nspecies) {
         throw std::invalid_argument("Error: Number of different species must match be consistent in motif and orbitals");
     }
 }

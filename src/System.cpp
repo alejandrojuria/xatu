@@ -50,8 +50,6 @@ arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
 		h += hamiltonianMatrices.slice(i) * std::exp(imag*arma::dot(k, cell));
 	};
 
-	h += h.t();
-
 	return h;
 };
 
