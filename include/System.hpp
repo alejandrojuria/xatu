@@ -12,17 +12,17 @@ class System : public Crystal{
     
     //// Attributes
     protected:
-        int norbitals_, basisdim_, fermiLevel_;
+        int basisdim_, fermiLevel_;
         double filling_;
 
-        arma::urowvec orbitals;
+        arma::urowvec orbitals_;
         arma::cx_cube hamiltonianMatrices;
         arma::cx_cube overlapMatrices;
 
     // Const references to expose relevant attributes in a read-only way
     public:
-        // Returns number of orbitals per atom
-        const int& norbitals = norbitals_;
+        // Returns vector with orbitals per chemical species
+        const arma::urowvec& orbitals = orbitals_;
         // Returns size of basis used/hamiltonian dimension
         const int& basisdim = basisdim_;
         // Returns value of system filling

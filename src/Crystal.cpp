@@ -7,7 +7,6 @@ void Crystal::initializeCrystalAttributes(const SystemConfiguration& configurati
     ndim_           = configuration.systemInfo.ndim;
     bravaisLattice_ = configuration.systemInfo.bravaisLattice;
     motif_          = configuration.systemInfo.motif;
-    atomToIndex     = configuration.systemInfo.atomToIndex;
 	unitCellList_   = configuration.systemInfo.bravaisVectors;
     
     natoms_ = motif.n_rows;

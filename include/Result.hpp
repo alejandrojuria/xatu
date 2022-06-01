@@ -58,9 +58,6 @@ class Result{
 
     private:
         int findExcitonPeak(int);
-        arma::cx_mat RScoefficientCalc(const arma::cx_vec&, int);
-        double atomCoefficientSquared(int, const arma::rowvec&, const arma::rowvec&, 
-                              const arma::cx_mat&);
         double boundingBoxBZ();
         arma::cx_vec addExponential(arma::cx_vec&, const arma::rowvec&);
 };

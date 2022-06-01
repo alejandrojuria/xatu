@@ -30,6 +30,30 @@ void GExciton::initializeExcitonAttributes(int ncell, const arma::ivec& bands,
     }
 }
 
+void GExciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
+
+    int ncell        = cfg.excitonInfo.ncell;
+    int nbands       = cfg.excitonInfo.nbands;
+    int rmbands      = cfg.excitonInfo.nrmbands;
+    arma::ivec bands = cfg.excitonInfo.bands;
+    arma::rowvec parameters = {cfg.excitonInfo.eps(0), cfg.excitonInfo.eps(1), cfg.excitonInfo.r0};
+    arma::rowvec Q   = cfg.excitonInfo.Q;
+
+    initializeExcitonAttributes(ncell, bands, parameters, Q);
+
+    std::vector<arma::s64> valence, conduction;
+    for(int i = 0; i < bands.n_elem; i++){
+        if (bands(i) <= 0){
+            valence.push_back(bands(i) + fermiLevel);
+        }
+        else{
+            conduction.push_back(bands(i) + fermiLevel);
+        }
+    }
+    this->valenceBands_ = arma::ivec(valence);
+    this->conductionBands_ = arma::ivec(conduction);
+}
+
 GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands, 
                   const arma::rowvec& parameters, const arma::rowvec& Q) : 
                   System(filename) {
@@ -396,138 +420,29 @@ std::complex<double> GExciton::motifFourierTransform(int fAtomIndex, int sAtomIn
 
 arma::cx_mat GExciton::extendMotifFT(const arma::cx_mat& motifFT){
     arma::cx_mat extendedMFT = arma::zeros<arma::cx_mat>(this->basisdim, this->basisdim);
+    int rowIterator = 0;
+    int colIterator = 0;
     for(unsigned int atom_index_r = 0; atom_index_r < this->motif.n_rows; atom_index_r++){
+        int species_r = motif.row(atom_index_r)(3);
+        int norbitals_r = orbitals(species_r);
+        colIterator = 0;
         for(unsigned int atom_index_c = 0; atom_index_c < this->motif.n_rows; atom_index_c++){
-        extendedMFT.submat(atom_index_r*norbitals, atom_index_c*norbitals, 
-                          (atom_index_r + 1)*norbitals - 1, (atom_index_c + 1)*norbitals - 1) = 
-                          motifFT(atom_index_r, atom_index_c) * arma::ones(norbitals, norbitals);
+            int species_c = motif.row(atom_index_c)(3);
+            int norbitals_c = orbitals(species_c);
+            extendedMFT.submat(rowIterator, colIterator, 
+                               rowIterator + norbitals_r - 1, colIterator + norbitals_c - 1) = 
+                          motifFT(atom_index_r, atom_index_c) * arma::ones(norbitals_r, norbitals_c);
+            colIterator += norbitals_c;
         }
+        rowIterator += norbitals_r;
     }
 
     return extendedMFT;
-
-    // Old code
-    /*arma::cx_vec partiallyExtendedMFT = arma::zeros<arma::cx_vec>(natoms*natoms*norbitals);
-    for(int i = 0; i < natoms; i++){
-        partiallyExtendedMFT.subvec(i*natoms*norbitals, (i+1)*natoms*norbitals - 1) = 
-        arma::kron(arma::ones<arma::cx_vec>(norbitals), motifFT.subvec(i*natoms, (i+1)*natoms - 1));
-    }
-
-    arma::cx_vec extendedMFT = arma::kron(partiallyExtendedMFT, arma::ones<arma::cx_vec>(norbitals));
-    return extendedMFT;*/
 }
 
 
 
 /*------------------------------------ Interaction matrix elements ------------------------------------*/
-
-std::complex<double> GExciton::tDirect(std::complex<double> Vk,
-                             const arma::cx_vec& coefsK, 
-                             const arma::cx_vec& coefsKQ,
-                             const arma::cx_vec& coefsK2, 
-                             const arma::cx_vec& coefsK2Q){
-    
-    std::complex<double> D = 1.;
-    cx_double I_first_pair = arma::cdot(coefsKQ, coefsK2Q);
-    cx_double I_second_pair = arma::cdot(coefsK2, coefsK);
-
-    if (abs(I_first_pair) < 1E-15){
-        I_first_pair = 0.0;
-    }
-    if (abs(I_second_pair) < 1E-15){
-        I_second_pair = 0.0;
-    }
-    D  *= Vk*I_first_pair*I_second_pair;
-
-    return D;
-};
-
-std::complex<double> GExciton::tExchange(std::complex<double> VQ, 
-                               const arma::cx_vec& coefsK, 
-                               const arma::cx_vec& coefsKQ,
-                               const arma::cx_vec& coefsK2, 
-                               const arma::cx_vec& coefsK2Q){
-    
-    std::complex<double> X = 1.;
-    cx_double I_first_pair = arma::cdot(coefsKQ, coefsK);
-    cx_double I_second_pair = arma::cdot(coefsK2, coefsK2Q);
-
-    if (abs(I_first_pair) < 1E-15){
-        I_first_pair = 0.0;
-    }
-    if (abs(I_second_pair) < 1E-15){
-        I_second_pair = 0.0;
-    }
-    X *= VQ*I_first_pair*I_second_pair;
-
-    return X;
-};
-
-void GExciton::initializeExcitonAttributes(const ExcitonConfiguration& config){
-    ncell_ = config.excitonInfo.ncell;
-    bands_ = config.excitonInfo.bands;
-    Q_ = config.excitonInfo.Q;
-};
-
-void GExciton::initializePotentialMatrix(){
-
-    double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
-    arma::mat cells = truncateSupercell(ncell, radius);
-    int dimRows = natoms*natoms*norbitals*norbitals;
-    int dimCols = cells.n_rows;
-
-    arma::mat potentialMat = arma::zeros<arma::mat>(dimRows, dimCols);
-    vec ones = arma::ones(natoms*norbitals, 1);
-
-    // With spin
-    //arma::mat motif = arma::kron(arma::ones(2, 1), arma::kron(this->motif, arma::ones(norbitals/2, 1)));
-    
-    // Without spin
-    arma::mat motif = arma::kron(this->motif.cols(0, 2), arma::ones(norbitals, 1));
-
-    arma::mat motif_combinations = arma::kron(motif, ones) - arma::kron(ones, motif);
-
-    // #pragma omp parallel for schedule(static, 1) collapse(2)
-    for(int i = 0; i < cells.n_rows; i++){
-        arma::mat position = arma::kron(cells.row(i), arma::ones(dimRows, 1)) - motif_combinations;
-        for(int n = 0; n < position.n_rows; n++){ // Aqui habia puesto solo un natoms -> MAL (?)
-            potentialMat.col(i)(n) = potential(arma::norm(position.row(n)));
-        };
-    };
-
-    std::cout << "Potential matrix computed" << std::endl;
-    this->potentialMat = potentialMat;
-};
-
-/* Exact implementation of interaction term, valid for both direct and exchange */
-std::complex<double> GExciton::exactInteractionTerm(const arma::cx_vec& coefsK1, 
-                                     const arma::cx_vec& coefsK2,
-                                     const arma::cx_vec& coefsK3, 
-                                     const arma::cx_vec& coefsK4,
-                                     const arma::rowvec& k){
-
-    arma::cx_vec firstCoefArray = arma::conj(coefsK1) % coefsK3;
-    arma::cx_vec secondCoefArray = arma::conj(coefsK2) % coefsK4;
-    arma::cx_vec coefVector = arma::kron(secondCoefArray, firstCoefArray);
-
-    std::complex<double> imag(0,1);
-
-    double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
-
-    arma::mat cells = truncateSupercell(ncell, radius);
-
-    cx_vec expArray = arma::zeros<cx_vec>(cells.n_rows);
-    for (int n = 0; n < cells.n_rows; n++){
-        expArray(n) = std::exp(imag*arma::dot(k, cells.row(n)));
-    }
-
-    cx_vec result = potentialMat.st()*coefVector;
-
-    result = result % expArray;
-    
-    std::complex<double> term = arma::sum(result)/((double)totalCells);
-    return term;
-};
 
 /* Exact implementation of interaction term, valid for both direct and exchange */
 std::complex<double> GExciton::exactInteractionTermMFT(const arma::cx_vec& coefsK1, 
@@ -571,7 +486,6 @@ std::complex<double> GExciton::interactionTermFT(const arma::cx_vec& coefsK,
         term += conj(Ic)*Iv*analyticFourierTransform(k-k2+G);
     }
 
-    
     return term;
 };
 
@@ -581,14 +495,15 @@ std::complex<double> GExciton::blochCoherenceFactor(const arma::cx_vec& coefs1, 
 
     std::complex<double> imag(0, 1);
     arma::cx_vec coefs = arma::conj(coefs1) % coefs2;
-    arma::cx_vec phases(natoms);
+    arma::cx_vec phases(basisdim);
     for(int i = 0; i < natoms; i++){
+        int species = motif.row(i)(3);
         arma::rowvec atomPosition = motif.row(i).subvec(0, 2);
-        phases(i) = exp(imag*arma::dot(k1 - k2 - G, atomPosition));
+        phases.subvec(i*orbitals(species), (i+1)*orbitals(species) - 1) = 
+        exp(imag*arma::dot(k1 - k2 - G, atomPosition));
     }
 
-    arma::cx_vec extendedPhases = arma::kron(phases, arma::ones<arma::cx_vec>(norbitals));
-    std::complex<double> factor = arma::dot(coefs, extendedPhases);
+    std::complex<double> factor = arma::dot(coefs, phases);
 
     return factor;
 }
@@ -697,10 +612,14 @@ arma::cx_vec GExciton::latticeToAtomicGauge(const arma::cx_vec& coefs, const arm
 
     arma::cx_vec phases(basisdim);
     std::complex<double> imag(0, 1);
-    for(int i = 0; i < basisdim; i++){
-        int atomIndex = (int)i/norbitals;
-        arma::rowvec atomPosition = motif.row(atomIndex).subvec(0, 2);
-        phases(i) = exp(-imag*arma::dot(k, atomPosition));
+    int it = 0;
+    for(int atomIndex = 0; atomIndex < natoms; atomIndex++){
+        int species = motif.row(atomIndex)(3);
+        for(int orbIndex = 0; orbIndex < orbitals(species); orbIndex++){
+            arma::rowvec atomPosition = motif.row(atomIndex).subvec(0, 2);
+            phases(it) = exp(-imag*arma::dot(k, atomPosition));
+            it++;
+        }
     }
 
     arma::cx_vec atomicCoefs = coefs % phases;
@@ -711,14 +630,18 @@ arma::cx_vec GExciton::atomicToLatticeGauge(const arma::cx_vec& coefs, const arm
 
     arma::cx_vec phases(basisdim);
     std::complex<double> imag(0, 1);
-    for(int i = 0; i < basisdim; i++){
-        int atomIndex = (int)i/norbitals;
-        arma::rowvec atomPosition = motif.row(atomIndex).subvec(0, 2);
-        phases(i) = exp(imag*arma::dot(k, atomPosition));
+    int it = 0;
+    for(int atomIndex = 0; atomIndex < natoms; atomIndex++){
+        int species = motif.row(atomIndex)(3);
+        for(int orbIndex = 0; orbIndex < orbitals(species); orbIndex++){
+            arma::rowvec atomPosition = motif.row(atomIndex).subvec(0, 2);
+            phases(it) = exp(-imag*arma::dot(k, atomPosition));
+            it++;
+        }
     }
 
-    arma::cx_vec latticeCoefs = coefs % phases;
-    return latticeCoefs;
+    arma::cx_vec atomicCoefs = coefs % phases;
+    return atomicCoefs;
 }
 
 arma::cx_mat GExciton::fixGlobalPhase(arma::cx_mat& coefs){
@@ -1121,10 +1044,6 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
             }
             std::complex<double> ftD = ftStack(kbke_index);
 
-            // Aproximated interaction
-            std::complex<double> D = tDirect(ftD, coefsK, coefsKQ, coefsK2, coefsK2Q);
-            std::complex<double> X = tExchange(ftX, coefsK, coefsKQ, coefsK2, coefsK2Q);
-
             // Exact interaction (TO BE IMPLEMENTED YET)
             //std::complex<double> D = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, kArray, motif, potentialMatrix, ncell)
             //std::complex<double> X = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, )
@@ -1132,7 +1051,6 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
             // Compute matrix elements
             //cout << bandnumber << knumber << endl;
             //cout << nedge - i - 1 << "--" << nbulk - 1 - (nBulkBands*nBulkBands - 1 - bandnumber) - knumber*nBulkBands*nBulkBands << endl;
-            W(i, j) = - (D - X);
             //W(nedge - i - 1, nbulk - 1 - (nBulkBands*nBulkBands - 1 - bandnumber) - knumber*nBulkBands*nBulkBands) = conj(W(i,j));
         };
     };

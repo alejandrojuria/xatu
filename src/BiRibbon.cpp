@@ -29,8 +29,7 @@ void BiRibbon::initializeConstants(){
 
     // System class attributes
 	this->ndim_      = 1;
-    this->norbitals_ = 4;
-    this->orbitals   = arma::urowvec{(arma::u64)norbitals};
+    this->orbitals_   = arma::urowvec{4};
     this->filling_   = 5./8;
 
 	//// Lattice parameters
@@ -110,7 +109,12 @@ void BiRibbon::createMotif(){
     // Initiallize remaining System attributes
     this->motif_      = motif;
     this->natoms_     = motif.n_rows;
-    this->basisdim_   = natoms*norbitals;
+    int basisdim = 0;
+    for(int i = 0; i < natoms; i++){
+        int species = this->motif.row(i)(3);
+        basisdim += orbitals(species);
+    }
+    this->basisdim_   = basisdim;
     this->fermiLevel_ = (int)basisdim*filling;
 };
 

@@ -155,21 +155,6 @@ class GExciton : public System {
                                                   const arma::rowvec&, const arma::rowvec&,
                                                   const arma::rowvec&);
 
-        std::complex<double> tDirect(std::complex<double>,
-                                     const arma::cx_vec&, 
-                                     const arma::cx_vec&,
-                                     const arma::cx_vec&, 
-                                     const arma::cx_vec&);
-        std::complex<double> tExchange(std::complex<double>, 
-                                    const arma::cx_vec&, 
-                                    const arma::cx_vec&,
-                                    const arma::cx_vec&, 
-                                    const arma::cx_vec&);
-        std::complex<double> exactInteractionTerm(const arma::cx_vec&, 
-                                                const arma::cx_vec&,
-                                                const arma::cx_vec&, 
-                                                const arma::cx_vec&,
-                                                const arma::rowvec&);
         std::complex<double> exactInteractionTermMFT(const arma::cx_vec&, 
                                                 const arma::cx_vec&,
                                                 const arma::cx_vec&, 
@@ -190,7 +175,6 @@ class GExciton : public System {
         void initializeExcitonAttributes(const ExcitonConfiguration&);
         void initializeBasis();
         void initializeResultsH0();
-        void initializePotentialMatrix();
         void initializeMotifFT(int, const arma::mat&);
         
         // Utilities

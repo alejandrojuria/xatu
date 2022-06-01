@@ -12,7 +12,6 @@ class SystemConfiguration : public ConfigurationBase {
             arma::cx_cube overlap;
             arma::mat bravaisVectors;
             arma::urowvec norbitals;
-            std::map<std::string, int> atomToIndex;
             };
         
     public:

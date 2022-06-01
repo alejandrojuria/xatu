@@ -45,7 +45,8 @@ double Result::determineGap(){
 // usually corresponds with the band gap location
 int Result::findExcitonPeak(int stateindex){
     int index = eigvec.col(stateindex).index_max();
-    index = (int)index/this->exciton.norbitals;
+    int bandCombinations = exciton.valenceBands.n_elem*exciton.conductionBands.n_elem;
+    index = (int)index/bandCombinations;
     return index;
 }
 
@@ -61,8 +62,17 @@ arma::cx_vec Result::spinX(int stateindex){
     double totalSpin = 0;
     int dimX = exciton.basisStates.n_rows;
 
-	arma::cx_vec spinEigvalues = {1./2, 1./2, 1./2, 1./2, -1./2, -1./2, -1./2, -1./2};
-	arma::cx_vec spinVector = arma::kron(arma::ones(exciton.basisdim/exciton.norbitals, 1), spinEigvalues);
+    arma::cx_vec spinEigvalues = {1./2, -1./2};
+    arma::cx_vec spinVector = arma::zeros<arma::cx_vec>(exciton.basisdim);
+    int vecIterator = 0;
+    for(int atomIndex = 0; atomIndex < exciton.natoms; atomIndex++){
+        int species = exciton.motif.row(atomIndex)(3);
+        int norbitals = exciton.orbitals(species);
+        spinVector.subvec(vecIterator, vecIterator + norbitals) = 
+                          arma::kron(spinEigvalues, arma::ones(norbitals));
+        vecIterator += exciton.orbitals(species);
+    }
+    
 	arma::cx_vec eigvec, spinEigvec;
 
     // Initialize hole spin and electron spin operators
@@ -282,7 +292,6 @@ void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeInd
                                      const arma::rowvec& holeCell, FILE* textfile){
 
     arma::rowvec holePosition = exciton.motif.row(holeIndex).subvec(0, 2) + holeCell;
-    arma::cx_mat RScoefs = RScoefficientCalc(statecoefs, holeIndex);
     fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n", holePosition(0), holePosition(1), 0.0);
 
     double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.cutoff;
@@ -366,103 +375,6 @@ void Result::writeStates(FILE* textfile, int n){
     }
 }
 
-/* Routine to calculate the coefficients of the exciton real-space 
-wavefunction, each one associated to each atom of the lattice.
-Here we use the vectorized implementation.
-NB: this function requires having the basis predefined, meaning
-that we need valence and conduction arrays.
-Input: cx_mat BSE coefficiens, vec kpoints,
-int holePos (1D representation of positions, i.e. index),
-int Ncell, int N, int nEdgeStates.
-Output: cx_vec real-space coefficients; already summed over k */
-arma::cx_mat Result::RScoefficientCalc(const arma::cx_vec& statecoefs, int holeIndex){
-
-    arma::vec eigValTB;
-    arma::cx_mat eigVecTB;
-    int kBlock = 0;
-    int kBlockEnd = 0;
-
-    int dimTB = exciton.basisdim;
-    int nk = exciton.nk;
-    // Matrix dimension is: #orbitals*#motif*#orbitals
-    arma::cx_mat RScoefs = arma::zeros<arma::cx_mat>(dimTB*exciton.norbitals, nk);
-
-    for (int i = 0; i < nk; i++){
-
-        kBlockEnd += (exciton.excitonbasisdim/nk);
-        
-        eigVecTB = exciton.eigvecKStack.slice(i);
-        arma::cx_mat c = exciton.eigvecKQStack.slice(i);
-
-        /* Precaution when picking the coeffs. associated to holePos, since
-        now our basis splits H in two blocks for spin*/
-        arma::cx_mat v = eigVecTB.rows(exciton.norbitals*holeIndex, 
-                                        exciton.norbitals*(holeIndex + 1) - 1);
-        /*arma::cx_mat v2 = eigVecTB.rows(dimTB/2 + exciton.norbitals/2*holePos, 
-                                        dimTB/2 + exciton.norbitals/2*(holePos+1) - 1);
-        arma::cx_mat v = arma::join_cols(v1, v2);*/
-
-        v = v.cols(0, exciton.valenceBands.n_elem - 1);
-        c = c.cols(exciton.valenceBands.n_elem, c.n_cols - 1);
-
-        //arma::cx_mat M = arma::kron(c, arma::conj(v));
-        arma::cx_mat M = arma::kron(c, v);
-        arma::cx_vec A = statecoefs(arma::span(kBlock, kBlockEnd - 1));
-        //arma::cout << "M: " << M << arma::endl;
-        //arma::cout << "A: " << A << arma::endl;
-
-        arma::cx_vec coefsK = M*A;
-        RScoefs.col(i) = coefsK;
-
-        kBlock = kBlockEnd;
-    };
-
-    return RScoefs;
-};
-
-
-
-/* Instead of using the s hydrogenic wave functions, we are simply
-going to calculate the coefficient corresponding to each atom, since
-initially we assumed orthonormality (i.e. they are punctual).
-It is already modulus squared. 
-Input: int n (1D atom position representation). 
-int cell (corresponding unit cell) 
-cx_mat RScoefs (matrix of real space coefficients as calculated previously)
-vec kpoints.
-Output: coefficient probability on atom (n, cell)*/
-double Result::atomCoefficientSquared(int n, const arma::rowvec& cell, const arma::rowvec& hCell, 
-                              const arma::cx_mat& RScoefs){
-
-    std::complex<double> coef = 0;
-    double tCoef = 0;
-    std::complex<double> imag(0,1);
-    int orbitalblock = exciton.norbitals*exciton.norbitals;
-
-    // We need to separate in spin blocks
-    for(int orb = 0; orb < orbitalblock; orb++){        
-
-        coef = 0;
-        // Spin up
-        for(int i = 0; i < (int)RScoefs.n_cols; i++){
-            coef += RScoefs.col(i)(orbitalblock*n + orb)*exp(imag * arma::dot(exciton.kpoints.row(i), cell -  
-            hCell));
-        };
-        tCoef += abs(coef)*abs(coef);
-         
-        // Spin down
-        /*coef = 0;
-        for(int i = 0; i < (int)RScoefs.n_cols; i++){
-            coef += (RScoefs.col(i)(RScoefs.n_rows/2 + orbitalblock*n + orb)*exp(imag * arma::dot(exciton.kpoints.row(i), cell - hCell)));
-        };
-        tCoef += abs(coef)*abs(coef); */
-    };
-    
-    //tCoef = real(coef);
-    // arma::cout << real(coef) << "---" << tCoef << arma::endl;
-
-    return tCoef;
-};
 
 double Result::fourierTransformExciton(int stateindex, const arma::rowvec& electron_position, 
                                        const arma::rowvec& hole_position){
@@ -512,9 +424,11 @@ double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronI
     std::complex<double> imag(0, 1);
     std::complex<double> totalAmplitude = 0;
     arma::cx_vec eigvec = arma::cx_vec(BSEcoefs);
+    int eOrbitals = exciton.orbitals(exciton.motif.row(electronIndex)(3));
+    int hOrbitals = exciton.orbitals(exciton.motif.row(holeIndex)(3));
     
-    for(int alpha = 0; alpha < exciton.norbitals; alpha++){
-        for(int beta = 0; beta < exciton.norbitals; beta++){
+    for(int alpha = 0; alpha < eOrbitals; alpha++){
+        for(int beta = 0; beta < hOrbitals; beta++){
 
         int eIndex = electronIndex + alpha;
         int hIndex = holeIndex + beta;

@@ -24,6 +24,7 @@ class BiRibbon : public System{
         arma::rowvec Gamma, K, M;
         arma::mat M0, M1, M2p, M2m;
         arma::cx_mat Mso, Mzeeman;
+    
 
     //// Methods
     // Constructor and destructor
