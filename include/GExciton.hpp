@@ -41,7 +41,7 @@ class GExciton : public System {
         arma::mat eigvalKStack_, eigvalKQStack_;
         arma::cx_cube eigvecKStack_, eigvecKQStack_;
         arma::cx_mat ftStack;
-        arma::cx_mat ftMotifStack;
+        arma::cx_cube ftMotifStack;
         std::complex<double> ftX;
         arma::mat potentialMat;
         arma::mat HK_;
@@ -150,7 +150,7 @@ class GExciton : public System {
         double analyticFourierTransform(arma::rowvec);
         double fourierTransformFromCoefs(const arma::vec&, const arma::vec&, const arma::rowvec&, int);
         std::complex<double> motifFourierTransform(int, int, const arma::rowvec&, const arma::mat&);
-        arma::cx_vec extendMotifFT(const arma::cx_vec&);
+        arma::cx_mat extendMotifFT(const arma::cx_mat&);
         std::complex<double> blochCoherenceFactor(const arma::cx_vec&, const arma::cx_vec&, 
                                                   const arma::rowvec&, const arma::rowvec&,
                                                   const arma::rowvec&);
@@ -174,7 +174,7 @@ class GExciton : public System {
                                                 const arma::cx_vec&,
                                                 const arma::cx_vec&, 
                                                 const arma::cx_vec&,
-                                                const arma::cx_vec&);
+                                                const arma::cx_mat&);
         std::complex<double> interactionTermFT(const arma::cx_vec&, 
                                                 const arma::cx_vec&,
                                                 const arma::cx_vec&, 
@@ -203,7 +203,6 @@ class GExciton : public System {
         arma::cx_mat fixGlobalPhase(arma::cx_mat&);
 
         // Routines to compute Fermi Golden Rule
-        arma::cx_mat fixDegeneracyIteration(const arma::cx_vec&, const arma::cx_vec&);
         arma::cx_vec ehPairCoefs(double, const arma::vec&, bool zone = true);
 
     public:
@@ -221,7 +220,6 @@ class GExciton : public System {
 
         // Fermi golden rule        
         arma::cx_vec wavePacket(double, double);
-        arma::cx_mat fixDegeneracy(const arma::cx_vec&, const arma::cx_vec&, int iterations = 5);
         double pairDensityOfStates(const arma::ivec&, const arma::ivec&, double, double);
         double fermiGoldenRule(const arma::cx_vec&, double);
 };

@@ -12,8 +12,8 @@
 void writeVectorToFile(arma::vec, FILE*);
 void writeVectorToFile(arma::rowvec, FILE*);
 void writeVectorsToFile(const arma::mat&, FILE*, std::string mode = "row");
-std::vector<std::vector<double>>  detectDegeneracies(const arma::vec&, int, double);
-void printEnergies(Result, int n = 8, double threshold = 1E-5);
+std::vector<std::vector<double>>  detectDegeneracies(const arma::vec&, int, int);
+void printEnergies(Result, int n = 8, int precision = 6);
 
 /* Input */
 arma::vec readVectorFromFile(std::string);

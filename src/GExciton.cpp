@@ -386,7 +386,7 @@ std::complex<double> GExciton::motifFourierTransform(int fAtomIndex, int sAtomIn
 
     for(int n = 0; n < cells.n_rows; n++){
         arma::rowvec cell = cells.row(n);
-        double module = arma::norm(cell - (secondAtom - firstAtom));
+        double module = arma::norm(cell + firstAtom - secondAtom);
         Vk += potential(module)*std::exp(imag*arma::dot(k, cell));
     }
     Vk /= pow(totalCells, 1);
@@ -394,15 +394,27 @@ std::complex<double> GExciton::motifFourierTransform(int fAtomIndex, int sAtomIn
     return Vk;
 }
 
-arma::cx_vec GExciton::extendMotifFT(const arma::cx_vec& motifFT){
-    arma::cx_vec partiallyExtendedMFT = arma::zeros<arma::cx_vec>(natoms*natoms*norbitals);
+arma::cx_mat GExciton::extendMotifFT(const arma::cx_mat& motifFT){
+    arma::cx_mat extendedMFT = arma::zeros<arma::cx_mat>(this->basisdim, this->basisdim);
+    for(unsigned int atom_index_r = 0; atom_index_r < this->motif.n_rows; atom_index_r++){
+        for(unsigned int atom_index_c = 0; atom_index_c < this->motif.n_rows; atom_index_c++){
+        extendedMFT.submat(atom_index_r*norbitals, atom_index_c*norbitals, 
+                          (atom_index_r + 1)*norbitals - 1, (atom_index_c + 1)*norbitals - 1) = 
+                          motifFT(atom_index_r, atom_index_c) * arma::ones(norbitals, norbitals);
+        }
+    }
+
+    return extendedMFT;
+
+    // Old code
+    /*arma::cx_vec partiallyExtendedMFT = arma::zeros<arma::cx_vec>(natoms*natoms*norbitals);
     for(int i = 0; i < natoms; i++){
         partiallyExtendedMFT.subvec(i*natoms*norbitals, (i+1)*natoms*norbitals - 1) = 
         arma::kron(arma::ones<arma::cx_vec>(norbitals), motifFT.subvec(i*natoms, (i+1)*natoms - 1));
     }
 
     arma::cx_vec extendedMFT = arma::kron(partiallyExtendedMFT, arma::ones<arma::cx_vec>(norbitals));
-    return extendedMFT;
+    return extendedMFT;*/
 }
 
 
@@ -522,12 +534,14 @@ std::complex<double> GExciton::exactInteractionTermMFT(const arma::cx_vec& coefs
                                      const arma::cx_vec& coefsK2,
                                      const arma::cx_vec& coefsK3, 
                                      const arma::cx_vec& coefsK4,
-                                     const arma::cx_vec& motifFT){
+                                     const arma::cx_mat& motifFT){
     
     arma::cx_vec firstCoefArray = arma::conj(coefsK1) % coefsK3;
     arma::cx_vec secondCoefArray = arma::conj(coefsK2) % coefsK4;
-    arma::cx_vec coefVector = arma::kron(firstCoefArray, secondCoefArray);
-    std::complex<double> term = arma::dot(coefVector, extendMotifFT(motifFT));
+    std::complex<double> term = arma::dot(firstCoefArray, extendMotifFT(motifFT) * secondCoefArray);
+    
+    //arma::cx_vec coefVector = arma::kron(firstCoefArray, secondCoefArray);
+    //std::complex<double> term = arma::dot(coefVector, extendMotifFT(motifFT));
     
     return term;
 };
@@ -735,9 +749,9 @@ void GExciton::initializeMotifFT(int i, const arma::mat& cells){
     // Uses hermiticity of V
     for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
         for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
-            ftMotifStack(i, fAtomIndex*natoms + sAtomIndex) = 
+            ftMotifStack(fAtomIndex, sAtomIndex, i) = 
             motifFourierTransform(fAtomIndex, sAtomIndex, kpoints.row(i), cells);
-            ftMotifStack(i, sAtomIndex*natoms + fAtomIndex) = conj(ftMotifStack(i, fAtomIndex*natoms + sAtomIndex));
+            ftMotifStack(sAtomIndex, fAtomIndex, i) = conj(ftMotifStack(fAtomIndex, sAtomIndex, i));
         }   
     }
 }
@@ -753,7 +767,7 @@ void GExciton::initializeResultsH0(){
     this->eigvecKQStack_ = arma::cx_cube(basisdim, nTotalBands, nk);
     this->eigvalKStack_  = arma::mat(nTotalBands, nk);
     this->eigvalKQStack_ = arma::mat(nTotalBands, nk);
-    this->ftMotifStack   = arma::cx_mat(nk, natoms*natoms);
+    this->ftMotifStack   = arma::cx_cube(natoms, natoms, nk);
 
     vec auxEigVal(basisdim);
     cx_mat auxEigvec(basisdim, basisdim);
@@ -893,7 +907,7 @@ void GExciton::BShamiltonian(const arma::imat& basis){
         std::complex<double> D, X;
         if (mode == "realspace"){
             int effective_k_index = findEquivalentPointBZ(kpoints.row(k2_index) - kpoints.row(k_index), ncell);
-            arma::cx_vec motifFT = ftMotifStack.row(effective_k_index).st();
+            arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
             D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             X = 0;
         }
@@ -984,60 +998,6 @@ double GExciton::pairDensityOfStates(const arma::ivec& valence, const arma::ivec
     return dos;
 }
 
-
-// /* Method to fix coefficients of degenerate eigenstates according
-// to expected properties of exciton eigenstates (k, -k symmetric) */
-// cx_mat GExciton::fixDegeneracyIteration(const cx_vec& eigvec, const cx_vec& eigvec_deg){
-
-//         arma::cx_vec rev_eigvec = arma::reverse(eigvec);
-//         arma::cx_vec rev_eigvec_deg = arma::reverse(eigvec_deg);
-
-//         double lowestVal = abs(eigvec(0));
-//         int index = 0;
-//         for(int i = 0; i < eigvec.n_elem; i++){
-//             if (abs(eigvec(i)) < lowestVal){
-//                 lowestVal = abs(eigvec(i));
-//                 index = i;
-//             };
-//         };
-//         cx_double r1 = eigvec(0) - rev_eigvec(eigvec.n_elem- 1);
-//         cx_double r2 = eigvec_deg(0) - rev_eigvec_deg(eigvec.n_elem - 1);
-//         double r1r2 = abs(r2/r1);
-//         double alpha = sqrt(r1r2*r1r2/(1 + r1r2*r1r2));
-//         double beta = sqrt(1 - alpha*alpha);
-//         cx_vec state = alpha*eigvec + beta*eigvec_deg;
-//         cx_vec state_deg = beta*eigvec - alpha*eigvec_deg;
-
-//         cx_mat states = arma::zeros<cx_mat>(eigvec.n_elem, 2);
-//         states.col(0) = state;
-//         states.col(1) = state_deg;
-
-//         return states;
-// }
-
-// /* Method to apply several times the degeneracy fixing algorithm
-// to converge wavefunction */
-// cx_mat GExciton::fixDegeneracy(const cx_vec& eigvec, const cx_vec& eigvec_deg, int iterations){
-
-//     cx_mat states;
-//     cx_vec state = eigvec;
-//     cx_vec state_deg = eigvec_deg;
-//     for(int i = 0; i < iterations; i++){
-//         states = fixDegeneracyIteration(state, state_deg);
-//         state = states.col(0);
-//         state_deg = states.col(1);
-//         double difference_norm = 0;
-//         for(int n = 0; n < state.n_elem; n++){
-//             int bandNumber = n%(nBulkBands*nBulkBands);
-//             int kindex = n/(nBulkBands*nBulkBands);
-//             difference_norm += abs(state(n) - state(state.n_elem - 1 - (nBulkBands*nBulkBands - 1 - bandNumber) - kindex*nBulkBands*nBulkBands));
-//             //cout << state_deg(n) << "--" << state_deg(state.n_elem - 1 - (nBulkBands*nBulkBands - 1 - bandNumber) - kindex*nBulkBands*nBulkBands) << endl;
-//         };
-//         cout << "Difference norm: " << sqrt(difference_norm) << endl;
-//     }
-//     return states;
-// };
-
 /* Private method to create an e-h edge state corresponding to a 
 wave packets centered in a given kpoint and with a given dispersion */
 cx_vec GExciton::wavePacket(double kcenter, double dispersion){
@@ -1117,14 +1077,9 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
     std::complex<double> ft;
     //std::complex<double> ftX = fourierTransform(Q);
 
-    // !!!!!!!!!!! Routines have to be fixed
-    //cx_cube atomicGCoefsKstack = atomicGCoefs(eigvecKStack, motif, kpoints, N); // Needs to be fixed 
-    //cx_cube atomicGCoefsKQstack = atomicGCoefs(eigvecKQStack, motif, kpoints + Q, N);
-
     cx_cube atomicGCoefsKstack = eigvecKStack;
     cx_cube atomicGCoefsKQstack = eigvecKQStack;
 
-    //int i0 = int(nk/2);k2_index
     // -------- Main loop (W initialization) --------
     #pragma omp parallel for schedule(static, 1) collapse(2)
     for (int i = 0; i < nedge; i++){
@@ -1150,15 +1105,6 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
             int cIndexBulk = bandToIndex[c2];
 
             int kbQ_index = kb_index;
-
-            /*if(ke > PI/a){
-                ke_index = nk - 1 - ke_index;
-                keQ_index = ke_index;
-            }
-            if(kb > PI/a){
-                kb_index = nk - 1 - kb_index;
-                keQ_index = ke_index;
-            }*/
 
             // Using the atomic gauge
             cx_vec coefsK = atomicGCoefsKstack.slice(ke_index).col(vIndexEdge);
@@ -1191,28 +1137,7 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
         };
     };
 
-    //cout << W << endl;
-    //cout << W.col(3) << endl;
-    //cout << W.col(nbulk - 1) << endl;
-    //cout << W.row(1) << endl;
-    //cout << W.row(nedge - 2) << endl;
-    //cout << atomicGCoefsKstack.slice(3).col(bandToIndex[edgeV(0)]) << endl;
-    //cout << atomicGCoefsKstack.slice(4).col(bandToIndex[edgeV(0)]) << endl;
-
-    //cx_vec ones = arma::ones<cx_vec>(nbulk, 1);
-    //cout << W*ones << endl;
-
-    //cx_rowvec coefss = {0,0,0,1,1,0,0,0};
-    //cout << coefss*W << endl;
-
-    //coefss = {0,0,0,0,1,0,0,0};
-    //cout << coefss*W << endl;
-
-    //cout << initialCoefs << endl;
-    //vec out_vec = abs(W*initialCoefs);
-    //cout << out_vec << endl;
-    //cout << out_vec(32) << "--" << out_vec(nk - 1 - 32);
-    
+   
     // Compute gap energy between conduction and valence edge bands
     uword vband = bandToIndex[fermiLevel]; // Unsigned integer 
     uword cband = bandToIndex[fermiLevel + nrmbands];

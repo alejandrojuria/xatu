@@ -118,7 +118,7 @@ void writeDensityOfStates(const arma::mat& energies, double delta, FILE* dosfile
 
 /* Intended to be used within printEnergies, not in an standalone way. Computes degeneracy of each 
 up to a given precision with cost O(n) */
-std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int n, double threshold = 1E-6){
+std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int n, int precision){
     if(n < 0){
         throw std::invalid_argument("detectDegeneracies: n must be a positive integer");
     }
@@ -130,6 +130,7 @@ std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int
     std::vector<double> pair;
     double previusEnergy = eigval(0);
     int degeneracy = 1;
+    double threshold = pow(10, -precision);
     double energy;
     for(int i = 1; i < n; i++){
         energy = eigval(i);
@@ -150,22 +151,25 @@ std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int
 }
 
 /* Routine to pretty print the eigenenergies from the BSE calculation. Computes number of degenerate states 
-corresponding to each energy level. */
-void printEnergies(Result result, int n, double threshold){
+corresponding to each energy level. 
+Input: + Result object
+       + int n: Number of energies 
+       + int precision: Number of decimals (sets degeneracy threshold)*/
+void printEnergies(Result result, int n, int precision){
 
     // Print header
     printf("+---------------+-----------------------------+-----------------------------+\n");
     printf("|       N       |          Eigval (eV)        |          Degeneracy         |\n");
     printf("+---------------+-----------------------------+-----------------------------+\n");
 
-    std::vector<std::vector<double>> pairs = detectDegeneracies(result.eigval, n, threshold);
+    std::vector<std::vector<double>> pairs = detectDegeneracies(result.eigval, n, precision);
     int it = 1;
 
     for(auto pair : pairs){
         double energy  = pair[0];
         int degeneracy = (int)pair[1];
 
-        printf("|%15d|%29.7lf|%29d|\n", it, energy, degeneracy);
+        printf("|%15d|%29.*lf|%29d|\n", it, precision, energy, degeneracy);
         printf("+---------------+-----------------------------+-----------------------------+\n");
 
         it++;
