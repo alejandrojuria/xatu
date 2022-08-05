@@ -289,16 +289,15 @@ void Result::writeExtendedPhase(int stateindex, FILE* textfile){
 }
 
 void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeIndex,
-                                     const arma::rowvec& holeCell, FILE* textfile){
+                                     const arma::rowvec& holeCell, FILE* textfile, int ncells){
 
     arma::rowvec holePosition = exciton.motif.row(holeIndex).subvec(0, 2) + holeCell;
     fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n", holePosition(0), holePosition(1), 0.0);
 
-    double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.cutoff;
+    double radius = arma::norm(exciton.bravaisLattice.row(0)) * ncells;
     arma::mat cellCombinations = exciton.truncateSupercell(exciton.ncell, radius);
     arma::vec coefs = arma::zeros(cellCombinations.n_rows*exciton.motif.n_rows);
     int it = 0;
-    double coefSum = 0;
 
     // Compute probabilities
     for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
@@ -306,7 +305,6 @@ void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeInd
         for (unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
             //coefs(it) = atomCoefficientSquared(atomIndex, cell, holeCell, RScoefs);
             coefs(it) = realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
-            coefSum += coefs(it);
             it++;
         }
     }
@@ -318,17 +316,17 @@ void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeInd
         for(unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
             arma::rowvec position = exciton.motif.row(atomIndex).subvec(0, 2) + cell;
             fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n",
-                            position(0), position(1), coefs(it)/coefSum);
+                            position(0), position(1), coefs(it));
             it++;
         }
     }                                    
 }
 
 void Result::writeRealspaceAmplitude(int stateindex, int holeIndex, 
-                                     const arma::rowvec& holeCell, FILE* textfile){
+                                     const arma::rowvec& holeCell, FILE* textfile, int ncells){
 
     arma::cx_vec statecoefs = eigvec.col(stateindex);
-    writeRealspaceAmplitude(statecoefs, holeIndex, holeCell, textfile);
+    writeRealspaceAmplitude(statecoefs, holeIndex, holeCell, textfile, ncells);
 
 }
 
@@ -426,23 +424,40 @@ double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronI
     arma::cx_vec eigvec = arma::cx_vec(BSEcoefs);
     int eOrbitals = exciton.orbitals(exciton.motif.row(electronIndex)(3));
     int hOrbitals = exciton.orbitals(exciton.motif.row(holeIndex)(3));
-    
+
+    // Compute index corresponding to electron and hole
+    int eIndex = 0;
+    int hIndex = 0;
+    for(unsigned int i = 0; i < electronIndex; i++){
+        eIndex += exciton.orbitals(exciton.motif.row(i)(3));
+    }
+    for(unsigned int i = 0; i < holeIndex; i++){
+        hIndex += exciton.orbitals(exciton.motif.row(i)(3));
+    }
+    eigvec = addExponential(eigvec, eCell - hCell);
+
     for(int alpha = 0; alpha < eOrbitals; alpha++){
         for(int beta = 0; beta < hOrbitals; beta++){
 
-        int eIndex = electronIndex + alpha;
-        int hIndex = holeIndex + beta;
-
-        arma::cx_cube c = exciton.eigvecKQStack.tube(eIndex, exciton.valenceBands.n_elem, 
-                                eIndex, exciton.valenceBands.n_elem + exciton.conductionBands.n_elem - 1);
+        arma::cx_cube c = exciton.eigvecKQStack.tube(eIndex + alpha, exciton.valenceBands.n_elem, 
+                                eIndex + alpha, exciton.valenceBands.n_elem + exciton.conductionBands.n_elem - 1);
         arma::cx_rowvec cFlat = arma::reshape(c, 1, c.n_elem, 1);
-        arma::cx_cube v = exciton.eigvecKStack.tube(hIndex, 0, 
-                                hIndex, exciton.valenceBands.n_elem - 1);
-        arma::cx_rowvec vFlat = arma::reshape(v, 1, v.n_elem, 1);                                
-        arma::cx_rowvec coefs = cFlat % arma::conj(vFlat);
+        arma::cx_rowvec cExtended = arma::kron(cFlat, arma::ones<arma::cx_rowvec>(exciton.valenceBands.n_elem));
+
+        arma::cx_cube v = exciton.eigvecKStack.tube(hIndex + beta, 0, 
+                                hIndex + beta, exciton.valenceBands.n_elem - 1);
+
+        arma::cx_rowvec vFlat = arma::reshape(v, 1, v.n_elem, 1);
+        arma::cx_rowvec vExtended = arma::zeros<arma::cx_rowvec>(vFlat.n_elem*exciton.conductionBands.n_elem);
+        int blockSize = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
+        for(unsigned int i = 0; i < exciton.nk; i++){
+            vExtended.subvec(i*blockSize, (i + 1)*blockSize - 1) = arma::kron(arma::ones<arma::cx_rowvec>(exciton.conductionBands.n_elem), 
+                                                        vFlat.subvec(i*exciton.valenceBands.n_elem, (i + 1)*exciton.valenceBands.n_elem - 1));
+        }
+        
+        arma::cx_rowvec coefs = cExtended % arma::conj(vExtended);
         arma::cx_mat coefMatrix = arma::kron(coefs, coefs.t());
 
-        eigvec = addExponential(eigvec, eCell - hCell);
         totalAmplitude += arma::cdot(eigvec, coefMatrix*eigvec);    
         }
     }

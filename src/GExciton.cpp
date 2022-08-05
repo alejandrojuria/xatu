@@ -441,7 +441,6 @@ arma::cx_mat GExciton::extendMotifFT(const arma::cx_mat& motifFT){
 }
 
 
-
 /*------------------------------------ Interaction matrix elements ------------------------------------*/
 
 /* Exact implementation of interaction term, valid for both direct and exchange */

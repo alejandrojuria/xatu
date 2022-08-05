@@ -42,8 +42,8 @@ class Result{
         void writeExtendedReciprocalAmplitude(int, FILE*);
         void writeExtendedPhase(const arma::cx_vec&, FILE*);
         void writeExtendedPhase(int, FILE*);
-        void writeRealspaceAmplitude(const arma::cx_vec&, int, const arma::rowvec&, FILE*);
-        void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*);
+        void writeRealspaceAmplitude(const arma::cx_vec&, int, const arma::rowvec&, FILE*, int ncells = 3);
+        void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*, int ncells = 3);
         void writeEigenvalues(FILE*, int n = 0);
         void writeStates(FILE*, int n = 0);
 
@@ -51,6 +51,7 @@ class Result{
 
         double realSpaceWavefunction(const arma::cx_vec&, int, int,
                                      const arma::rowvec&, const arma::rowvec&);
+        
         std::complex<double> densityMatrixElement(GExciton&, int, int, int, int);
 
         std::complex<double> densityMatrix(GExciton&, const arma::cx_vec&, int, int);
