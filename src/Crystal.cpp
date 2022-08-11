@@ -473,7 +473,7 @@ int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 	}
 	arma::vec independentTerm = reciprocalLattice * kpoint.t();
 	arma::vec coefs = inverseReciprocalMatrix * independentTerm * 2*ncell;
-	coefs = (ncell % 2 == 1) ? coefs - 1/2 : coefs; 
+	coefs = (ncell % 2 == 1) ? coefs - 1 : coefs; 
 	coefs = arma::round(coefs);
 
 	for(int i = 0; i < coefs.n_elem; i++){
