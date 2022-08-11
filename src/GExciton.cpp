@@ -811,7 +811,6 @@ void GExciton::BShamiltonian(const arma::imat& basis){
         int c2 = bandToIndex[basisStates(j, 1)];
         int k2Q_index = k2_index;
 
-
         // Using the atomic gauge
         if(gauge == "atomic"){
             coefsK = latticeToAtomicGauge(eigvecKStack.slice(k_index).col(v), kpoints.row(k_index));
@@ -854,6 +853,7 @@ void GExciton::BShamiltonian(const arma::imat& basis){
     HBS_ = HBS + HBS.t();
     std::cout << "Done" << std::endl;
 };
+
 
 // Routine to diagonalize the BSE and return a Result object
 Result GExciton::diagonalize(){

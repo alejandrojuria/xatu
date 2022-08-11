@@ -233,7 +233,6 @@ void Result::writeExtendedReciprocalAmplitude(const arma::cx_vec& statecoefs, FI
                     abs(statecoefs(nbandsCombinations*i + nband));
         };
         coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
-        
         arma::mat cells = exciton.generateCombinations(3, exciton.ndim, true);
         for(unsigned int n = 0; n < cells.n_rows; n++){
             arma::rowvec cell = cells.row(n)(0)*exciton.reciprocalLattice.row(0) + 
@@ -420,7 +419,7 @@ double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronI
                              const arma::rowvec& eCell, const arma::rowvec& hCell){
 
     std::complex<double> imag(0, 1);
-    std::complex<double> totalAmplitude = 0;
+    double totalAmplitude = 0;
     arma::cx_vec eigvec = arma::cx_vec(BSEcoefs);
     int eOrbitals = exciton.orbitals(exciton.motif.row(electronIndex)(3));
     int hOrbitals = exciton.orbitals(exciton.motif.row(holeIndex)(3));
@@ -456,17 +455,12 @@ double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronI
         }
         
         arma::cx_rowvec coefs = cExtended % arma::conj(vExtended);
-        arma::cx_mat coefMatrix = arma::kron(coefs, coefs.t());
 
-        totalAmplitude += arma::cdot(eigvec, coefMatrix*eigvec);    
+        totalAmplitude += std::norm(arma::dot(coefs, eigvec));    
         }
     }
 
-    //arma::cout << totalAmplitude << "---" << std::abs(totalAmplitude) << arma::endl;
-    if (std::imag(totalAmplitude) > 1E-5){
-        arma::cout << "Warning: Imaginary part of amplitude is not zero" << arma::endl;
-    }
-    return std::abs(totalAmplitude);
+    return totalAmplitude;
 };
 
 arma::cx_vec Result::addExponential(arma::cx_vec& coefs, const arma::rowvec& cell){

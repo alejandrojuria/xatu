@@ -46,7 +46,6 @@ class GExciton : public System {
         arma::mat potentialMat;
         arma::mat HK_;
         int nReciprocalVectors_ = 1;
-        
         double pairEnergy;
         
 
