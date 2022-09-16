@@ -1,7 +1,8 @@
+#pragma once
 #include <armadillo>
 #include "ConfigurationBase.hpp"
 
-class SystemConfiguration : public ConfigurationBase {
+class SystemConfiguration : public virtual ConfigurationBase {
 
     struct configuration {
             int ndim;
@@ -17,11 +18,12 @@ class SystemConfiguration : public ConfigurationBase {
     public:
         configuration systemInfo;
 
-    public:
+    protected:
         SystemConfiguration();
+    public:
         SystemConfiguration(std::string);
         
-    private:
+    protected:
         arma::mat parseVectors(std::vector<std::string>&);
         arma::cx_cube parseMatrices(std::vector<std::string>&);
         arma::mat parseMotif(std::vector<std::string>&);

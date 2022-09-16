@@ -19,7 +19,7 @@ class ConfigurationBase {
     protected:
         std::ifstream m_file;
 
-    public:
+    protected:
         ConfigurationBase();
         ConfigurationBase(std::string);
 
@@ -60,7 +60,5 @@ class ConfigurationBase {
         void printContent();
         double parseFraction(std::string&);
     
-    protected:
-        void restartFileStream();
-                
+        void restartFileStream(); 
 };
