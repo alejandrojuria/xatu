@@ -1,9 +1,7 @@
 #include <complex>
 #include "SystemConfiguration.hpp"
 
-SystemConfiguration::SystemConfiguration(){
-    throw std::invalid_argument("Error: SystemConfiguration must be invoked with one argument (filename)");
-};
+SystemConfiguration::SystemConfiguration(){};
 
 SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBase(filename){
     expectedArguments = {"dimension", "bravaislattice", "motif", "norbitals", "filling", "bravaisvectors", "hamiltonian"};
