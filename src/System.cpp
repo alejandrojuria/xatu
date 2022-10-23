@@ -50,6 +50,10 @@ arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
 		h += hamiltonianMatrices.slice(i) * std::exp(imag*arma::dot(k, cell));
 	};
 
+	if (isTriangular){
+		h += h.t();
+	}
+
 	return h;
 };
 
@@ -63,7 +67,10 @@ arma::cx_mat System::overlap(arma::rowvec k, bool isTriangular){
 		s += overlapMatrices.slice(i) * std::exp(imag*arma::dot(k, cell));
 	};
 
-	s += s.t();
+	if (isTriangular){
+		s += s.t();
+	}
+
 	return s;
 }
 
@@ -75,6 +82,21 @@ void System::setFilling(int filling){
 	else{
 		std::cout << "Filling must be a positive integer" << std::endl;
 	}
+}
+
+void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec){
+	arma::cx_mat h = hamiltonian(k);
+	if (!overlapMatrices.empty()){
+		arma::cx_vec auxEigval;
+		arma::cx_mat s = overlap(k);
+		h *= s;
+		arma::eig_pair(auxEigval, eigvec, h, s);
+		eigval = real(auxEigval);
+	}
+	else{
+		arma::eig_sym(eigval, eigvec, h);
+	}
+	
 }
 
 // /*------------------ Utilities/Additional observables ------------------*/

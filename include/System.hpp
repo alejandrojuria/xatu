@@ -41,6 +41,7 @@ class System : public Crystal{
         /* Bloch Hamiltonian */
         arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false);
         arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false);
+        void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&);
 
         /* Expected value of spin components */
         double expectedSpinZValue(const arma::cx_vec&);
