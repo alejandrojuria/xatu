@@ -110,10 +110,13 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
 
             std::istringstream iss(line);
             iss >> cellIndex >> parenthesis >> x >> y >> z;
+            std::vector coefCombinations = {x, y, z};
 
             if(cellIndex <= ncells){
-                arma::rowvec cell = x*bravaisLattice.row(0) + y*bravaisLattice.row(1) 
-                                    + z*bravaisLattice.row(2);
+                arma::rowvec cell = arma::rowvec(3);
+                for (int i = 0; i < ndim; i++){
+                    cell += bravaisLattice.row(i)*coefCombinations[i];
+                }
                 this->bravaisVectors = arma::join_vert(bravaisVectors, cell);
 
                 arma::cx_mat overlapMatrix = parseMatrix();
@@ -288,4 +291,10 @@ void CrystalDFTConfiguration::mapContent(){
     systemInfo.overlap        = overlapMatrices;
     systemInfo.ndim           = ndim;
     systemInfo.bravaisVectors = bravaisVectors;
+
+    arma::urowvec norbitals = arma::zeros<arma::urowvec>(orbitalsPerAtom.size());
+    for (int i = 0; i < orbitalsPerAtom.size(); i++){
+        norbitals(i) = orbitalsPerAtom[i];
+    }
+    systemInfo.norbitals      = norbitals;
 }

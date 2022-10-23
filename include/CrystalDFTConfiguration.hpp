@@ -19,9 +19,9 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         arma::cx_cube overlapMatrices, fockMatrices;
 
     public:
-        CrystalDFTConfiguration(std::string, int);
+        CrystalDFTConfiguration(std::string, int ncells = 20);
 
-        void parseContent(int ncells = 20, double threshold = 500.);
+        void parseContent(int, double threshold = 100.);
 
     private:
         void parseBravaisLattice(double);
