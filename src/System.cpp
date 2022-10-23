@@ -30,14 +30,14 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	hamiltonianMatrices  = configuration.systemInfo.hamiltonian;
 	overlapMatrices      = configuration.systemInfo.overlap;
 	filling_			 = configuration.systemInfo.filling;
+	fermiLevel_			 = filling_ - 1;
 
     int basisdim = 0;
     for(int i = 0; i < natoms; i++){
         int species = this->motif.row(i)(3);
         basisdim += orbitals(species);
     }
-	basisdim_   = basisdim; // Wrong; valid only for single species solid
-	fermiLevel_ = (int)(filling * basisdim) - 1;
+	basisdim_   = basisdim;
 }
 
 /* Bloch hamiltonian for posterior diagonalization. Input: arma::vec k (wave number) */
@@ -67,13 +67,13 @@ arma::cx_mat System::overlap(arma::rowvec k, bool isTriangular){
 	return s;
 }
 
-void System::setFilling(double filling){
-	if (filling > 0 && filling < 1){
+void System::setFilling(int filling){
+	if (filling > 0){
 		filling_ = filling;
-		fermiLevel_ = (int)(filling * basisdim);
+		fermiLevel_ = filling_;
 	}
 	else{
-		std::cout << "Filling must be between 0 and 1" << std::endl;
+		std::cout << "Filling must be a positive integer" << std::endl;
 	}
 }
 

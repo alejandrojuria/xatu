@@ -12,8 +12,7 @@ class System : public Crystal{
     
     //// Attributes
     protected:
-        int basisdim_, fermiLevel_;
-        double filling_;
+        int basisdim_, filling_, fermiLevel_;
 
         arma::urowvec orbitals_;
         arma::cx_cube hamiltonianMatrices;
@@ -25,11 +24,10 @@ class System : public Crystal{
         const arma::urowvec& orbitals = orbitals_;
         // Returns size of basis used/hamiltonian dimension
         const int& basisdim = basisdim_;
-        // Returns value of system filling
-        const double& filling = filling_;
-        // Returns band number corresponding to the Fermi level
+        // Returns value of system filling (total number of electrons)
+        const int& filling = filling_;
+        // Returns index of band corresponding to Fermi level
         const int& fermiLevel = fermiLevel_;
-
 
     //// Methods
     public:
@@ -38,7 +36,7 @@ class System : public Crystal{
         System(std::string);  
         ~System();
 
-        void setFilling(double);
+        void setFilling(int);
 
         /* Bloch Hamiltonian */
         arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false);
