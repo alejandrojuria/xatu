@@ -704,16 +704,16 @@ void GExciton::initializeResultsH0(){
     std::complex<double> imag(0, 1);
 
     for (int i = 0; i < nk; i++){
-		h = hamiltonian(kpoints.row(i));
-        arma::eig_sym(auxEigVal, auxEigvec, h);
+        arma::rowvec k = kpoints.row(i);
+        solveBands(k, auxEigVal, auxEigvec);
 
         auxEigvec = fixGlobalPhase(auxEigvec);
         eigvalKStack_.col(i) = auxEigVal(bandList);
         eigvecKStack_.slice(i) = auxEigvec.cols(bandList);
 
         if(arma::norm(Q) != 0){
-            h = hamiltonian(kpoints.row(i) + Q);
-            arma::eig_sym(auxEigVal, auxEigvec, h);
+            arma::rowvec kQ = kpoints.row(i) + Q;
+            solveBands(kQ, auxEigVal, auxEigvec);
 
             auxEigvec = fixGlobalPhase(auxEigvec);
             eigvalKQStack_.col(i) = auxEigVal(bandList);
