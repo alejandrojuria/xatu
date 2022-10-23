@@ -1,6 +1,7 @@
 #pragma once
 #include <armadillo>
 #include "ConfigurationBase.hpp"
+#include <iostream>
 
 class SystemConfiguration : public virtual ConfigurationBase {
 
@@ -22,6 +23,9 @@ class SystemConfiguration : public virtual ConfigurationBase {
         SystemConfiguration();
     public:
         SystemConfiguration(std::string);
+
+        void printConfiguration(std::ostream& stream = std::cout) const;
+        friend std::ostream& operator<< (std::ostream&, const SystemConfiguration&);
         
     protected:
         arma::mat parseVectors(std::vector<std::string>&);

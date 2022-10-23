@@ -21,7 +21,9 @@ void SystemConfiguration::parseContent(){
         auto content = contents[arg];
 
         if (arg == "dimension"){
-            if(content.size() != 1){throw std::logic_error("Expected only one line for 'Dimension'");}
+            if (content.size() != 1){
+                throw std::logic_error("Expected only one line for 'Dimension'");
+            }
             systemInfo.ndim = parseScalar<int>(content[0]);
         }
         else if(arg == "bravaislattice"){ 
@@ -38,7 +40,11 @@ void SystemConfiguration::parseContent(){
             if(content.size() != 1){
                 throw std::logic_error("Expected only one line in 'filling' field");
             }
-            systemInfo.filling = parseFraction(content[0]);
+            systemInfo.filling = parseScalar<double>(content[0]);
+            double intpart;
+            if (std::modf(systemInfo.filling, &intpart) != 0){
+                throw std::invalid_argument("Filling must be a positive integer.");
+            };
         }
         else if (arg == "bravaisvectors") {
             systemInfo.bravaisVectors = parseVectors(content);
@@ -164,14 +170,6 @@ arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& conte
             row_index++;
         }
     }
-    /*if (!matrix.is_zero()) {
-        // Check if matrix is triangular
-        if (matrix.row(0)(matrix.n_cols - 1) != std::conj(matrix.row(matrix.n_rows - 1)(0))){
-            isTriangular = true;
-
-        }
-        matrixVector.push_back(matrix);
-    }*/
 
     arma::cx_cube matrices(ndim, ndim, matrixVector.size());
     for (int i = 0; i < matrixVector.size(); i++) {
@@ -205,4 +203,37 @@ void SystemConfiguration::checkContentCoherence() {
     if (systemInfo.norbitals.size() != nspecies) {
         throw std::invalid_argument("Error: Number of different species must match be consistent in motif and orbitals");
     }
+}
+
+
+void SystemConfiguration::printConfiguration(std::ostream& stream) const {
+
+    stream << "Dimension: " << systemInfo.ndim << "\n" << std::endl;
+
+    stream << "Bravais lattice: " << std::endl;
+    stream << systemInfo.bravaisLattice << "\n" << std::endl;
+
+    stream << "Motif: " << std::endl;
+    stream << systemInfo.motif << "\n" << std::endl;
+
+    stream << "Orbitals: " << std::endl;
+    stream << systemInfo.norbitals << "\n" << std::endl;
+
+    stream << "Filling: " << std::endl;
+    stream << systemInfo.filling << "\n" << std::endl;
+
+    stream << "Bravais vectors (connected unit cells): " << std::endl;
+    stream << systemInfo.bravaisVectors << "\n" << std::endl;
+
+    stream << "Hamiltonian matrices: " << std::endl;
+    stream << systemInfo.hamiltonian << "\n" << std::endl;
+
+    if(!systemInfo.overlap.is_empty()){
+        stream << "Overlap matrices: " << std::endl;
+        stream << systemInfo.overlap << "\n" << std::endl;
+    }
+}
+
+std::ostream& operator<<(std::ostream& stream, const SystemConfiguration& config){
+    config.printConfiguration(stream);
 }
