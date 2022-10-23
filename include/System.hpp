@@ -1,5 +1,6 @@
 #pragma once
 #include "Crystal.hpp"
+#include "SystemConfiguration.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -33,7 +34,7 @@ class System : public Crystal{
     public:
         /* Constructor and destructor */
         System(){};
-        System(std::string);  
+        System(SystemConfiguration&);  
         ~System();
 
         void setFilling(int);

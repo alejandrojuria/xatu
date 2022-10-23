@@ -54,9 +54,9 @@ void GExciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     this->conductionBands_ = arma::ivec(conduction);
 }
 
-GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands, 
+GExciton::GExciton(SystemConfiguration& config, int ncell, const arma::ivec& bands, 
                   const arma::rowvec& parameters, const arma::rowvec& Q) : 
-                  System(filename) {
+                  System(config) {
 
     initializeExcitonAttributes(ncell, bands, parameters, Q);
 
@@ -83,9 +83,9 @@ GExciton::GExciton(std::string filename, int ncell, const arma::ivec& bands,
     }
 };
 
-GExciton::GExciton(std::string filename, int ncell, int nbands, int nrmbands, 
+GExciton::GExciton(SystemConfiguration& config, int ncell, int nbands, int nrmbands, 
                   const arma::rowvec& parameters, const arma::rowvec& Q) : 
-          GExciton(filename, ncell, {}, parameters, Q) {
+          GExciton(config, ncell, {}, parameters, Q) {
     
     if (2*nbands > basisdim){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
@@ -102,7 +102,7 @@ GExciton::GExciton(std::string filename, int ncell, int nbands, int nrmbands,
 
 
 // This constructor is intented to run directly 
-GExciton::GExciton(std::string modelfile, std::string excitonfile) : System(modelfile){
+GExciton::GExciton(SystemConfiguration& config, std::string excitonfile) : System(config){
     ExcitonConfiguration excitonconfig = ExcitonConfiguration(excitonfile);
     initializeExcitonAttributes(excitonconfig);
     bool useApproximation = excitonconfig.excitonInfo.useApproximation;

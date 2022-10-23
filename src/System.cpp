@@ -8,9 +8,8 @@
 
 // -------------------- Constructor and destructor --------------------
 
-System::System(std::string filename) : Crystal(){
+System::System(SystemConfiguration& configuration) : Crystal(){
 
-	SystemConfiguration configuration = SystemConfiguration(filename);
 	initializeCrystalAttributes(configuration);
 	initializeSystemAttributes(configuration);
 	

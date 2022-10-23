@@ -8,6 +8,7 @@
 #include "BiRibbon.hpp"
 #include "System.hpp"
 #include "ExcitonConfiguration.hpp"
+#include "SystemConfiguration.hpp"
 #include "Result.hpp"
 #include "forward_declaration.hpp"
 #include "utils.hpp"
@@ -109,15 +110,15 @@ class GExciton : public System {
 
     public:
         // Specify number of bands participating (int)
-        GExciton(std::string filename, int ncell = 20, int nbands = 1, int nrmbands = 0, 
+        GExciton(SystemConfiguration&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
         // Specify which bands participate (vector with band numbers)
-        GExciton(std::string filename, int ncell = 20, const arma::ivec& bands = {0, 1}, 
+        GExciton(SystemConfiguration&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
         
         // Use two files: the mandatory one for system config., and one for exciton config.
-        GExciton(std::string systemfile, std::string excitonfile);
+        GExciton(SystemConfiguration&, std::string excitonfile);
 
         // Initialize exciton passing directly a System object instead of a file using removed bands
         GExciton(System&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
