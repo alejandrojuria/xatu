@@ -37,8 +37,6 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
         basisdim += orbitals(species);
     }
 	basisdim_   = basisdim;
-
-	std::cout << __LINE__ << std::endl;
 }
 
 /* Bloch hamiltonian for posterior diagonalization. Input: arma::vec k (wave number) */
@@ -89,7 +87,7 @@ void System::setFilling(int filling){
 
 void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec, bool triangular){
 	arma::cx_mat h = hamiltonian(k, triangular);
-	double auToEV = 13.6;
+	double auToEV = 27.2;
 	if (!overlapMatrices.empty()){
 		arma::cx_vec auxEigval;
 		arma::cx_mat s = overlap(k, triangular);
@@ -97,10 +95,32 @@ void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec
 		arma::uvec sorted_indices = arma::sort_index(auxEigval);
 		eigval = arma::sort(arma::real(auxEigval)*auToEV);
 		eigvec = eigvec.cols(sorted_indices);
+		for (int i = 0; i < eigvec.n_cols; i++){
+			arma::cx_vec state = eigvec.col(i);
+			double norm = real(arma::cdot(state, s*state));
+			eigvec.col(i) /= std::sqrt(norm);
+		}
+		orthogonalize(k, eigvec, triangular);		
 	}
 	else{
 		arma::eig_sym(eigval, eigvec, h);
 	}
+	
+}
+
+void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool triangular){
+	// First compute X
+	arma::cx_mat s = overlap(k, triangular);
+	arma::vec eigval;
+	arma::cx_mat eigvec;
+	arma::eig_sym(eigval, eigvec, s);
+
+	eigval = 1./arma::sqrt(eigval);
+	arma::cx_mat sRoot = arma::zeros<arma::cx_mat>(eigval.n_elem, eigval.n_elem);
+	sRoot.diag() = arma::conv_to<arma::cx_vec>::from(eigval);
+	sRoot = eigvec*sRoot*eigvec.t();
+
+	states = arma::inv_sympd(sRoot) * states;
 	
 }
 

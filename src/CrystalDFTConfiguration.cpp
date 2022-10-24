@@ -130,16 +130,21 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             int strsize = strlen("FOCK MATRIX - CELL N.");
             line = line.substr(pos + strsize, line.length());
 
-            int cellIndex;
+            int cellIndex, x, y, z;
             std::string parenthesis;
             std::istringstream iss(line);
-            iss >> cellIndex;
+            iss >> cellIndex >> parenthesis >> x >> y >> z;
 
             if(cellIndex <= ncells){
                 arma::cx_mat fockMatrix = parseMatrix();
+                arma::cout << "Ncell: " << cellIndex << arma::endl;
+                arma::cout << "Cell combi:" << x << " " << y << " " << z << arma::endl;
+                arma::cout << fockMatrix << arma::endl;
 
                 this->fockMatrices = arma::join_slices(this->fockMatrices, fockMatrix);
+                
             }
+            
         }
     }    
 }
@@ -193,6 +198,12 @@ void CrystalDFTConfiguration::parseAtoms(){
         int index = chemical_species_to_index[chemical_species];
         atom = {x, y, z, (double)index};
         motif.row(i) = arma::rowvec(atom);
+    }
+
+    // Move motif to origin
+    arma::rowvec refAtom = motif.row(0);
+    for (int i = 0; i < motif.n_rows; i++){
+        motif.row(i) -= refAtom;
     }
 
     this->motif = motif;

@@ -706,7 +706,6 @@ void GExciton::initializeResultsH0(){
     for (int i = 0; i < nk; i++){
         arma::rowvec k = kpoints.row(i);
         solveBands(k, auxEigVal, auxEigvec, true);
-        arma::cout << auxEigVal << arma::endl;
 
         auxEigvec = fixGlobalPhase(auxEigvec);
         eigvalKStack_.col(i) = auxEigVal(bandList);
@@ -844,7 +843,6 @@ void GExciton::BShamiltonian(const arma::imat& basis){
             HBS_(i, j) = (eigvalKQStack.col(kQ_index)(c) - 
                             eigvalKStack.col(k_index)(v))/2. - (D - X)/2.;
             HK_(i, j) = eigvalKQStack(c, kQ_index) - eigvalKStack(v, k_index);
-            arma::cout << HBS(i, j) << arma::endl;
             
         }
         else{

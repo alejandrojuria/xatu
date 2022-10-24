@@ -50,4 +50,7 @@ class System : public Crystal{
         double expectedSpinXValue(const arma::cx_vec&);        
     
         void initializeSystemAttributes(const SystemConfiguration&);
+
+    private:
+        void orthogonalize(const arma::rowvec&, arma::cx_mat&, bool);
 };
