@@ -222,7 +222,6 @@ void Result::writePhase(int stateindex, FILE* textfile){
 }
 
 void Result::writeExtendedReciprocalAmplitude(const arma::cx_vec& statecoefs, FILE* textfile){
-    fprintf(textfile, "kx\tky\tkz\tProb.\n");
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
     double boxLimit = boundingBoxBZ();
 
@@ -318,7 +317,8 @@ void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeInd
                             position(0), position(1), coefs(it));
             it++;
         }
-    }                                    
+    }
+    fprintf(textfile, "#\n");                              
 }
 
 void Result::writeRealspaceAmplitude(int stateindex, int holeIndex, 
@@ -326,7 +326,6 @@ void Result::writeRealspaceAmplitude(int stateindex, int holeIndex,
 
     arma::cx_vec statecoefs = eigvec.col(stateindex);
     writeRealspaceAmplitude(statecoefs, holeIndex, holeCell, textfile, ncells);
-
 }
 
 /* Method to write the eigenvalues into a file. Requires pointer to file, and has optional

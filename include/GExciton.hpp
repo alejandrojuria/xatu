@@ -200,12 +200,10 @@ class GExciton : public System {
         // BSE initialization and energies
         void initializeHamiltonian();
         void BShamiltonian(const arma::imat& basis = {});
-        Result diagonalize();
+        Result diagonalize(std::string method = "diag", int nstates = 8);
 
         // Fermi golden rule        
         arma::cx_vec wavePacket(double, double);
         double pairDensityOfStates(const arma::ivec&, const arma::ivec&, double, double);
         double fermiGoldenRule(const arma::cx_vec&, double);
 };
-
-

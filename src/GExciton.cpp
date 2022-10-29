@@ -6,6 +6,7 @@
 #include "System.hpp"
 #include "GExciton.hpp"
 #include "utils.hpp"
+#include "davidson.hpp"
 
 using namespace arma;
 using namespace std::chrono;
@@ -705,7 +706,7 @@ void GExciton::initializeResultsH0(){
 
     for (int i = 0; i < nk; i++){
         arma::rowvec k = kpoints.row(i);
-        solveBands(k, auxEigVal, auxEigvec, true);
+        solveBands(k, auxEigVal, auxEigvec);
 
         auxEigvec = fixGlobalPhase(auxEigvec);
         eigvalKStack_.col(i) = auxEigVal(bandList);
@@ -713,7 +714,7 @@ void GExciton::initializeResultsH0(){
 
         if(arma::norm(Q) != 0){
             arma::rowvec kQ = kpoints.row(i) + Q;
-            solveBands(kQ, auxEigVal, auxEigvec, true);
+            solveBands(kQ, auxEigVal, auxEigvec);
 
             auxEigvec = fixGlobalPhase(auxEigvec);
             eigvalKQStack_.col(i) = auxEigVal(bandList);
@@ -856,13 +857,21 @@ void GExciton::BShamiltonian(const arma::imat& basis){
 
 
 // Routine to diagonalize the BSE and return a Result object
-Result GExciton::diagonalize(){
-    std::cout << "Diagonalizing BSE... " << std::flush;
+Result GExciton::diagonalize(std::string method, int nstates){
+    std::cout << "Solving BSE with ";
     arma::vec eigval;
     arma::cx_mat eigvec;
-    arma::eig_sym(eigval, eigvec, HBS);
-    std::cout << "Done" << std::endl;
 
+    if (method == "diag"){
+        std::cout << "exact diagonalization... " << std::flush;
+        arma::eig_sym(eigval, eigvec, HBS);
+    }
+    else if (method == "davidson"){
+        std::cout << "Davidson method... " << std::flush;
+        davidson_method(eigval, eigvec, HBS, nstates);
+    }
+    
+    std::cout << "Done" << std::endl;
     Result results = Result(*this, eigval, eigvec);
 
     return results;

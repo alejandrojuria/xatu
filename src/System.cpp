@@ -120,8 +120,7 @@ void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool tri
 	sRoot.diag() = arma::conv_to<arma::cx_vec>::from(eigval);
 	sRoot = eigvec*sRoot*eigvec.t();
 
-	states = arma::inv_sympd(sRoot) * states;
-	
+	states = arma::inv_sympd(sRoot) * states;	
 }
 
 // /*------------------ Utilities/Additional observables ------------------*/
