@@ -371,6 +371,9 @@ void Result::writeStates(FILE* textfile, int n){
     }
 }
 
+void Result::writeAbsorptionSpectrum(FILE* textfile, double broadening){
+    // TODO
+}
 
 double Result::fourierTransformExciton(int stateindex, const arma::rowvec& electron_position, 
                                        const arma::rowvec& hole_position){

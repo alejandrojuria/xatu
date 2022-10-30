@@ -46,6 +46,7 @@ class Result{
         void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*, int ncells = 3);
         void writeEigenvalues(FILE*, int n = 0);
         void writeStates(FILE*, int n = 0);
+        void writeAbsorptionSpectrum(FILE*, double);
 
         double fourierTransformExciton(int, const arma::rowvec&, const arma::rowvec&);
 

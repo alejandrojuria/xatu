@@ -24,6 +24,7 @@ std::string ConfigurationBase::parseArgument(std::string line){
     std::size_t pos = line.find("#");
     std::string str = line.substr(pos + 1);
     str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 };
 

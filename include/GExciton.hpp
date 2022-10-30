@@ -118,7 +118,7 @@ class GExciton : public System {
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
         
         // Use two files: the mandatory one for system config., and one for exciton config.
-        GExciton(SystemConfiguration&, std::string excitonfile);
+        GExciton(SystemConfiguration&, ExcitonConfiguration&);
 
         // Initialize exciton passing directly a System object instead of a file using removed bands
         GExciton(System&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
@@ -174,7 +174,7 @@ class GExciton : public System {
         void initializeExcitonAttributes(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
         void initializeExcitonAttributes(const ExcitonConfiguration&);
         void initializeBasis();
-        void initializeResultsH0();
+        void initializeResultsH0(bool triangular = false);
         void initializeMotifFT(int, const arma::mat&);
         
         // Utilities
@@ -193,12 +193,13 @@ class GExciton : public System {
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
         arma::imat specifyBasisSubset(const arma::ivec& bands);
         void useSpinfulBasis();
+        void printInformation();
 
         // Symmetries
         arma::mat C3ExcitonBasisRep();
         
         // BSE initialization and energies
-        void initializeHamiltonian();
+        void initializeHamiltonian(bool triangular = false);
         void BShamiltonian(const arma::imat& basis = {});
         Result diagonalize(std::string method = "diag", int nstates = 8);
 

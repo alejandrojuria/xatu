@@ -11,6 +11,7 @@ void Crystal::initializeCrystalAttributes(const SystemConfiguration& configurati
     
     natoms_ = motif.n_rows;
 	ncells_ = unitCellList.n_rows;
+
 	nk_ = 0; // Mesh has to be explicitly initialized
 
     calculateReciprocalLattice();

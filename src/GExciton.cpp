@@ -2,6 +2,7 @@
 #include <complex>
 #include <math.h>
 #include <stdlib.h>
+#include <iomanip>
 
 #include "System.hpp"
 #include "GExciton.hpp"
@@ -35,10 +36,13 @@ void GExciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
 
     int ncell        = cfg.excitonInfo.ncell;
     int nbands       = cfg.excitonInfo.nbands;
-    int rmbands      = cfg.excitonInfo.nrmbands;
     arma::ivec bands = cfg.excitonInfo.bands;
-    arma::rowvec parameters = {cfg.excitonInfo.eps(0), cfg.excitonInfo.eps(1), cfg.excitonInfo.r0};
+    arma::rowvec parameters = {cfg.excitonInfo.eps(0), cfg.excitonInfo.eps(1), cfg.excitonInfo.eps(2)};
     arma::rowvec Q   = cfg.excitonInfo.Q;
+
+    if (bands.empty()){
+        bands = arma::regspace<arma::ivec>(- nbands + 1, nbands);
+    }
 
     initializeExcitonAttributes(ncell, bands, parameters, Q);
 
@@ -103,11 +107,9 @@ GExciton::GExciton(SystemConfiguration& config, int ncell, int nbands, int nrmba
 
 
 // This constructor is intented to run directly 
-GExciton::GExciton(SystemConfiguration& config, std::string excitonfile) : System(config){
-    ExcitonConfiguration excitonconfig = ExcitonConfiguration(excitonfile);
-    initializeExcitonAttributes(excitonconfig);
-    bool useApproximation = excitonconfig.excitonInfo.useApproximation;
-    initializeHamiltonian();
+GExciton::GExciton(SystemConfiguration& config, ExcitonConfiguration& excitonConfig) : System(config){
+    initializeExcitonAttributes(excitonConfig);
+    std::cout << "Correctly initialized Exciton object" << std::endl;
 }
 
 GExciton::GExciton(System& system, int ncell, const arma::ivec& bands, 
@@ -680,7 +682,7 @@ void GExciton::initializeMotifFT(int i, const arma::mat& cells){
 }
 
 // Routine to save the relevant data in the stack for later computations
-void GExciton::initializeResultsH0(){
+void GExciton::initializeResultsH0(bool triangular){
 
     int nTotalBands = bandList.n_elem;
     double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
@@ -706,7 +708,7 @@ void GExciton::initializeResultsH0(){
 
     for (int i = 0; i < nk; i++){
         arma::rowvec k = kpoints.row(i);
-        solveBands(k, auxEigVal, auxEigvec);
+        solveBands(k, auxEigVal, auxEigvec, triangular);
 
         auxEigvec = fixGlobalPhase(auxEigvec);
         eigvalKStack_.col(i) = auxEigVal(bandList);
@@ -714,7 +716,7 @@ void GExciton::initializeResultsH0(){
 
         if(arma::norm(Q) != 0){
             arma::rowvec kQ = kpoints.row(i) + Q;
-            solveBands(kQ, auxEigVal, auxEigvec);
+            solveBands(kQ, auxEigVal, auxEigvec, triangular);
 
             auxEigvec = fixGlobalPhase(auxEigvec);
             eigvalKQStack_.col(i) = auxEigVal(bandList);
@@ -744,7 +746,7 @@ void GExciton::initializeResultsH0(){
 };
 
 /* Routine to initialize the required variables to construct the Bethe-Salpeter Hamiltonian */
-void GExciton::initializeHamiltonian(){
+void GExciton::initializeHamiltonian(bool triangular){
 
     if(bands.empty()){
         throw std::invalid_argument("Error: Exciton object must have some bands");
@@ -760,7 +762,7 @@ void GExciton::initializeHamiltonian(){
     generateBandDictionary();
 
     std::cout << "Diagonalizing H0 for all k points... " << std::endl;
-    initializeResultsH0();
+    initializeResultsH0(triangular);
 }
 
 
@@ -1087,3 +1089,20 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
 
     return transitionRate;
 };
+
+void GExciton::printInformation(){
+    cout << std::left << std::setw(30) << "Number of cells: " << ncell << endl;
+    cout << std::left << std::setw(30) << "Valence bands:";
+    for (int i = 0; i < valenceBands.n_elem; i++){
+        cout << valenceBands(i) << "\t";
+    }
+    cout << endl;
+
+    cout << std::left << std::setw(30) << "Conduction bands: ";
+    for (int i = 0; i < conductionBands.n_elem; i++){
+        cout << conductionBands(i) << "\t";
+    }
+    cout << endl;
+
+    cout << std::left << std::setw(30) << "Gauge used: " << gauge << "\n" << endl;
+}

@@ -6,6 +6,7 @@
 class SystemConfiguration : public virtual ConfigurationBase {
 
     struct configuration {
+            std::string name;
             int ndim;
             double filling;
             arma::mat bravaisLattice;

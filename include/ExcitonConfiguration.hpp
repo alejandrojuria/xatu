@@ -4,13 +4,16 @@
 class ExcitonConfiguration : public ConfigurationBase{
 
     struct configuration {
-        int ncell, nbands, nrmbands, filling;
+        int ncell, nbands;
+        int submeshFactor = 1;
         arma::ivec bands = {};
-        arma::rowvec Q;
-        bool useApproximation;
+        arma::rowvec Q = {0., 0., 0.};
+        arma::rowvec shift;
         double cutoff;
         arma::vec eps = {};
         double r0, d;
+        std::string mode = "realspace";
+        bool exchange = false;
     };
 
     public:
