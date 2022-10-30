@@ -25,11 +25,13 @@ System::~System(){
 parsing the input text file */
 void System::initializeSystemAttributes(const SystemConfiguration& configuration){
 	
+	systemName			 = configuration.systemInfo.name;
 	orbitals_            = configuration.systemInfo.norbitals;
 	hamiltonianMatrices  = configuration.systemInfo.hamiltonian;
 	overlapMatrices      = configuration.systemInfo.overlap;
 	filling_			 = configuration.systemInfo.filling;
 	fermiLevel_			 = filling_ - 1;
+	
 
     int basisdim = 0;
     for(int i = 0; i < natoms; i++){
@@ -106,6 +108,32 @@ void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec
 		arma::eig_sym(eigval, eigvec, h);
 	}
 	
+}
+
+void System::solveBands(std::string kpointsfile, bool triangular){
+	std::ifstream inputfile;
+	std::string line;
+	double kx, ky, kz;
+	arma::vec eigval;
+	arma::cx_mat eigvec;
+	std::string outputfilename = systemName + ".bands";
+	FILE* bandfile = fopen(outputfilename.c_str(), "w");
+	try{
+		inputfile.open(kpointsfile.c_str());
+		while(std::getline(inputfile, line)){
+			std::istringstream iss(line);
+			iss >> kx >> ky >> kz;
+			arma::rowvec kpoint{kx, ky, kz};
+			solveBands(kpoint, eigval, eigvec, triangular);
+			for (int i = 0; i < eigval.n_elem; i++){
+				fprintf(bandfile, "%12.6f\t", eigval(i));
+			}
+			fprintf(bandfile, "\n");
+		}
+	}
+	catch(const std::exception& e){
+		std::cerr << e.what() << std::endl;
+	}
 }
 
 void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool triangular){
