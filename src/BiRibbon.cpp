@@ -12,16 +12,18 @@ BiRibbon::BiRibbon(int N, std::string zeeman_axis){
 
 	this->N = N;
 	this->zeeman_axis = zeeman_axis;
+	
 	initializeConstants();
+	calculateReciprocalLattice();
 	createMotif();
 	initializeBlockMatrices();
 	prepareHamiltonian();
-	cout << "Correctly initiallized Zigzag object" << endl;
-
+	
+	cout << "Correctly initiallized Ribbon object" << endl;
 };
 
 BiRibbon::~BiRibbon(){
-	cout << "Destroying Zigzag object..." << endl;
+	cout << "Destroying Ribbon object..." << endl;
 };
 
 void BiRibbon::initializeConstants(){
@@ -30,11 +32,11 @@ void BiRibbon::initializeConstants(){
     // System class attributes
 	this->ndim_      = 1;
     this->orbitals_   = arma::urowvec{4};
-    this->filling_   = 5./8;
+    this->filling_   = 5;
 
 	//// Lattice parameters
-	this->a_ = 4.5332;
-	this->c_ = 1.585;
+	this->a = 4.5332;
+	this->c = 1.585;
 
 	//// Tight-binding parameters
 	// On-site energies
@@ -48,7 +50,7 @@ void BiRibbon::initializeConstants(){
 	this->Vppp = -0.600;
 
 	// Spin-orbit coupling 
-	this->lambda = 0.0;
+	this->lambda = 1.5;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
 	this->zeeman = 1E-7;
@@ -66,7 +68,7 @@ void BiRibbon::initializeConstants(){
 	this->bravaisLattice_ = arma::mat{ a1 - a2 };
 
 	// Motif
-	tau = { a / sqrt(3), 0, -c,  0};
+	tau = { a / sqrt(3), 0, -c};
 
 	// First neighbours
 	n1 = a1 - tau;
@@ -89,8 +91,8 @@ void BiRibbon::setZeeman(double Zeeman){
 /* Routine to calculate the positions of the atoms inside the unit cell
 Input: int N (cells in the finite direction). Output: mat motiv */
 void BiRibbon::createMotif(){
-	arma::mat motif = arma::zeros(2*(N + 1), 4);
-	motif.row(0) = arma::vec({0,0,0});
+	arma::mat motif = arma::zeros(2*(N + 1), 3);
+	motif.row(0) = arma::rowvec({0,0,0});
 	motif.row(1) = n1;
 	motif.row(2) = a1;
 	motif.row(3) = a1 + n2;
@@ -102,9 +104,12 @@ void BiRibbon::createMotif(){
 		}
 		else{
 			motif.row(2*n) = (a1 + a2)*(n-1)/2 + a1;
-			motif.row(2*n + 1) = (a1 + a2)*(n-1)/2 + motif.col(3);
+			motif.row(2*n + 1) = (a1 + a2)*(n-1)/2;
 		};
 	};
+
+	// Add species (zeros)
+	motif.insert_cols(3, 1);
 
     // Initiallize remaining System attributes
     this->motif_      = motif;
@@ -112,10 +117,10 @@ void BiRibbon::createMotif(){
     int basisdim = 0;
     for(int i = 0; i < natoms; i++){
         int species = this->motif.row(i)(3);
-        basisdim += orbitals(species);
+        basisdim += orbitals(species)*2;
     }
     this->basisdim_   = basisdim;
-    this->fermiLevel_ = (int)basisdim*filling;
+    this->fermiLevel_ = (int)natoms*filling;
 };
 
 
@@ -126,25 +131,20 @@ void BiRibbon::createMotif(){
 mat BiRibbon::matrixWithSpin(const mat& matrix) {
 	mat id2 = arma::eye(2, 2);
 	mat M = arma::zeros(8, 8);
-	// Previous implementation; a bit wierd
-	M.submat( 0,0, 1,1 ) = id2*matrix(0,0);
-	M.submat( 2,0, 7,1 ) = arma::kron(id2, matrix.submat( 1,0, 3,0 ));
-	M.submat( 0,2, 1,7 ) = arma::kron(id2, matrix.submat( 0,1, 0,3 ));
-	M.submat( 2,2, 7,7 ) = arma::kron(id2, matrix.submat( 1,1, 3,3 ));
 
 	// New implementation: Basis is made of two spin sectors 
 	// for the orbitals (up, down)
-	//M.submat(0,0, 3,3) = matrix;
-	//M.submat(4,4, 7,7) = matrix;
+	M = arma::kron(matrix, arma::eye(2, 2));
 
 	return M;
 };
 
 /* Create tight-binding matrix for system with one s orbital and three p orbitals, based on Slater-Koster
    approximation. Input: 3x1 vector. Output: 8x8 matrix */
-mat BiRibbon::tightbindingMatrix(const vec& n) {
-	double vNorm = norm(n);
-	vec ndir = { n(0)/vNorm, n(1)/vNorm, n(2)/vNorm };
+mat BiRibbon::tightbindingMatrix(const rowvec& n) {
+	
+	double vNorm = arma::norm(n);
+	arma::vec ndir = { n(0)/vNorm, n(1)/vNorm, n(2)/vNorm };
 	mat M = arma::zeros(4, 4);
 
 	M(0, 0) = Vsss;
@@ -158,6 +158,7 @@ mat BiRibbon::tightbindingMatrix(const vec& n) {
 		};
 	};
 
+
 	return matrixWithSpin(M);
 };
 
@@ -169,28 +170,30 @@ void BiRibbon::initializeBlockMatrices() {
 
 	M0 = arma::zeros(4, 4);
 	M0(0, 0) = Es;
-	M0.submat(1, 1, 3, 3) = Ep * eye(3, 3);
+	M0.submat(1, 1, 3, 3) = Ep * arma::eye(3, 3);
 	M0 = matrixWithSpin(M0);
 
 	M1 = tightbindingMatrix(n3);		
 	M2p = tightbindingMatrix(n1);
 	M2m = tightbindingMatrix(n2);
 
+	// This has to be changed to match new ordering (up, down)
 	Mso = arma::zeros<cx_mat>(8, 8);
-	Mso(2, 3) = -imagNum;
-	Mso(3, 7) = -imagNum;
+	Mso(2, 4) = -imagNum;
 	Mso(2, 7) = 1;
-	Mso(4, 5) = -1;
-	Mso(4, 6) = imagNum;
-	Mso(5, 6) = imagNum;
+	Mso(3, 5) = imagNum;
+	Mso(3, 6) = -1;
+	Mso(4, 7) = -imagNum;
+	Mso(5, 6) = -imagNum;
 
 	Mso = Mso + Mso.t();
 	Mso *= lambda / (3.0);
 
 	arma::cx_mat Mzeeman = arma::zeros<cx_mat>(8,8);
 	if(zeeman_axis == "z"){
-		Mzeeman.diag() = arma::cx_vec({1., -1., 1., 1., 1., -1., -1., -1.,})*zeeman;
+		Mzeeman.diag() = arma::cx_vec({1., -1., 1., -1., 1., -1., 1., -1.,})*zeeman;
 	}
+	// Wrong implementation (for old basis ordering)
 	else if(zeeman_axis == "x"){
 		arma::cx_mat Sx(2,2);
 		Sx(0,1) = 1;
@@ -234,8 +237,8 @@ void BiRibbon::prepareHamiltonian() {
 	arma::cx_mat H0 = arma::zeros<cx_mat>(hDim, hDim);
 	arma::cx_mat Ha = arma::zeros<cx_mat>(hDim, hDim);
 
-	mat H0block1 = arma::kron(eye(4, 4), M0 / 2);
-	mat H0block2 = arma::kron(eye(4, 4), M0 / 2);
+	mat H0block1 = arma::kron(arma::eye(4, 4), M0 / 2);
+	mat H0block2 = arma::kron(arma::eye(4, 4), M0 / 2);
 
 	mat HaBlock1 = arma::zeros(4 * 8, 4 * 8);
 	mat HaBlock2 = arma::zeros(4 * 8, 4 * 8);
@@ -276,7 +279,7 @@ void BiRibbon::prepareHamiltonian() {
 	};
 
 	arma::cx_mat Hsoc = kron(arma::eye(2 * (N + 1), 2 * (N + 1)), Mso);
-	arma::cx_mat Hzeeman = kron(arma::eye<cx_mat>(2 * (N + 1), 2 * (N + 1)), Mzeeman);
+	arma::cx_mat Hzeeman = arma::kron(arma::eye<cx_mat>(2 * (N + 1), 2 * (N + 1)), Mzeeman);
 
 	for(int i = 0; i < 8; i++){
 		H0(0 + i, 0 + i) += onsiteEdge;
@@ -285,12 +288,15 @@ void BiRibbon::prepareHamiltonian() {
 		H0(2*(N+1)*8 - 2*8 + i, 2*(N+1)*8 - 2*8 + i) -= onsiteEdge;
 	};
 
-	this->ncells_ = 2;
+	this->ncells_ = 3;
 	this->unitCellList_ = arma::zeros(ncells, 3);
 	this->unitCellList_.row(1) = bravaisLattice.row(0);
+	this->unitCellList_.row(2) = -bravaisLattice.row(0);
     this->hamiltonianMatrices = arma::zeros<arma::cx_cube>(basisdim, basisdim, ncells);
     this->hamiltonianMatrices.slice(0) = H0 + Hsoc + Hzeeman;
     this->hamiltonianMatrices.slice(1) = Ha;
+	this->hamiltonianMatrices.slice(2) = Ha.t();
+
 };
 
 

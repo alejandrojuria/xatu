@@ -18,6 +18,7 @@ void printEnergies(Result, int n = 8, int precision = 6);
 /* Input */
 arma::vec readVectorFromFile(std::string);
 
+
 /* Routines for DoS calculation */
 std::complex<double> rGreenF(double, double, double);
 double densityOfStates(double, double, const arma::mat&);

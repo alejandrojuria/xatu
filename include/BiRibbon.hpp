@@ -38,7 +38,7 @@ class BiRibbon : public System{
 
         /* Matrix routines for hamiltonian initialization */
         arma::mat matrixWithSpin(const arma::mat&);
-        arma::mat tightbindingMatrix(const arma::vec&);
+        arma::mat tightbindingMatrix(const arma::rowvec&);
         void createMotif();
         void initializeBlockMatrices();
         void prepareHamiltonian();

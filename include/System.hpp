@@ -34,7 +34,7 @@ class System : public Crystal{
     //// Methods
     public:
         /* Constructor and destructor */
-        System(){};
+        System();
         System(SystemConfiguration&);  
         ~System();
 

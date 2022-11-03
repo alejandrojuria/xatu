@@ -8,6 +8,9 @@
 
 // -------------------- Constructor and destructor --------------------
 
+// Default constructor
+System::System() : Crystal(){};
+
 System::System(SystemConfiguration& configuration) : Crystal(){
 
 	initializeCrystalAttributes(configuration);
