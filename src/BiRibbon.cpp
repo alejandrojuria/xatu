@@ -31,7 +31,7 @@ void BiRibbon::initializeConstants(){
 
     // System class attributes
 	this->ndim_      = 1;
-    this->orbitals_   = arma::urowvec{4};
+    this->orbitals_   = arma::urowvec{8};
     this->filling_   = 5;
 
 	//// Lattice parameters
@@ -50,7 +50,7 @@ void BiRibbon::initializeConstants(){
 	this->Vppp = -0.600;
 
 	// Spin-orbit coupling 
-	this->lambda = 1.5;
+	this->lambda = 0.0;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
 	this->zeeman = 1E-7;
@@ -104,7 +104,7 @@ void BiRibbon::createMotif(){
 		}
 		else{
 			motif.row(2*n) = (a1 + a2)*(n-1)/2 + a1;
-			motif.row(2*n + 1) = (a1 + a2)*(n-1)/2;
+			motif.row(2*n + 1) = (a1 + a2)*(n-1)/2 + a1 + n2;
 		};
 	};
 
@@ -117,10 +117,11 @@ void BiRibbon::createMotif(){
     int basisdim = 0;
     for(int i = 0; i < natoms; i++){
         int species = this->motif.row(i)(3);
-        basisdim += orbitals(species)*2;
+        basisdim += orbitals(species);
     }
     this->basisdim_   = basisdim;
-    this->fermiLevel_ = (int)natoms*filling;
+    this->filling_ = (int)natoms*filling;
+	this->fermiLevel_  = fermiLevel - 1; // Overwrite filling to match fermiLevel
 };
 
 
