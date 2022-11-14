@@ -2,6 +2,21 @@
 #include <numeric>
 
 
+/* Copy constructor */
+Crystal::Crystal(Crystal& crystal){
+
+	ndim_ 			= crystal.ndim;
+	bravaisLattice_ = crystal.bravaisLattice;
+	motif_          = crystal.motif;
+	unitCellList_   = crystal.unitCellList;
+    
+    natoms_ = motif.n_rows;
+	ncells_ = unitCellList.n_rows;
+
+	calculateReciprocalLattice();
+	extractLatticeParameters();
+}
+
 /* Initialize Crystal attributes from SystemConfiguration object */
 void Crystal::initializeCrystalAttributes(const SystemConfiguration& configuration){
     ndim_           = configuration.systemInfo.ndim;	
@@ -487,7 +502,12 @@ int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 		coefs(i) += ncell;
 		coefs(i) /= 2;
 	}
-	int index = coefs(0) + coefs(1)*ncell;
+	int index = 0;
+	
+	std::vector<int> cells_array = {1, ncell, ncell*ncell}; // Auxiliar array to avoid using std::pow
+	for(int i = 0; i < coefs.n_elem; i++){
+		index += coefs(i)*cells_array[i];
+	}
 
 	return index;
 };

@@ -6,11 +6,26 @@
 #include "System.hpp"
 
 
-// -------------------- Constructor and destructor --------------------
+// -------------------- Constructors and destructor --------------------
 
 // Default constructor
 System::System() : Crystal(){};
 
+// Copy constructor
+System::System(System& system) : Crystal(system){
+
+	systemName			 = system.systemName;
+	orbitals_            = system.orbitals;
+	hamiltonianMatrices  = system.hamiltonianMatrices;
+	overlapMatrices      = system.overlapMatrices;
+	filling_			 = system.filling;
+	fermiLevel_			 = filling_ - 1;
+	basisdim_ 			 = system.basisdim;
+
+	std::cout << "Correctly initiallized System object" << std::endl;
+}
+
+// Configuration constructor
 System::System(SystemConfiguration& configuration) : Crystal(){
 
 	initializeCrystalAttributes(configuration);
@@ -34,7 +49,6 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	overlapMatrices      = configuration.systemInfo.overlap;
 	filling_			 = configuration.systemInfo.filling;
 	fermiLevel_			 = filling_ - 1;
-	
 
     int basisdim = 0;
     for(int i = 0; i < natoms; i++){
