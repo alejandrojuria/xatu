@@ -39,7 +39,7 @@ yIBZ = [0, -rotatedK[1], M[1], 0]
 
 fig, ax = plt.subplots(1, 2, sharey=True)
 
-state = np.array(states[0]) + np.array(states[1])
+state = np.array(states[0])
 ax[0].scatter(kpoints[:, 0], kpoints[:, 1], c=state, marker='H')
 ax[0].plot(xHex, yHex, 'r-')
 ax[0].plot(xIBZ, yIBZ, 'r-')

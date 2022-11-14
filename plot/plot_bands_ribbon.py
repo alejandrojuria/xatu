@@ -4,7 +4,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-N = 5
+N = 10
 dimTB = int(2*(N+1)*8)
 
 plotBands = True
@@ -13,38 +13,34 @@ plotSpin = False
 
 # --------------------- Plot bands ---------------------
 if(plotBands):
-    file = open("bands_from_file", "r")
+    file = open("eigval.out", "r")
     lines = file.readlines()
-    kpoints = []
     energies = []
     for line in lines:
-        line = line.split('\t')
-        kpoints.append(float(line[0]))
-        kEnergy = np.array([float(i) for i in line[1:-1]])
-        energies.append(kEnergy)
+        line = line.split()
+        energy = np.array([float(i) for i in line])
+        energies.append(energy)
 
     energies = np.array(energies, dtype=object)
-    print(type(energies))
-    kpoints = np.array(kpoints, dtype=object)
 
     iband = 2*(N+1)*2
     fband = 2*(N+1)*8
     plt.figure()
     for i in range(iband, fband):
         if i in [2*(N+1)*5 - 2, 2*(N+1)*5 - 1, 2*(N+1)*5, 2*(N+1)*5 + 1]:
-            plt.plot(kpoints , energies[:, int(i)], 'b-')
+            plt.plot(energies[:, int(i)], 'b-')
         else:
-            plt.plot(kpoints , energies[:, int(i)], 'g-')
+            plt.plot(energies[:, int(i)], 'g-')
             continue
-    plt.plot(kpoints, energies[:, 2*(N+1)*5 - 3], 'g')
-    plt.plot(kpoints, energies[:, 2*(N+1)*5 + 2], 'g')
-    plt.title('Band structure N=4')
+    plt.plot(energies[:, 2*(N+1)*5 - 3], 'g')
+    plt.plot(energies[:, 2*(N+1)*5 + 2], 'g')
+    plt.title(f'Band structure N={N}')
     plt.xlabel(r'$k (A^{-1})$')
     plt.ylabel(r'$\epsilon (eV)$')
     
     plt.figure()
     gap = energies[:, int(2*(N+1)*5+2)] - energies[:, int(2*(N+1)*5-3)]
-    plt.plot(kpoints, gap, 'g-')
+    plt.plot(gap, 'g-')
     """prevGap = gap[0]
     for i in range(len(kpoints)):
         actualGap = gap[i]
@@ -55,7 +51,7 @@ if(plotBands):
     plt.plot(kpoints[nk-1:], gap[nk-1:], 'g-')
     rk = list(reversed(kpoints[:nk-1])) + kpoints[nk - 1]
     plt.plot(rk, gap[:nk-1], 'r-')"""
-    plt.title("Gap (N=4)")
+    plt.title(f"Gap (N={N})")
     #plt.legend(["Right branch", "Left branch"])
     plt.ylabel("Gap (eV)")
     plt.xlabel("$k (A^{-1})$")

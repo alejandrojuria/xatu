@@ -12,6 +12,7 @@
 #include "Crystal.hpp"
 #include "Result.hpp"
 #include "utils.hpp"
+#include "CrystalDFTConfiguration.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -24,6 +25,8 @@ using namespace std::chrono;
 
 int main(int argc, char* argv[]){
 
+    // Parse console stdin
+
     if (argc != 2){
 		throw std::invalid_argument("Error: One input file is expected");
 	}
@@ -34,12 +37,14 @@ int main(int argc, char* argv[]){
     int nrmbands = 0;
     int ncell = 40;
     arma::rowvec Q = {0., 0., 0.};
-    double eps_s = 3.76;
-    double eps   = 20;
+    double eps_s = 3.9;
+    double eps   = 40;
     double r0    = 1.589*eps/(1 + eps_s);
-    arma::rowvec parameters = {1., eps_s, r0};
+    
+    //arma::rowvec parameters = {1., eps_s, r0};
     //arma::rowvec parameters = {1., 4., 13.55};
-    //arma::rowvec parameters = {1., 1., 10.};
+    arma::rowvec parameters = {1., 1., 10.};
+    //arma::rowvec parameters = {1., 1., 20.};
     std::string modelfile = argv[1];    
 
     // ----------------- Model parameters & Output --------------------
@@ -69,7 +74,10 @@ int main(int argc, char* argv[]){
     cout << "#removed bands: " << nrmbands << endl;
     cout << "System configuration file: " << modelfile << "\n" << endl;
 
-    GExciton bulkExciton = GExciton(modelfile, ncell, nbands, nrmbands, parameters);
+    //SystemConfiguration config = CrystalDFTConfiguration(modelfile, 70);
+    SystemConfiguration config = SystemConfiguration(modelfile);
+    GExciton bulkExciton = GExciton(config, ncell, nbands, nrmbands, parameters);
+    arma::cout << "Orbitals: " << bulkExciton.orbitals << arma::endl;
     bulkExciton.setMode("realspace");
 
     cout << "Valence bands:\n" << bulkExciton.valenceBands << endl;
@@ -81,6 +89,7 @@ int main(int argc, char* argv[]){
     cout << "+---------------------------------------------------------------------------+" << endl;
 
     bulkExciton.brillouinZoneMesh(ncell);
+    //bulkExciton.reducedBrillouinZoneMesh(ncell/2, ncell);
     bulkExciton.initializeHamiltonian();
     bulkExciton.BShamiltonian();
     auto results = bulkExciton.diagonalize();
@@ -98,7 +107,7 @@ int main(int argc, char* argv[]){
     if(writeEigvals){
         std::cout << "Writing eigvals to file: " << filename << std::endl;
         fprintf(textfile_en, "%d\n", ncell);
-        results.writeEigenvalues(textfile_en, 16);
+        results.writeEigenvalues(textfile_en, 8);
     }
 
     if(writeStates){
@@ -108,23 +117,21 @@ int main(int argc, char* argv[]){
     
     if(writeWF){
         std::cout << "Writing k w.f. to file: " << filename_kwf << std::endl;
-        int nstates = 7;
+        int nstates = 8;
         for(int stateindex = 0; stateindex < nstates; stateindex++){
             results.writeExtendedReciprocalAmplitude(stateindex, textfile_kwf);        
         }
     }
 
     if(writeRSWF){
-        arma::uvec statesToWrite = arma::regspace<arma::uvec>(1, 7);
+        arma::uvec statesToWrite = arma::regspace<arma::uvec>(0, 7);
         std::cout << "Writing real space w.f. to file: " << filename_rswf << std::endl;
-        int holeIndex = 1;
         arma::rowvec holeCell = {0., 0., 0.};
+        int holeIndex = 0;
         
-        results.writeRealspaceAmplitude(0, holeIndex, holeCell, textfile_rswf, 8);
         for(unsigned int i = 0; i < statesToWrite.n_elem; i++){
-            fprintf(textfile_rswf, "#\n");
-            results.writeRealspaceAmplitude(statesToWrite(i), holeIndex, holeCell, textfile_rswf, 8);
-            std::cout << "Writing state " << i << " out of " << statesToWrite.n_elem << std::endl;
+            std::cout << "Writing state " << i + 1 << " out of " << statesToWrite.n_elem << std::endl;
+            results.writeRealspaceAmplitude(statesToWrite(i), holeIndex, holeCell, textfile_rswf, 10);
         }
     }
 

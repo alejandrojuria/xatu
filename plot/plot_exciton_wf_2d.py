@@ -15,7 +15,7 @@ def rotate_C3(position):
     return rotated_position
 
 # --------------------- Plot bands ---------------------
-file = open("./k_wf.out", "r")
+file = open("./kwf.out", "r")
 file.readline() # Skip header
 lines = file.readlines()
 kpoints = []
@@ -45,8 +45,8 @@ nk = int(np.sqrt(len(kpoints[:, 0])))
 
 plt.figure()
 #print(kpoints)
-#plt.hexbin(kpoints[:, 0], kpoints[:, 1], gridsize=(50, 50), C=coefs, cmap="Reds")
-plt.scatter(kpoints[:, 0], kpoints[:, 1], c=coefs)
+# plt.hexbin(kpoints[:, 0], kpoints[:, 1], gridsize=nk - 3, C=coefs)
+plt.scatter(kpoints[:, 0], kpoints[:, 1], c=coefs, marker="H")
 plt.colorbar()
 #plt.scatter(rotated_kpoints[:, 0], rotated_kpoints[:, 1], c=coefs)
 #plt.scatter(rotated_kpoints[:, 0], rotated_kpoints[:, 1], c=coefs, cmap="Reds")

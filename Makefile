@@ -1,23 +1,33 @@
+# Compiler & compiler flags
 CC = g++
 CFLAGS = -O2 -Wall -lm
-# SRC_DIR = $(PWD)/lib
-INCLUDE = -I/usr/lib/armadillo/include -I$(PWD)/include
-LIBS = -DARMA_DONT_USE_WRAPPER -lopenblas  -llapack -fopenmp
+
+# Include folders
+INCLUDE = -I$(PWD)/include
+
+# Libraries
+LIBS = -DARMA_DONT_USE_WRAPPER -llapack -lopenblas -larmadillo -fopenmp
+
+# Compilation targets
 SRC_FILES := $(wildcard src/*.cpp)
 OBJECTS := $(patsubst src/%.cpp, build/%.o, $(SRC_FILES))
 
-build: $(OBJECTS)
+# Create folders
+dummy_build_folder := $(shell mkdir -p build)
+dummy_bin_folder := $(shell mkdir -p bin)
 
-system: $(OBJECTS) main/system.cpp
-	$(CC) $(CFLAGS) $(INCLUDE) $(LIBS) -o bin/$@ $^
+build:	$(OBJECTS)
+	
+xatu: 	$(OBJECTS) main/xatu.cpp
+	$(CC) -o bin/$@ $^ $(CFLAGS) $(LIBS) $(INCLUDE)
 
 exciton: $(OBJECTS) main/gexciton.cpp
-	$(CC) $(CFLAGS) $(INCLUDE) $(LIBS) -o bin/$@ $^
+	$(CC) -o bin/$@ $^ $(CFLAGS) $(LIBS) $(INCLUDE)
 
 # Compilation steps
 # $< refers to first prerequisite and $@ to the target
 build/%.o: src/%.cpp
-	$(CC) $(CFLAGS) $(INCLUDE) $(LIBS) -c $< -o $@
+	$(CC) -c $< -o $@ $(CFLAGS) $(LIBS) $(INCLUDE)
 
 clean:
 	rm -f build/*.o bin/*
