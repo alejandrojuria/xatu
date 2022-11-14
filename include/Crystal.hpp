@@ -50,7 +50,8 @@ class Crystal {
     //// Methods
     protected:
         Crystal(){}; // Protected so that Crystal can not be initialized (abstract)
-    public:   
+    public:
+        Crystal(Crystal&); // Copy constructor
         ~Crystal(){};
 
         int getDimension();
