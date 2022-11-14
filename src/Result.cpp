@@ -174,7 +174,6 @@ arma::cx_mat Result::symmetrizeStates(const arma::cx_vec& state, const arma::cx_
     return states;
 }
 
-
 void Result::writeReciprocalAmplitude(const arma::cx_vec& statecoefs, FILE* textfile){
     fprintf(textfile, "kx\tky\tkz\tProb.\n");
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
@@ -234,8 +233,10 @@ void Result::writeExtendedReciprocalAmplitude(const arma::cx_vec& statecoefs, FI
         coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
         arma::mat cells = exciton.generateCombinations(3, exciton.ndim, true);
         for(unsigned int n = 0; n < cells.n_rows; n++){
-            arma::rowvec cell = cells.row(n)(0)*exciton.reciprocalLattice.row(0) + 
-                                cells.row(n)(1)*exciton.reciprocalLattice.row(1);
+            arma::rowvec cell = arma::rowvec(3);
+            for(int j = 0; j < exciton.ndim; j++){
+                cell += cells.row(n)(j)*exciton.reciprocalLattice.row(j);
+            }
             arma::rowvec displaced_k = exciton.kpoints.row(i) + cell;
             if(abs(displaced_k(0)) < boxLimit && abs(displaced_k(1)) < boxLimit){
                 fprintf(textfile, "%11.8lf\t%11.8lf\t%11.8lf\t%11.8lf\n", 
