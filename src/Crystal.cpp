@@ -3,7 +3,7 @@
 
 
 /* Copy constructor */
-Crystal::Crystal(Crystal& crystal){
+Crystal::Crystal(const Crystal& crystal){
 
 	ndim_ 			= crystal.ndim;
 	bravaisLattice_ = crystal.bravaisLattice;

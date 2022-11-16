@@ -35,8 +35,8 @@ class System : public Crystal{
     public:
         /* Constructor and destructor */
         System();
-        System(System&);
-        System(SystemConfiguration&);  
+        System(const System&);
+        System(const SystemConfiguration&);  
         ~System();
 
         void setFilling(int);

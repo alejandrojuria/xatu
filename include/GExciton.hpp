@@ -103,29 +103,28 @@ class GExciton : public System {
     // ----------------------------------- Methods -----------------------------------
     // Constructor & Destructor
     private:
-        // Remove default constructor
-        GExciton();
         // Private constructor to leverage to another method parameter initialization
         GExciton(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
 
     public:
+        
         // Specify number of bands participating (int)
-        GExciton(SystemConfiguration&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
+        GExciton(const SystemConfiguration&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
         // Specify which bands participate (vector with band numbers)
-        GExciton(SystemConfiguration&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
+        GExciton(const SystemConfiguration&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
         
         // Use two files: the mandatory one for system config., and one for exciton config.
-        GExciton(SystemConfiguration&, ExcitonConfiguration&);
+        GExciton(const SystemConfiguration&, const ExcitonConfiguration&);
 
         // Initialize exciton passing directly a System object instead of a file using removed bands
-        GExciton(System&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
+        GExciton(const System&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
         // Initialize exciton passing directly a System object instead of a file using bands vector
-        GExciton(System&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
+        GExciton(const System&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
         ~GExciton();

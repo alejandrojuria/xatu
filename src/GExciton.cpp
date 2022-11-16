@@ -12,10 +12,6 @@
 using namespace arma;
 using namespace std::chrono;
 
-GExciton::GExciton(){
-    throw std::invalid_argument("Error: GExciton must be invoked with at least one parameter (systemfile)");
-};
-
 void GExciton::initializeExcitonAttributes(int ncell, const arma::ivec& bands, 
                                       const arma::rowvec& parameters, const arma::rowvec& Q){
     this->ncell_      = ncell;
@@ -59,7 +55,7 @@ void GExciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     this->conductionBands_ = arma::ivec(conduction);
 }
 
-GExciton::GExciton(SystemConfiguration& config, int ncell, const arma::ivec& bands, 
+GExciton::GExciton(const SystemConfiguration& config, int ncell, const arma::ivec& bands, 
                   const arma::rowvec& parameters, const arma::rowvec& Q) : 
                   System(config) {
 
@@ -88,7 +84,7 @@ GExciton::GExciton(SystemConfiguration& config, int ncell, const arma::ivec& ban
     }
 };
 
-GExciton::GExciton(SystemConfiguration& config, int ncell, int nbands, int nrmbands, 
+GExciton::GExciton(const SystemConfiguration& config, int ncell, int nbands, int nrmbands, 
                   const arma::rowvec& parameters, const arma::rowvec& Q) : 
           GExciton(config, ncell, {}, parameters, Q) {
     
@@ -107,12 +103,12 @@ GExciton::GExciton(SystemConfiguration& config, int ncell, int nbands, int nrmba
 
 
 // This constructor is intented to run directly 
-GExciton::GExciton(SystemConfiguration& config, ExcitonConfiguration& excitonConfig) : System(config){
+GExciton::GExciton(const SystemConfiguration& config, const ExcitonConfiguration& excitonConfig) : System(config){
     initializeExcitonAttributes(excitonConfig);
     std::cout << "Correctly initialized Exciton object" << std::endl;
 }
 
-GExciton::GExciton(System& system, int ncell, const arma::ivec& bands, 
+GExciton::GExciton(const System& system, int ncell, const arma::ivec& bands, 
                   const arma::rowvec& parameters, const arma::rowvec& Q) : 
                   System(system) {
 
@@ -141,7 +137,7 @@ GExciton::GExciton(System& system, int ncell, const arma::ivec& bands,
     }
 };
 
-GExciton::GExciton(System& system, int ncell, int nbands, int nrmbands, 
+GExciton::GExciton(const System& system, int ncell, int nbands, int nrmbands, 
                   const arma::rowvec& parameters, const arma::rowvec& Q) : 
           GExciton(system, ncell, {}, parameters, Q) {
     

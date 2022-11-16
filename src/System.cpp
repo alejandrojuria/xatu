@@ -12,7 +12,7 @@
 System::System() : Crystal(){};
 
 // Copy constructor
-System::System(System& system) : Crystal(system){
+System::System(const System& system) : Crystal(system){
 
 	systemName			 = system.systemName;
 	orbitals_            = system.orbitals;
@@ -26,7 +26,7 @@ System::System(System& system) : Crystal(system){
 }
 
 // Configuration constructor
-System::System(SystemConfiguration& configuration) : Crystal(){
+System::System(const SystemConfiguration& configuration) : Crystal(){
 
 	initializeCrystalAttributes(configuration);
 	initializeSystemAttributes(configuration);

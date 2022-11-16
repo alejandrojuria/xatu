@@ -110,7 +110,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
 
             std::istringstream iss(line);
             iss >> cellIndex >> parenthesis >> x >> y >> z;
-            std::vector coefCombinations = {x, y, z};
+            std::vector<int> coefCombinations = {x, y, z};
 
             if(cellIndex <= ncells){
                 arma::rowvec cell = arma::rowvec(3);
