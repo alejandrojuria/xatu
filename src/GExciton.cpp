@@ -907,7 +907,7 @@ double GExciton::pairDensityOfStates(double energy, double delta) const{
     double dos = 0;
     for(int v = 0; v < (int)valenceBands.n_elem; v++){
         for(int c = 0; c < (int)conductionBands.n_elem; c++){
-            for(int i = 0; i < (int)kpoints.n_elem; i++){
+            for(int i = 0; i < nk; i++){
 
                 arma::uword vband = bandToIndex.at(valenceBands(v)); // Unsigned integer 
                 arma::uword cband = bandToIndex.at(conductionBands(c));
@@ -934,7 +934,7 @@ cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, std::string si
     cx_vec coefs = arma::zeros<cx_vec>(nk);
     int closestKindex = -1;
     double eDiff, prevDiff;
-    for(int n = 1; n < (int)kpoints.n_elem/2; n++){
+    for(int n = 1; n < nk/2; n++){
 
         eDiff = gapEnergy(n) - energy;
         prevDiff = gapEnergy(n-1) - energy;
@@ -946,7 +946,6 @@ cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, std::string si
     cout << "Selected k: " << kpoints(closestKindex) << "\t" << closestKindex << endl;
     cout << "Closest gap energy: " << gapEnergy(closestKindex) << endl;
     // By virtue of band symmetry, we expect n < nk/2
-    int nk = kpoints.n_elem;
     double dispersion = PI/(16*a);
     if(side == "left"){
         coefs(closestKindex) = 1.;
@@ -980,8 +979,8 @@ double GExciton::fermiGoldenRule(const GExciton& targetExciton, const arma::cx_v
 
             arma::cx_vec coefsK, coefsK2, coefsKQ, coefsK2Q;
 
-            int vf = bandToIndex[finalBasis(i, 0)];
-            int cf = bandToIndex[finalBasis(i, 1)];
+            int vf = targetExciton.bandToIndex.at(finalBasis(i, 0));
+            int cf = targetExciton.bandToIndex.at(finalBasis(i, 1));
             double kf_index = finalBasis(i, 2);
             
             int vi = bandToIndex[initialBasis(j, 0)];

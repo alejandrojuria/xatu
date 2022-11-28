@@ -184,8 +184,6 @@ class GExciton : public System {
         arma::cx_vec atomicToLatticeGauge(const arma::cx_vec&, const arma::rowvec&);
         arma::cx_mat fixGlobalPhase(arma::cx_mat&);
 
-        // Routines to compute Fermi Golden Rule
-        arma::cx_vec ehPairCoefs(double, const arma::vec&, std::string side = "right");
 
     public:
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
@@ -201,9 +199,8 @@ class GExciton : public System {
         void BShamiltonian(const arma::imat& basis = {});
         Result diagonalize(std::string method = "diag", int nstates = 8);
 
-        // Fermi golden rule        
+        // Fermi golden rule       
         double pairDensityOfStates(double, double) const;
-
-        // Fermi golden rule between an exciton and a general non-interacting e-h pair
+        arma::cx_vec ehPairCoefs(double, const arma::vec&, std::string side = "right");
         double fermiGoldenRule(const GExciton&, const arma::cx_vec&, const arma::cx_vec&, double);
 };
