@@ -107,7 +107,6 @@ class GExciton : public System {
         GExciton(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
 
     public:
-        
         // Specify number of bands participating (int)
         GExciton(const SystemConfiguration&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
@@ -186,7 +185,7 @@ class GExciton : public System {
         arma::cx_mat fixGlobalPhase(arma::cx_mat&);
 
         // Routines to compute Fermi Golden Rule
-        arma::cx_vec ehPairCoefs(double, const arma::vec&, bool zone = true);
+        arma::cx_vec ehPairCoefs(double, const arma::vec&, std::string side = "right");
 
     public:
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
@@ -203,7 +202,10 @@ class GExciton : public System {
         Result diagonalize(std::string method = "diag", int nstates = 8);
 
         // Fermi golden rule        
-        arma::cx_vec wavePacket(double, double);
-        double pairDensityOfStates(const arma::ivec&, const arma::ivec&, double, double);
+        double pairDensityOfStates(double, double);
+
+        // Fermi golden rule specific to bulk-edge transition
         double fermiGoldenRule(const arma::cx_vec&, double);
+        // Fermi golden rule between an exciton and a general non-interacting e-h pair
+        double fermiGoldenRule(const GExciton&, const arma::cx_vec&, const arma::cx_vec&, double);
 };

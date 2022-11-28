@@ -900,47 +900,25 @@ arma::mat GExciton::C3ExcitonBasisRep(){
 
 // ------------- Routines to compute Fermi Golden Rule -------------
 
-/* Method to compute density of states associated to electron-hole
-pairs, particularized to edge bands only */
-double GExciton::pairDensityOfStates(const arma::ivec& valence, const arma::ivec& conduction, double energy, double delta){
+/* Method to compute density of states associated to non-interacting electron-hole pairs.
+Considers only the bands defined as the basis for excitons. */
+double GExciton::pairDensityOfStates(double energy, double delta){
     
     double dos = 0;
-    for(int n = 0; n < (int)valence.n_elem; n++){
-        for(int m = 0; m < (int)conduction.n_elem; m++){
+    for(int v = 0; v < (int)valenceBands.n_elem; v++){
+        for(int c = 0; c < (int)conductionBands.n_elem; c++){
             for(int i = 0; i < (int)kpoints.n_elem; i++){
 
-                uword vband = bandToIndex[valence(n)]; // Unsigned integer 
-                uword cband = bandToIndex[conduction(m)];
-                //cx_vec coefK = eigvecKStack.slice(i).col(vband);
-                //cx_vec coefKQ = eigvecKQStack.slice(i).col(cband);
-                //double ftD = abs(ftStack(0));
-                //double D = abs(tDirect(ftD, coefK, coefKQ, coefK, coefKQ));
-                //cout << D << endl;
+                arma::uword vband = bandToIndex[valenceBands(v)]; // Unsigned integer 
+                arma::uword cband = bandToIndex[conductionBands(c)];
 
                 double stateEnergy = eigvalKStack.col(i)(cband) - eigvalKStack.col(i)(vband);
                 dos += -PI*imag(rGreenF(energy, delta, stateEnergy));
             };
         }
     }
-    //if(!specifyEdges.is_empty() && specifyEdges(0) != specifyEdges(1)){ // Add degenerate bands
-    //    dos *= 4;
-    //}
-    dos /= (kpoints.n_elem*a);
 
     return dos;
-}
-
-/* Private method to create an e-h edge state corresponding to a 
-wave packets centered in a given kpoint and with a given dispersion */
-cx_vec GExciton::wavePacket(double kcenter, double dispersion){
-
-    double coef = 1./(dispersion*sqrt(2*PI));
-    cx_vec state = arma::zeros<cx_vec>(nk);
-    for(int n = 0; n < nk; n++){
-        state(n) = coef*exp(-(kpoints(n) - kcenter)*(kpoints(n) - kcenter)/(dispersion*dispersion));
-    }
-
-    return state;
 }
 
 
@@ -951,7 +929,7 @@ Input: double energy, vec kpoints (provides the search grid)
 vec gapEnergy: vector of gap energies associated to each k
 Output: vec of coefficients in e-h pair basis associated to desired
 pair */
-cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, bool zone){
+cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, std::string side){
 
     cx_vec coefs = arma::zeros<cx_vec>(nk);
     int closestKindex = -1;
@@ -970,12 +948,10 @@ cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, bool zone){
     // By virtue of band symmetry, we expect n < nk/2
     int nk = kpoints.n_elem;
     double dispersion = PI/(16*a);
-    if(zone == true){
-        //coefs = wavePacket(kpoints(closestKindex), dispersion);
+    if(side == "left"){
         coefs(closestKindex) = 1.;
     }
-    else if(zone == false){
-        //coefs = wavePacket(kpoints(nk - closestKindex), dispersion);
+    else if(side == "right"){
         coefs(nk - 1 - closestKindex) = 1.;
     }
 
@@ -986,99 +962,74 @@ cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, bool zone){
     return coefs;
 };
 
-/* Routine to compute the Fermi Golden Rule between a bulk exciton 
-(the ground state one, but it is prepared for any) and an edge excitation
-without interaction matching the initial energy.
-Input: cx_vec coefs of bulk exciton, double Ei energy of bulk exc,
-int nbands bulk bands that participate (nbands valence and nband conduction)
-Output: double transition rate from bulk exciton to edge one */
-double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
-{
+
+/* Method to compute the transition rate from one exciton to a general non-interacting electron-hole pair.
+It checks that the energy of the final state is close to the specified energy. Otherwise, it throws an error. */
+double GExciton::fermiGoldenRule(const GExciton& targetExciton, const arma::cx_vec& initialState, const arma::cx_vec& finalState, double energy){
 
     double transitionRate = 0;
     // Previously here I had bands={} in the routines below
-    arma::imat bulkBasis = specifyBasisSubset({});
-    arma::imat edgeBasis = specifyBasisSubset({});
-    int nedge = edgeBasis.n_rows;
-    int nbulk = bulkBasis.n_rows;
-    int nBulkBands = nbands - nrmbands;
-    int nEdgeBands = nrmbands;
+    arma::imat initialBasis = basisStates;
+    arma::imat finalBasis = targetExciton.basisStates;
 
-    cx_mat W = arma::zeros<cx_mat>(nedge, nbulk);
+    int initialBands = nbands - nrmbands;
+    int finalBands = nrmbands;
+
+    cx_mat W = arma::zeros<cx_mat>(finalBasis.n_rows, initialBasis.n_rows);
 
     std::complex<double> ft;
     //std::complex<double> ftX = fourierTransform(Q);
 
-    cx_cube atomicGCoefsKstack = eigvecKStack;
-    cx_cube atomicGCoefsKQstack = eigvecKQStack;
-
     // -------- Main loop (W initialization) --------
     #pragma omp parallel for schedule(static, 1) collapse(2)
-    for (int i = 0; i < nedge; i++){
-        for (int j = 0; j < nbulk; j++){
+    for (int i = 0; i < finalBasis.n_rows; i++){
+        for (int j = 0; j < initialBasis.n_rows; j++){
 
-            double ke_index = edgeBasis(i, 2);
-            int v = edgeBasis(i, 0);
-            int c = edgeBasis(i, 1);
+            arma::cx_vec coefsK, coefsK2, coefsKQ, coefsK2Q;
 
-            int keQ_index = ke_index;
-
-            int vIndexEdge = bandToIndex[v];
-            int cIndexEdge = bandToIndex[c];
-
-            double kb_index = bulkBasis(j, 2);
-            int v2 = bulkBasis(j, 0);
-            int c2 = bulkBasis(j, 1);
-
-            int knumber = j/(nBulkBands*nBulkBands);
-            int bandnumber = j%(nBulkBands*nBulkBands);
-
-            int vIndexBulk = bandToIndex[v2];
-            int cIndexBulk = bandToIndex[c2];
-
-            int kbQ_index = kb_index;
+            int vf = bandToIndex[finalBasis(i, 0)];
+            int cf = bandToIndex[finalBasis(i, 1)];
+            double kf_index = finalBasis(i, 2);
+            
+            int vi = bandToIndex[initialBasis(j, 0)];
+            int ci = bandToIndex[initialBasis(j, 1)];
+            double ki_index = initialBasis(j, 2);
 
             // Using the atomic gauge
-            cx_vec coefsK = atomicGCoefsKstack.slice(ke_index).col(vIndexEdge);
-            cx_vec coefsKQ = atomicGCoefsKQstack.slice(keQ_index).col(cIndexEdge);
-            cx_vec coefsK2 = atomicGCoefsKstack.slice(kb_index).col(vIndexBulk);
-            cx_vec coefsK2Q = atomicGCoefsKQstack.slice(kbQ_index).col(cIndexBulk);
-
-            int kbke_index; // Always positive
-            if(ke_index > kb_index){
-                kbke_index = -(kb_index - ke_index);
+            if(gauge == "atomic"){
+                coefsK = latticeToAtomicGauge(eigvecKStack.slice(kf_index).col(vf), kpoints.row(kf_index));
+                coefsKQ = latticeToAtomicGauge(eigvecKQStack.slice(kf_index).col(cf), kpoints.row(kf_index));
+                coefsK2 = latticeToAtomicGauge(eigvecKStack.slice(ki_index).col(vi), kpoints.row(ki_index));
+                coefsK2Q = latticeToAtomicGauge(eigvecKQStack.slice(ki_index).col(ci), kpoints.row(ki_index));
             }
             else{
-                kbke_index = kb_index - ke_index;
+                coefsK = eigvecKStack.slice(kf_index).col(vf);
+                coefsKQ = eigvecKQStack.slice(kf_index).col(cf);
+                coefsK2 = eigvecKStack.slice(ki_index).col(vi);
+                coefsK2Q = eigvecKQStack.slice(ki_index).col(ci);
             }
-            std::complex<double> ftD = ftStack(kbke_index);
 
-            // Exact interaction (TO BE IMPLEMENTED YET)
-            //std::complex<double> D = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, kArray, motif, potentialMatrix, ncell)
-            //std::complex<double> X = exactInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, )
+            std::complex<double> D, X;
+            if (mode == "realspace"){
+                int effective_k_index = findEquivalentPointBZ(kpoints.row(ki_index) - kpoints.row(kf_index), ncell);
+                arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
+                D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
+                X = 0;
 
-            // Compute matrix elements
-            //cout << bandnumber << knumber << endl;
-            //cout << nedge - i - 1 << "--" << nbulk - 1 - (nBulkBands*nBulkBands - 1 - bandnumber) - knumber*nBulkBands*nBulkBands << endl;
-            //W(nedge - i - 1, nbulk - 1 - (nBulkBands*nBulkBands - 1 - bandnumber) - knumber*nBulkBands*nBulkBands) = conj(W(i,j));
+            }
+            else if (mode == "reciprocalspace"){
+                arma::rowvec k = kpoints.row(ki_index);
+                arma::rowvec k2 = kpoints.row(kf_index);
+                D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
+                X = 0;
+            }
+            
+            W(i, j) = - (D - X);                
         };
     };
 
-   
-    // Compute gap energy between conduction and valence edge bands
-    uword vband = bandToIndex[fermiLevel]; // Unsigned integer 
-    uword cband = bandToIndex[fermiLevel + nrmbands];
-    uvec bands = {vband, cband};
-
-    vec gapEnergy = (eigvalKStack.row(cband) - eigvalKStack.row(vband)).t();
-
-    cx_vec ehCoefs1 = ehPairCoefs(initialE, gapEnergy, true);
-    cx_vec ehCoefs2 = ehPairCoefs(initialE, gapEnergy, false);
-
-    arma::mat edgeBands = eigvalKStack.rows(bands);
-
     double delta = 2.4/(2*ncell); // Adjust delta depending on number of k points
-    double rho = pairDensityOfStates(valenceBands, conductionBands, pairEnergy, delta);
+    double rho = targetExciton.pairDensityOfStates(pairEnergy, delta);
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
     //cout << initialCoefs << endl;
@@ -1087,7 +1038,9 @@ double GExciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
     transitionRate = 2*PI*(pow(abs(arma::cdot(ehCoefs1, W*initialCoefs)),2) + pow(abs(arma::cdot(ehCoefs2, W*initialCoefs)),2))*rho/hbar;
 
     return transitionRate;
-};
+
+}
+
 
 void GExciton::printInformation(){
     cout << std::left << std::setw(30) << "Number of cells: " << ncell << endl;

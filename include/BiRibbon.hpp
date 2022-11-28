@@ -45,6 +45,7 @@ class BiRibbon : public System{
 
     public:
         void setZeeman(double);
+        void applyElectricField(double);
 
         /* Some utilities/extra information */
         arma::cx_mat inversionOperator(const arma::cx_vec&);

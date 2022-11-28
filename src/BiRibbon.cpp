@@ -50,7 +50,7 @@ void BiRibbon::initializeConstants(){
 	this->Vppp = -0.600;
 
 	// Spin-orbit coupling 
-	this->lambda = 0.0;
+	this->lambda = 1.5;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
 	this->zeeman = 1E-7;
@@ -319,3 +319,12 @@ cx_mat BiRibbon::inversionOperator(const cx_vec& eigenvector){
 	return P*eigenvector;
 };
 
+
+/* Method to modify the onsite energies according to a electric field perpendicular to the periodic direction */
+void BiRibbon::applyElectricField(double amplitude){
+
+	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*amplitude;
+	for(int i = 0; i < natoms; i++){
+		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField*motif.row(i)(0);
+	}
+}
