@@ -902,15 +902,15 @@ arma::mat GExciton::C3ExcitonBasisRep(){
 
 /* Method to compute density of states associated to non-interacting electron-hole pairs.
 Considers only the bands defined as the basis for excitons. */
-double GExciton::pairDensityOfStates(double energy, double delta){
+double GExciton::pairDensityOfStates(double energy, double delta) const{
     
     double dos = 0;
     for(int v = 0; v < (int)valenceBands.n_elem; v++){
         for(int c = 0; c < (int)conductionBands.n_elem; c++){
             for(int i = 0; i < (int)kpoints.n_elem; i++){
 
-                arma::uword vband = bandToIndex[valenceBands(v)]; // Unsigned integer 
-                arma::uword cband = bandToIndex[conductionBands(c)];
+                arma::uword vband = bandToIndex.at(valenceBands(v)); // Unsigned integer 
+                arma::uword cband = bandToIndex.at(conductionBands(c));
 
                 double stateEnergy = eigvalKStack.col(i)(cband) - eigvalKStack.col(i)(vband);
                 dos += -PI*imag(rGreenF(energy, delta, stateEnergy));
@@ -964,21 +964,14 @@ cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, std::string si
 
 
 /* Method to compute the transition rate from one exciton to a general non-interacting electron-hole pair.
-It checks that the energy of the final state is close to the specified energy. Otherwise, it throws an error. */
+It checks that the energy of the final state is close to the specified energy. Otherwise, it throws an error. 
+It assumes that both exciton systems have been initialized already. */
 double GExciton::fermiGoldenRule(const GExciton& targetExciton, const arma::cx_vec& initialState, const arma::cx_vec& finalState, double energy){
 
     double transitionRate = 0;
-    // Previously here I had bands={} in the routines below
     arma::imat initialBasis = basisStates;
     arma::imat finalBasis = targetExciton.basisStates;
-
-    int initialBands = nbands - nrmbands;
-    int finalBands = nrmbands;
-
     cx_mat W = arma::zeros<cx_mat>(finalBasis.n_rows, initialBasis.n_rows);
-
-    std::complex<double> ft;
-    //std::complex<double> ftX = fourierTransform(Q);
 
     // -------- Main loop (W initialization) --------
     #pragma omp parallel for schedule(static, 1) collapse(2)
@@ -997,14 +990,14 @@ double GExciton::fermiGoldenRule(const GExciton& targetExciton, const arma::cx_v
 
             // Using the atomic gauge
             if(gauge == "atomic"){
-                coefsK = latticeToAtomicGauge(eigvecKStack.slice(kf_index).col(vf), kpoints.row(kf_index));
-                coefsKQ = latticeToAtomicGauge(eigvecKQStack.slice(kf_index).col(cf), kpoints.row(kf_index));
+                coefsK = latticeToAtomicGauge(targetExciton.eigvecKStack.slice(kf_index).col(vf), kpoints.row(kf_index));
+                coefsKQ = latticeToAtomicGauge(targetExciton.eigvecKQStack.slice(kf_index).col(cf), kpoints.row(kf_index));
                 coefsK2 = latticeToAtomicGauge(eigvecKStack.slice(ki_index).col(vi), kpoints.row(ki_index));
                 coefsK2Q = latticeToAtomicGauge(eigvecKQStack.slice(ki_index).col(ci), kpoints.row(ki_index));
             }
             else{
-                coefsK = eigvecKStack.slice(kf_index).col(vf);
-                coefsKQ = eigvecKQStack.slice(kf_index).col(cf);
+                coefsK = targetExciton.eigvecKStack.slice(kf_index).col(vf);
+                coefsKQ = targetExciton.eigvecKQStack.slice(kf_index).col(cf);
                 coefsK2 = eigvecKStack.slice(ki_index).col(vi);
                 coefsK2Q = eigvecKQStack.slice(ki_index).col(ci);
             }
@@ -1032,10 +1025,8 @@ double GExciton::fermiGoldenRule(const GExciton& targetExciton, const arma::cx_v
     double rho = targetExciton.pairDensityOfStates(pairEnergy, delta);
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
-    //cout << initialCoefs << endl;
-    cout << "First t.r. (-k): " << 2*PI*pow(abs(arma::cdot(ehCoefs1, W*initialCoefs)),2)*rho/hbar << endl;
-    cout << "Second t.r. (k): " << 2*PI*pow(abs(arma::cdot(ehCoefs2, W*initialCoefs)),2)*rho/hbar << endl;
-    transitionRate = 2*PI*(pow(abs(arma::cdot(ehCoefs1, W*initialCoefs)),2) + pow(abs(arma::cdot(ehCoefs2, W*initialCoefs)),2))*rho/hbar;
+
+    transitionRate = 2*PI*pow(abs(arma::cdot(finalState, W*initialState)),2)*rho/hbar;
 
     return transitionRate;
 

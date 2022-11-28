@@ -202,10 +202,8 @@ class GExciton : public System {
         Result diagonalize(std::string method = "diag", int nstates = 8);
 
         // Fermi golden rule        
-        double pairDensityOfStates(double, double);
+        double pairDensityOfStates(double, double) const;
 
-        // Fermi golden rule specific to bulk-edge transition
-        double fermiGoldenRule(const arma::cx_vec&, double);
         // Fermi golden rule between an exciton and a general non-interacting e-h pair
         double fermiGoldenRule(const GExciton&, const arma::cx_vec&, const arma::cx_vec&, double);
 };
