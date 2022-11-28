@@ -176,14 +176,7 @@ Sz of a TB eigenstate. */
 double System::expectedSpinZValue(const arma::cx_vec& eigvec){
 
 	arma::cx_vec spinEigvalues = {1./2, -1./2};
-    arma::cx_vec spinVector = arma::zeros<arma::cx_vec>(basisdim, 1);
-    int vecIterator = 0;
-    for(int atomIndex = 0; atomIndex < natoms; atomIndex++){
-        int species = motif.row(atomIndex)(3);
-        spinVector.subvec(vecIterator, vecIterator + orbitals(species)) = 
-                    arma::kron(spinEigvalues, arma::ones(orbitals(species)/2, 1));
-    }
-
+    arma::cx_vec spinVector = arma::kron(arma::ones(basisdim/2), spinEigvalues);
 	arma::cx_vec spinEigvec = eigvec % spinVector;
 
 	return real(arma::cdot(eigvec, spinEigvec));
