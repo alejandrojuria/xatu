@@ -333,8 +333,9 @@ void BiRibbon::applyElectricField(double amplitude){
 and identify them. */
 void BiRibbon::offsetEdges(double energy){
 
-	arma::uvec indices = {0, 1};
+	arma::uvec indices = {(unsigned)natoms - 2, (unsigned)natoms - 1};
+	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*energy;
 	for (unsigned int i : indices){
-		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8, (i + 1)*8) += energy;
+		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField;
 	}
 }
