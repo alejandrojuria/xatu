@@ -59,7 +59,7 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 }
 
 /* Bloch hamiltonian for posterior diagonalization. Input: arma::vec k (wave number) */
-arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
+arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular) const{
 
 	arma::cx_mat h = arma::zeros<arma::cx_mat>(basisdim, basisdim);
 	std::complex<double> imag(0, 1);
@@ -77,7 +77,7 @@ arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
 };
 
 /* Overlap matrix in reciprocal space to solve generalized eigenvalue problem */
-arma::cx_mat System::overlap(arma::rowvec k, bool isTriangular){
+arma::cx_mat System::overlap(arma::rowvec k, bool isTriangular) const{
 
 	arma::cx_mat s = arma::zeros<arma::cx_mat>(basisdim, basisdim);
 	std::complex<double> imag(0, 1);
@@ -104,7 +104,7 @@ void System::setFilling(int filling){
 	}
 }
 
-void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec, bool triangular){
+void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec, bool triangular) const {
 	arma::cx_mat h = hamiltonian(k, triangular);
 	double auToEV = 27.2;
 	if (!overlapMatrices.empty()){
@@ -127,7 +127,7 @@ void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec
 	
 }
 
-void System::solveBands(std::string kpointsfile, bool triangular){
+void System::solveBands(std::string kpointsfile, bool triangular) const {
 	std::ifstream inputfile;
 	std::string line;
 	double kx, ky, kz;
@@ -153,7 +153,7 @@ void System::solveBands(std::string kpointsfile, bool triangular){
 	}
 }
 
-void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool triangular){
+void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool triangular) const {
 	// First compute X
 	arma::cx_mat s = overlap(k, triangular);
 	arma::vec eigval;

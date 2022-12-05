@@ -42,10 +42,10 @@ class System : public Crystal{
         void setFilling(int);
 
         /* Bloch Hamiltonian */
-        arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false);
-        arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false);
-        void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&, bool triangular = false);
-        void solveBands(std::string, bool triangular = false);
+        arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false) const;
+        arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false) const;
+        void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&, bool triangular = false) const;
+        void solveBands(std::string, bool triangular = false) const;
 
         /* Expected value of spin components */
         double expectedSpinZValue(const arma::cx_vec&);
@@ -55,5 +55,5 @@ class System : public Crystal{
         void initializeSystemAttributes(const SystemConfiguration&);
 
     private:
-        void orthogonalize(const arma::rowvec&, arma::cx_mat&, bool);
+        void orthogonalize(const arma::rowvec&, arma::cx_mat&, bool) const;
 };
