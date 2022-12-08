@@ -8,7 +8,7 @@
 0.05d0
 #type of broadening (available: 'lorentzian')
 lorentzian
-#name (tag) of the case study
+#name (tag) of the case study (available: 'hBN_TB', 'GeS_HSE06_TB')
 hBN_TB
 #output kubo name files
 kubo_hBN_sp.dat
