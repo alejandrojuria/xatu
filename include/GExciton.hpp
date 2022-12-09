@@ -19,6 +19,7 @@
 #define eps0 8.8541878E-12
 #endif
 
+namespace xatu {
 
 class GExciton : public System {
 
@@ -204,3 +205,5 @@ class GExciton : public System {
         arma::cx_vec ehPairCoefs(double, const arma::vec&, std::string side = "right");
         double fermiGoldenRule(const GExciton&, const arma::cx_vec&, const arma::cx_vec&, double);
 };
+
+}

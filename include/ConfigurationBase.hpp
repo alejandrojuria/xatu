@@ -5,6 +5,7 @@
 #include <iostream>
 #include <map>
 
+namespace xatu {
 
 class ConfigurationBase {
 
@@ -62,3 +63,5 @@ class ConfigurationBase {
     
         void restartFileStream(); 
 };
+
+}

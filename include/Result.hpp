@@ -3,6 +3,8 @@
 #include "GExciton.hpp"
 #include "forward_declaration.hpp"
 
+namespace xatu {
+
 class Result{
 
     private:
@@ -63,3 +65,5 @@ class Result{
         double boundingBoxBZ();
         arma::cx_vec addExponential(arma::cx_vec&, const arma::rowvec&);
 };
+
+}

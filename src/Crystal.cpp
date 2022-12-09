@@ -1,6 +1,7 @@
 #include "Crystal.hpp"
 #include <numeric>
 
+namespace xatu {
 
 /* Copy constructor */
 Crystal::Crystal(const Crystal& crystal){
@@ -511,3 +512,7 @@ int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 
 	return index;
 };
+
+
+}
+

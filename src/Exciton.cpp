@@ -10,6 +10,7 @@
 using namespace arma;
 using namespace std::chrono;
 
+namespace xatu {
 
 // Constructor
 Exciton::Exciton(int N, int Ncell, double Q, int nBulkBands, int nEdgeBands, vec specifyEdges) 
@@ -955,3 +956,5 @@ double Exciton::fermiGoldenRule(const cx_vec& initialCoefs, double initialE)
 
     return transitionRate;
 };
+
+}

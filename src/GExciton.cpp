@@ -12,6 +12,8 @@
 using namespace arma;
 using namespace std::chrono;
 
+namespace xatu {
+
 void GExciton::initializeExcitonAttributes(int ncell, const arma::ivec& bands, 
                                       const arma::rowvec& parameters, const arma::rowvec& Q){
     this->ncell_      = ncell;
@@ -917,6 +919,7 @@ double GExciton::pairDensityOfStates(double energy, double delta) const{
             };
         }
     }
+    dos /= (a*nk);
 
     return dos;
 }
@@ -933,13 +936,15 @@ cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, std::string si
 
     cx_vec coefs = arma::zeros<cx_vec>(nk);
     int closestKindex = -1;
-    double eDiff, prevDiff;
-    for(int n = 1; n < nk/2; n++){
+    double eDiff;
+    double currentEnergy = gapEnergy(0) - energy;
 
+    for(int n = 1; n < nk/2; n++){
+        
         eDiff = gapEnergy(n) - energy;
-        prevDiff = gapEnergy(n-1) - energy;
-        if(abs(eDiff) < abs(prevDiff)){
+        if(abs(eDiff) < abs(currentEnergy)){
             closestKindex = n;
+            currentEnergy = eDiff;
         };
     };
     cout << closestKindex << endl;
@@ -1010,8 +1015,8 @@ double GExciton::fermiGoldenRule(const GExciton& targetExciton, const arma::cx_v
 
             }
             else if (mode == "reciprocalspace"){
-                arma::rowvec k = kpoints.row(ki_index);
-                arma::rowvec k2 = kpoints.row(kf_index);
+                arma::rowvec k = kpoints.row(kf_index);
+                arma::rowvec k2 = kpoints.row(ki_index);
                 D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
                 X = 0;
             }
@@ -1025,7 +1030,7 @@ double GExciton::fermiGoldenRule(const GExciton& targetExciton, const arma::cx_v
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
 
-    transitionRate = 2*PI*pow(abs(arma::cdot(finalState, W*initialState)),2)*rho/hbar;
+    transitionRate = 2*PI*std::norm(arma::cdot(finalState, W*initialState))*rho/hbar;
 
     return transitionRate;
 
@@ -1047,4 +1052,6 @@ void GExciton::printInformation(){
     cout << endl;
 
     cout << std::left << std::setw(30) << "Gauge used: " << gauge << "\n" << endl;
+}
+
 }

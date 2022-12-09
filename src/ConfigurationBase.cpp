@@ -5,6 +5,8 @@
 
 #include "ConfigurationBase.hpp"
 
+namespace xatu {
+
 ConfigurationBase::ConfigurationBase(){
     throw std::invalid_argument("ConfigurationBase must be called with one argument (filename)");
 };
@@ -119,4 +121,6 @@ double ConfigurationBase::parseFraction(std::string& content){
         fraction = numerator;
     }
     return fraction;
+}
+
 }

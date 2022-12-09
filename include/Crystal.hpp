@@ -11,6 +11,7 @@
 #define eps0 8.8541878E-12
 #endif
 
+namespace xatu {
 
 class Crystal {
     
@@ -89,3 +90,5 @@ class Crystal {
                             const arma::rowvec&);
         
 };
+
+}

@@ -2,6 +2,8 @@
 #pragma once
 #include <armadillo>
 
+namespace xatu {
+
 void davidson_method(
     arma::vec& eigval, 
     arma::cx_mat& eigvec, 
@@ -59,3 +61,5 @@ void davidson_method(
     arma::cout << eigvec.n_rows << arma::endl;
     arma::cout << eigvec.n_cols << arma::endl;
 };
+
+}

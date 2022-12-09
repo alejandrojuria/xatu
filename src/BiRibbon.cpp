@@ -8,6 +8,8 @@
 using namespace arma;
 using namespace std::chrono;
 
+namespace xatu {
+
 BiRibbon::BiRibbon(int N, std::string zeeman_axis){
 
 	this->N = N;
@@ -53,10 +55,10 @@ void BiRibbon::initializeConstants(){
 	this->lambda = 1.5;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
-	this->zeeman = 1E-7;
+	this->zeeman = 0.0;
 
 	// Infinitesimal on-site energy to split edges
-	this->onsiteEdge = 0.0;
+	this->onsiteEdge = 1E-7;
 
 	//// Lattice vectors
 	// Bulk Bravais basis
@@ -327,7 +329,7 @@ void BiRibbon::applyElectricField(double amplitude){
 	for(int i = 0; i < natoms; i++){
 		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField*motif.row(i)(0);
 	}
-}
+};
 
 /* Method to introduce additional onsite energy at the edges to break the edge state degeneracy 
 and identify them. */
@@ -338,4 +340,6 @@ void BiRibbon::offsetEdges(double energy){
 	for (unsigned int i : indices){
 		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField;
 	}
+};
+
 }

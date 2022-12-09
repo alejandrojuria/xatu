@@ -12,6 +12,7 @@
 #define eps0 8.8541878E-12
 #endif
 
+namespace xatu {
 
 // Routines to initialize BSE elements
 class Exciton : public BiRibbon{
@@ -100,5 +101,7 @@ class Exciton : public BiRibbon{
         double pairDensityOfStates(double, double);
         double fermiGoldenRule(const arma::cx_vec&, double);  
 };
+
+}
 
 

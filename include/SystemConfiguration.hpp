@@ -3,6 +3,8 @@
 #include "ConfigurationBase.hpp"
 #include <iostream>
 
+namespace xatu {
+
 class SystemConfiguration : public virtual ConfigurationBase {
 
     struct configuration {
@@ -37,3 +39,5 @@ class SystemConfiguration : public virtual ConfigurationBase {
         void checkContentCoherence();
 
 };
+
+}

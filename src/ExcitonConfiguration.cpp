@@ -2,6 +2,8 @@
 #include <fstream>
 #include <iostream>
 
+namespace xatu {
+
 ExcitonConfiguration::ExcitonConfiguration(){
     throw std::invalid_argument("Error: ExcitonConfiguration must be invoked with one argument (filename)");
 };
@@ -86,3 +88,5 @@ void ExcitonConfiguration::checkContentCoherence(){
         throw std::logic_error("eps must be specified");
     };
 };
+
+}

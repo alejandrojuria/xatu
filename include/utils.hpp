@@ -8,6 +8,8 @@
 #define eps0 8.8541878E-12
 #endif
 
+namespace xatu {
+
 /* Output */
 void writeVectorToFile(arma::vec, FILE*);
 void writeVectorToFile(arma::rowvec, FILE*);
@@ -24,3 +26,4 @@ std::complex<double> rGreenF(double, double, double);
 double densityOfStates(double, double, const arma::mat&);
 void writeDensityOfStates(const arma::mat&, double, FILE*);
 
+}

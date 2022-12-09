@@ -1,6 +1,8 @@
 #include <complex>
 #include "SystemConfiguration.hpp"
 
+namespace xatu {
+
 SystemConfiguration::SystemConfiguration(){};
 
 SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBase(filename){
@@ -236,4 +238,6 @@ void SystemConfiguration::printConfiguration(std::ostream& stream) const {
 
 std::ostream& operator<<(std::ostream& stream, const SystemConfiguration& config){
     config.printConfiguration(stream);
+}
+
 }

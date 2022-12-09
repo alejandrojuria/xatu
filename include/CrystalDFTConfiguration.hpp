@@ -2,6 +2,8 @@
 #include <armadillo>
 #include "SystemConfiguration.hpp"
 
+namespace xatu {
+
 class CrystalDFTConfiguration : public SystemConfiguration {
 
     public:
@@ -33,3 +35,4 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         void mapContent();
 };
 
+}

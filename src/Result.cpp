@@ -1,6 +1,9 @@
 #include "Result.hpp"
 #include <complex>
 
+namespace xatu {
+
+
 double Result::kineticEnergy(int stateindex){
     arma::cx_vec coefs = eigvec.col(stateindex);
     std::complex<double> energy = arma::cdot(coefs, exciton.HK*coefs);
@@ -68,8 +71,8 @@ arma::cx_vec Result::spinX(int stateindex){
     for(int atomIndex = 0; atomIndex < exciton.natoms; atomIndex++){
         int species = exciton.motif.row(atomIndex)(3);
         int norbitals = exciton.orbitals(species);
-        spinVector.subvec(vecIterator, vecIterator + norbitals) = 
-                          arma::kron(spinEigvalues, arma::ones(norbitals));
+        spinVector.subvec(vecIterator, vecIterator + norbitals - 1) = 
+                          arma::kron(arma::ones(norbitals/2), spinEigvalues);
         vecIterator += exciton.orbitals(species);
     }
     
@@ -77,6 +80,8 @@ arma::cx_vec Result::spinX(int stateindex){
 
     // Initialize hole spin and electron spin operators
     int nbands = exciton.bandList.n_elem;
+    int nvbands = exciton.valenceBands.n_elem;
+    int ncbands = exciton.conductionBands.n_elem;
     int nbandsSq = nbands*nbands;
 
     arma::cx_mat spinHole = arma::zeros<arma::cx_mat>(dimX, dimX);
@@ -85,28 +90,36 @@ arma::cx_vec Result::spinX(int stateindex){
     arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nbands, nbands);
     arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(nbands, nbands);
 
-    arma::cx_mat vMatrix = arma::eye<arma::cx_mat>(nbands, nbands);
-    arma::cx_mat cMatrix = arma::eye<arma::cx_mat>(nbands, nbands);
+    arma::cx_mat vMatrix = arma::eye<arma::cx_mat>(nvbands, nvbands);
+    arma::cx_mat cMatrix = arma::eye<arma::cx_mat>(ncbands, ncbands);
 
     for(unsigned int k = 0; k < exciton.kpoints.n_rows; k++){
-
-        for(int i = 0; i < nbands; i++){
+        for(int i = 0; i < this->exciton.valenceBands.n_elem; i++){
             int vIndex = exciton.bandToIndex[exciton.valenceBands(i)];
-            int cIndex = exciton.bandToIndex[exciton.conductionBands(i)];
-            for(int j = 0; j < nbands; j++){
-                int vIndex2 = exciton.bandToIndex[exciton.valenceBands(j)];
-                int cIndex2 = exciton.bandToIndex[exciton.conductionBands(j)];
-                eigvec = exciton.eigvecKStack.slice(k).col(vIndex);
-                spinEigvec = eigvec % spinVector;
-                eigvec = exciton.eigvecKStack.slice(k).col(vIndex2);
-                spinHoleReduced(i,j) = arma::cdot(eigvec, spinEigvec);
+            for(int j = 0; j < this->exciton.conductionBands.n_elem; j++){
+                int cIndex = exciton.bandToIndex[exciton.conductionBands(j)];
+                for(int i2 = 0; i2 < this->exciton.valenceBands.n_elem; i2++){
+                    int vIndex2 = exciton.bandToIndex[exciton.valenceBands(i2)];
+                    for(int j2 = 0; j2 < this->exciton.conductionBands.n_elem; j2++){
+                        int cIndex2 = exciton.bandToIndex[exciton.conductionBands(j2)];
 
-                eigvec = exciton.eigvecKQStack.slice(k).col(cIndex);
-                spinEigvec = eigvec % spinVector;
-                eigvec = exciton.eigvecKQStack.slice(k).col(cIndex2);
-                spinElectronReduced(i,j) = arma::cdot(eigvec, spinEigvec);
+                        eigvec = exciton.eigvecKStack.slice(k).col(vIndex);
+                        spinEigvec = eigvec % spinVector;
+                        eigvec = exciton.eigvecKStack.slice(k).col(vIndex2);
+                        spinHoleReduced(i + this->exciton.valenceBands.n_elem*j, 
+                                        i2 + this->exciton.valenceBands.n_elem*j2) = arma::cdot(eigvec, spinEigvec);
+
+                        eigvec = exciton.eigvecKQStack.slice(k).col(cIndex);
+                        spinEigvec = eigvec % spinVector;
+                        eigvec = exciton.eigvecKQStack.slice(k).col(cIndex2);
+                        spinElectronReduced(i + this->exciton.valenceBands.n_elem*j, 
+                                        i2 + this->exciton.valenceBands.n_elem*j2) = arma::cdot(eigvec, spinEigvec);
+
+                    }
+                }
             }
         }
+        std::cout << __LINE__ << std::endl;
         spinHole.submat(k*nbandsSq, k*nbandsSq, (k+1)*nbandsSq - 1, (k+1)*nbandsSq - 1) = arma::kron(cMatrix, spinHoleReduced);
         spinElectron.submat(k*nbandsSq, k*nbandsSq, (k+1)*nbandsSq - 1, (k+1)*nbandsSq - 1) = arma::kron(spinElectronReduced, vMatrix);
     }
@@ -115,6 +128,7 @@ arma::cx_vec Result::spinX(int stateindex){
     holeSpin = -arma::cdot(coefs, spinHole*coefs);
     electronSpin = arma::cdot(coefs, spinElectron*coefs);
     totalSpin = real((holeSpin + electronSpin));
+    
     
     arma::cx_vec results = {holeSpin, electronSpin, totalSpin};
     return results;
@@ -572,3 +586,5 @@ std::complex<double> Result::densityMatrixK(int kIndex, GExciton& exciton, const
     rho += arma::cdot(blochState, blochState2);
     return rho;
 };
+
+}
