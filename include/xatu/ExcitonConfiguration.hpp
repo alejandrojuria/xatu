@@ -1,3 +1,4 @@
+#pragma once
 #include "ConfigurationBase.hpp"
 #include <armadillo>
 

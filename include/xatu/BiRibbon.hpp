@@ -1,7 +1,7 @@
 #pragma once
 #include <armadillo>
 #include <string>
-#include "System.hpp"
+#include "xatu/System.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793

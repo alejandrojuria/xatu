@@ -3,7 +3,7 @@
 
 namespace xatu {
 
-class GExciton;
+class Exciton;
 class Result;
 
 }

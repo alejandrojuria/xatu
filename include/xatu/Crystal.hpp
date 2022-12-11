@@ -18,9 +18,10 @@ class Crystal {
     //// Attributes
     protected:
         int ndim_, natoms_, nk_, ncells_;
+        int factor_ = 1;
         double a_, c_;
         arma::mat bravaisLattice_, motif_, unitCellList_;
-        arma::mat reciprocalLattice_, kpoints_;
+        arma::mat reciprocalLattice_, kpoints_, meshBZ_;
         std::map<std::string, int> atomToIndex;
         arma::mat inverseReciprocalMatrix;
 
