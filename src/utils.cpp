@@ -3,8 +3,8 @@
 #include <complex>
 #include <iomanip>
 
-#include "Result.hpp"
-#include "utils.hpp"
+#include "xatu/Result.hpp"
+#include "xatu/utils.hpp"
 
 namespace xatu {
 

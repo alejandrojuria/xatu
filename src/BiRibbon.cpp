@@ -3,7 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "BiRibbon.hpp"
+#include "xatu/BiRibbon.hpp"
 
 using namespace arma;
 using namespace std::chrono;

@@ -3,7 +3,7 @@
 #include <sstream>
 #include <algorithm>
 
-#include "ConfigurationBase.hpp"
+#include "xatu/ConfigurationBase.hpp"
 
 namespace xatu {
 

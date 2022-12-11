@@ -1,5 +1,5 @@
 #include <complex>
-#include "SystemConfiguration.hpp"
+#include "xatu/SystemConfiguration.hpp"
 
 namespace xatu {
 

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include "System.hpp"
+#include "xatu/System.hpp"
 
 namespace xatu {
 

@@ -1,4 +1,4 @@
-#include "ExcitonConfiguration.hpp"
+#include "xatu/ExcitonConfiguration.hpp"
 #include <fstream>
 #include <iostream>
 

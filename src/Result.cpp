@@ -1,4 +1,4 @@
-#include "Result.hpp"
+#include "xatu/Result.hpp"
 #include <complex>
 
 namespace xatu {
@@ -496,7 +496,7 @@ arma::cx_vec Result::addExponential(arma::cx_vec& coefs, const arma::rowvec& cel
 
 // This routine requires having ALL eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.
 // Meaning bool storeAllVectors must be set to TRUE when initializing the exciton object.
-std::complex<double> Result::densityMatrix(GExciton& exciton, const arma::cx_vec& BSEcoefs, 
+std::complex<double> Result::densityMatrix(Exciton& exciton, const arma::cx_vec& BSEcoefs, 
                                     int eIndex, int hIndex){
 
     std::complex<double> rho;
@@ -544,7 +544,7 @@ std::complex<double> Result::densityMatrix(GExciton& exciton, const arma::cx_vec
 
 // This routine requires having ALL eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.
 // Meaning bool storeAllVectors must be set to TRUE when initializing the exciton object.
-std::complex<double> Result::densityMatrixK(int kIndex, GExciton& exciton, const arma::cx_vec& BSEcoefs, 
+std::complex<double> Result::densityMatrixK(int kIndex, Exciton& exciton, const arma::cx_vec& BSEcoefs, 
                                     int eIndex, int hIndex){
 
     std::complex<double> rho;
