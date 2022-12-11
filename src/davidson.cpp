@@ -1,6 +1,4 @@
-// Header file with Davidson method to extract the first eigenvalues
-#pragma once
-#include <armadillo>
+#include "xatu/davidson.hpp"
 
 namespace xatu {
 
@@ -8,8 +6,8 @@ void davidson_method(
     arma::vec& eigval, 
     arma::cx_mat& eigvec, 
     const arma::cx_mat& mat, 
-    int neigval = 4, 
-    double tol = 1E-7){
+    int neigval, 
+    double tol){
 
     int max_iterations = mat.n_rows/2;
     int k = neigval * 2;
