@@ -16,3 +16,7 @@ exciton.vcxproj.filters
 exciton.vcxproj.user
 old/
 xatu_old/
+/src/libxatu.a
+libxatu.a
+main/
+exciton_files/
