@@ -9,14 +9,7 @@
 #include <iomanip>
 
 #include <tclap/CmdLine.h>
-
-#include "GExciton.hpp"
-#include "System.hpp"
-#include "Crystal.hpp"
-#include "Result.hpp"
-#include "utils.hpp"
-#include "SystemConfiguration.hpp"
-#include "CrystalDFTConfiguration.hpp"
+#include <xatu.hpp>
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -85,20 +78,20 @@ int main(int argc, char* argv[]){
     std::string kpointsfile = bandsArg.getValue();
 
     // Init. configurations
-    std::unique_ptr<SystemConfiguration> systemConfig;
-    std::unique_ptr<ExcitonConfiguration> excitonConfig;
+    std::unique_ptr<xatu::SystemConfiguration> systemConfig;
+    std::unique_ptr<xatu::ExcitonConfiguration> excitonConfig;
 
     if (dftArg.isSet()){
-        systemConfig.reset(new CrystalDFTConfiguration(systemfile, ncells));
+        systemConfig.reset(new xatu::CrystalDFTConfiguration(systemfile, ncells));
     }
     else{
-        systemConfig.reset(new SystemConfiguration(systemfile));
+        systemConfig.reset(new xatu::SystemConfiguration(systemfile));
     }
 
     // If bands flag is present, compute bands and exit.
     // Otherwise, init. exciton configuration.
     if (bandsArg.isSet()){
-        System system = System(*systemConfig);
+        xatu::System system = xatu::System(*systemConfig);
         system.solveBands(kpointsfile, triangular);
 
         return 0;
@@ -107,7 +100,7 @@ int main(int argc, char* argv[]){
         if (!excitonArg.isSet()){
             throw std::invalid_argument("Must provide exciton file.");
         }
-        excitonConfig.reset(new ExcitonConfiguration(excitonfile));
+        excitonConfig.reset(new xatu::ExcitonConfiguration(excitonfile));
     }
 
     std::string output = systemConfig->systemInfo.name;
@@ -139,7 +132,7 @@ int main(int argc, char* argv[]){
     cout << "|                                  Parameters                               |" << endl;
     cout << "+---------------------------------------------------------------------------+" << endl;
     
-    GExciton bulkExciton = GExciton(*systemConfig, *excitonConfig);
+    xatu::Exciton bulkExciton = xatu::Exciton(*systemConfig, *excitonConfig);
     bulkExciton.setMode(excitonConfig->excitonInfo.mode);
 
     cout << "\n";
