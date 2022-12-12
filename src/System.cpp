@@ -16,8 +16,8 @@ System::System(const System& system) : Crystal(system){
 
 	systemName			 = system.systemName;
 	orbitals_            = system.orbitals;
-	hamiltonianMatrices  = system.hamiltonianMatrices;
-	overlapMatrices      = system.overlapMatrices;
+	hamiltonianMatrices_ = system.hamiltonianMatrices;
+	overlapMatrices_     = system.overlapMatrices;
 	filling_			 = system.filling;
 	fermiLevel_			 = filling_ - 1;
 	basisdim_ 			 = system.basisdim;
@@ -45,8 +45,8 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	
 	systemName			 = configuration.systemInfo.name;
 	orbitals_            = configuration.systemInfo.norbitals;
-	hamiltonianMatrices  = configuration.systemInfo.hamiltonian;
-	overlapMatrices      = configuration.systemInfo.overlap;
+	hamiltonianMatrices_ = configuration.systemInfo.hamiltonian;
+	overlapMatrices_     = configuration.systemInfo.overlap;
 	filling_			 = configuration.systemInfo.filling;
 	fermiLevel_			 = filling_ - 1;
 
