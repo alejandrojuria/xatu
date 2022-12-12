@@ -332,7 +332,7 @@ double Exciton::potential(double r){
 /* Calculate lattice Fourier transform of Keldsyh potential
    Input: double k, int ncell. Output:  complex double. Vk */
 std::complex<double> Exciton::fourierTransform(arma::rowvec k, const arma::mat& cells, bool useApproximation){
-    std::complex<double> imag(0,1);
+    std::complex<double> imag(0, 1);
     //std::complex<double> Vk = potential(0);
     std::complex<double> Vk = 0.0;
 
