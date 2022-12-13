@@ -7,8 +7,8 @@ implicit real*8 (a-h,o-z)
 dimension nRvec(nR,3)
 dimension R(3,3)
 dimension B(norb,3)
-dimension hhop(nR,norb,norb)
-dimension shop(nR,norb,norb)
+dimension hhop(norb,norb,nR)
+dimension shop(norb,norb,nR)
 dimension rkx(npointstotal)
 dimension rky(npointstotal)
 dimension rkz(npointstotal)
@@ -70,7 +70,6 @@ character(100) material_name
 character(100) file_name_sp
 character(100) file_name_ex
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-write(*,*)' Line number: 73'
 
 call get_kubo_parameters(w0,wrange,nw,eta,type_broad,material_name, &
 file_name_sp,file_name_ex)
@@ -81,6 +80,7 @@ vcell=sqrt(cx**2+cy**2+cz**2)
 
 nkubo_sp=norb**2*npointstotal
 nkubo_ex=norb_ex
+
 allocate (wp(nw))
 allocate (wn_sp(nkubo_sp))
 allocate (wn_ex(nkubo_ex))
@@ -89,8 +89,6 @@ allocate (skubo_sp_int(3,3,nkubo_sp))
 allocate (skubo_ex_int(3,3,nkubo_ex))
 allocate (sigma_w_sp(3,3,nw))
 allocate (sigma_w_ex(3,3,nw))
-
-write(*,*)' Line number: 93'
 
 wp=0.0d0
 wn_sp=0.0d0
@@ -103,68 +101,54 @@ vme_ex=0.0d0
 !Brillouin zone sampling
 kcount=1
 
-write(*,*)' Line number: 106'
-
 
 call hoppings_observables_TB(norb,nR,nRvec,R,B,shop,hhop,rhop,sderhop,hderhop)
 do ibz=1,npointstotal
-write(*,*) 'point:',ibz,npointstotal         
-rkxp=rkx(ibz)
-rkyp=rky(ibz)
-rkzp=rkz(ibz)
-
-write(*,*)' Line number: 116'
-
-		
-!get matrices in the \alpha, \alpha' basis (orbitals,k)    		
-call get_vme_kernels(rkxp,rkyp,rkzp,nR,nRvec,norb,R, &
-hkernel,skernel,shop,hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel, &
-pgaugekernel)
-
-write(*,*)' Line number: 124'
+	write(*,*) 'point:',ibz,npointstotal         
+	rkxp=rkx(ibz)
+	rkyp=rky(ibz)
+	rkzp=rkz(ibz)
+			
+	!get matrices in the \alpha, \alpha' basis (orbitals,k)    		
+	call get_vme_kernels(rkxp,rkyp,rkzp,nR,nRvec,norb,R, &
+	hkernel,skernel,shop,hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel, &
+	pgaugekernel)
 
 
-!velocity matrix elements
-call get_eigen_vme(rkxp,rkyp,rkzp,nR,nRvec,norb,R, &
-hkernel,skernel,akernel,sderkernel,hderkernel, &
-pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme) 
+	!velocity matrix elements
+	call get_eigen_vme(rkxp,rkyp,rkzp,nR,nRvec,norb,R, &
+	hkernel,skernel,akernel,sderkernel,hderkernel, &
+	pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme) 
 
-write(*,*)' Line number: 132'
-
-
-write(*,*) ibz,vme(1,2,1)
-!pause
-!compute exciton velocity matrix element
-do iex=1,nkubo_ex
-	wn_ex(iex)=e_ex(iex)
-	do nj=1,3
-	vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(ibz,iex)*vme(nj,1,2)
-	vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(ibz,iex)*vme(nj,2,1)
+	write(*,*) ibz,vme(1,1,1)
+	
+	!pause
+	!compute exciton velocity matrix element
+	do iex=1, nkubo_ex
+		wn_ex(iex)=e_ex(iex)
+		do nj=1, 3
+			vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(ibz,iex)*vme(nj,1,2)
+			vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(ibz,iex)*vme(nj,2,1)
+		end do
 	end do
+
+	write(*,*) ibz,vme_ex(1,1,1)
+
+	!get strength for kubo SP
+	call get_kubo_intens(nv,npointstotal,vcell,norb,nkubo_sp,e,kcount,vme,wn_sp,skubo_sp_int)
 end do
-
-write(*,*)' Line number: 146'
-
-
-!get strength for kubo SP
-call get_kubo_intens(nv,npointstotal,vcell,norb,nkubo_sp,e,kcount,vme,wn_sp,skubo_sp_int)
-end do
-
-write(*,*)' Line number: 153'
 
 
 !fill kubo oscillators of EXCITONS
 do nn=1,nkubo_ex  
-!save oscillator stregths
-do nj=1,3
-	do njp=1,3		  
-	skubo_ex_int(nj,njp,nn)=1.0d0/(dble(npointstotal)*vcell) &
-	*conjg(vme_ex(nj,nn,1))*vme_ex(njp,nn,1)/wn_ex(nn)   !pick the correct order of operators
-	end do	
+	!save oscillator stregths
+	do nj=1,3
+		do njp=1,3		  
+			skubo_ex_int(nj,njp,nn)=1.0d0/(dble(npointstotal)*vcell) &
+			*conjg(vme_ex(nj,nn,1))*vme_ex(njp,nn,1)/wn_ex(nn)   !pick the correct order of operators
+		end do	
+	end do
 end do
-end do
-
-write(*,*)' Line number: 167'
 
 
 !broad the delta points of sp and exciton
@@ -180,8 +164,6 @@ do ialpha=1,3
 		w0/27.211385d0,wrange/27.211385d0,nw,wp,sigma_w_ex(ialpha,ialphap,:),eta)
 	end do
 end do
-
-write(*,*)' Line number: 184'
 
 
 !write frequency dependent conductivity
@@ -210,8 +192,6 @@ do iw=1,nw
 end do
 close(50)
 close(60)
-
-write(*,*)' Line number: 214'
 
 
 return
@@ -255,7 +235,7 @@ subroutine hoppings_observables_TB(norb,nR,nRvec,R,B,shop,hhop, &
 rhop,sderhop,hderhop)
 implicit real*8 (a-h,o-z)
 dimension R(3,3),B(norb,3),nRvec(nR,3),phop(3,nR,norb,norb),rhop(3,nR,norb,norb)
-dimension shop(nR,norb,norb),hhop(nR,norb,norb)
+dimension shop(norb,norb,nR),hhop(norb,norb,nR)
 dimension sderhop(3,nR,norb,norb),hderhop(3,nR,norb,norb)
 
 complex*16 hderhop,sderhop
@@ -265,25 +245,20 @@ hderhop=0.0d0
 sderhop=0.0d0
 do iR=1,nR
 	do ialpha=1,norb
-	do ialphap=1,ialpha
-		write(*,*)' Line number: 269', ialpha, ialphap
-		Rx=nRvec(iR,1)*R(1,1)+nRvec(iR,2)*R(2,1)
-		Ry=nRvec(iR,1)*R(1,2)+nRvec(iR,2)*R(2,2)
-		Rz=0.0d0
-		write(*,*)' Line number: 273'
+		do ialphap=1,ialpha
+			Rx=nRvec(iR,1)*R(1,1)+nRvec(iR,2)*R(2,1)
+			Ry=nRvec(iR,1)*R(1,2)+nRvec(iR,2)*R(2,2)
+			Rz=0.0d0
 
-		hderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*hhop(iR,ialpha,ialphap)
-		hderhop(2,iR,ialpha,ialphap)=complex(0.0d0,Ry)*hhop(iR,ialpha,ialphap)
-		hderhop(3,iR,ialpha,ialphap)=0.0d0
-		write(*,*)' Line number: 278'
-	
-		sderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*shop(iR,ialpha,ialphap)
-		sderhop(2,iR,ialpha,ialphap)=complex(0.0d0,Ry)*shop(iR,ialpha,ialphap)
-		sderhop(3,iR,ialpha,ialphap)=0.0d0
-		write(*,*)' Line number: 283'
+			hderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*hhop(ialpha,ialphap,iR)
+			hderhop(2,iR,ialpha,ialphap)=complex(0.0d0,Ry)*hhop(ialpha,ialphap,iR)
+			hderhop(3,iR,ialpha,ialphap)=0.0d0
+		
+			sderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*shop(ialpha,ialphap,iR)
+			sderhop(2,iR,ialpha,ialphap)=complex(0.0d0,Ry)*shop(ialpha,ialphap,iR)
+			sderhop(3,iR,ialpha,ialphap)=0.0d0
 
-
-	end do
+		end do
 	end do
 end do
 
@@ -308,8 +283,8 @@ implicit real*8 (a-h,o-z)
 dimension R(3,3)
 dimension nRvec(nR,3)
 
-dimension shop(nR,norb,norb)
-dimension hhop(nR,norb,norb)
+dimension shop(norb,norb,nR)
+dimension hhop(norb,norb,nR)
 dimension rhop(3,nR,norb,norb)
 dimension sderhop(3,nR,norb,norb)
 dimension hderhop(3,nR,norb,norb)
@@ -345,9 +320,9 @@ do ialphap=1,ialpha
 		factor=exp(phase)     
 					
 		hkernel(ialpha,ialphap)=hkernel(ialpha,ialphap)+ &
-		factor*hhop(iRp,ialpha,ialphap)                
+		factor*hhop(ialpha,ialphap,iRp)                
 		skernel(ialpha,ialphap)=skernel(ialpha,ialphap)+ &
-		factor*shop(iRp,ialpha,ialphap)   
+		factor*shop(ialpha,ialphap,iRp)   
 					
 		do nj=1,3 
 			sderkernel(nj,ialpha,ialphap)=sderkernel(nj,ialpha,ialphap)+ &
