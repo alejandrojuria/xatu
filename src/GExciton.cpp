@@ -657,7 +657,6 @@ arma::cx_mat GExciton::fixGlobalPhase(arma::cx_mat& coefs){
 
 void GExciton::generateBandDictionary(){
 
-
     // Create dictionary that maps bands to indices for storage
     std::map<int, int> bandToIndex;
     for(int i = 0; i < bandList.n_elem; i++){
@@ -732,8 +731,8 @@ void GExciton::initializeResultsH0(bool triangular){
         // Formatted progress indicator
 		percent = (100 * (i + 1)) / nk ;
 		if (percent >= displayNext){
-            cout << "\r" << "[" << std::string(percent / 5, '|') << std::string(100 / 5 - percent / 5, ' ') << "]";
-            cout << percent << "%";
+            std::cout << "\r" << "[" << std::string(percent / 5, '|') << std::string(100 / 5 - percent / 5, ' ') << "]";
+            std::cout << percent << "%";
             std::cout.flush();
             displayNext += step;
         }
@@ -917,8 +916,21 @@ double GExciton::pairDensityOfStates(double energy, double delta) const{
             };
         }
     }
+    dos /= (nk*a);
 
     return dos;
+}
+
+/* Routine to write the pair density of state into a file */
+void GExciton::writePairDOS(FILE* file, double delta, int n){
+    double min_e = eigvalKStack.min();
+    double max_e = eigvalKQStack.max();
+    arma::vec energies = arma::linspace(0, max_e - min_e, n);
+    double dos;
+    for(int i = 0; i < n; i++){
+        dos = pairDensityOfStates(energies(i), delta);
+        fprintf(file, "%f\t%f\n", energies(i), dos);
+    }
 }
 
 
@@ -933,16 +945,17 @@ cx_vec GExciton::ehPairCoefs(double energy, const vec& gapEnergy, std::string si
 
     cx_vec coefs = arma::zeros<cx_vec>(nk);
     int closestKindex = -1;
-    double eDiff, prevDiff;
-    for(int n = 1; n < nk/2; n++){
+    double eDiff, currentEnergy;
+    currentEnergy = gapEnergy(0) - energy;
 
+    for(int n = 1; n <= nk/2; n++){
         eDiff = gapEnergy(n) - energy;
-        prevDiff = gapEnergy(n-1) - energy;
-        if(abs(eDiff) < abs(prevDiff)){
+
+        if(abs(eDiff) < abs(currentEnergy)){
+            currentEnergy = eDiff;
             closestKindex = n;
         };
     };
-    cout << closestKindex << endl;
     cout << "Selected k: " << kpoints(closestKindex) << "\t" << closestKindex << endl;
     cout << "Closest gap energy: " << gapEnergy(closestKindex) << endl;
     // By virtue of band symmetry, we expect n < nk/2
@@ -1021,7 +1034,8 @@ double GExciton::fermiGoldenRule(const GExciton& targetExciton, const arma::cx_v
     };
 
     double delta = 2.4/(2*ncell); // Adjust delta depending on number of k points
-    double rho = targetExciton.pairDensityOfStates(pairEnergy, delta);
+    double rho = targetExciton.pairDensityOfStates(energy, delta);
+    // rho = 1;
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
 
