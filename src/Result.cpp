@@ -79,10 +79,6 @@ arma::cx_vec Result::spinX(int stateindex){
 	arma::cx_vec eigvec, spinEigvec;
 
     // Initialize hole spin and electron spin operators
-    int nbands = exciton.bandList.n_elem;
-    int nvbands = exciton.valenceBands.n_elem;
-    int ncbands = exciton.conductionBands.n_elem;
-    int nbandsSq = nbands*nbands;
     int nvbands = exciton.valenceBands.n_elem;
     int ncbands = exciton.conductionBands.n_elem;
     int npairs = nvbands*ncbands;
