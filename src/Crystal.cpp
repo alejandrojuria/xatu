@@ -1,6 +1,7 @@
-#include "Crystal.hpp"
+#include "xatu/Crystal.hpp"
 #include <numeric>
 
+namespace xatu {
 
 /* Copy constructor */
 Crystal::Crystal(const Crystal& crystal){
@@ -88,8 +89,9 @@ void Crystal::brillouinZoneMesh(int n){
 		kpoints.row(i) = kpoint;
 	}
 	kpoints_ = kpoints;
+	meshBZ_ = kpoints;
 	nk_ = kpoints.n_rows;
-	std::cout << "Done. Number of k points: " << nk << std::endl;
+	std::cout << "Done. Number of k points in BZ mesh: " << nk << std::endl;
 }
 
 arma::mat Crystal::brillouinZoneMeshCrystalCoordinates(int n){
@@ -106,33 +108,31 @@ arma::mat Crystal::brillouinZoneMeshCrystalCoordinates(int n){
 
 /* Routine to obtain a kpoint mesh which is a subset of the full BZ mesh. 
 If n is even, we substract one so that the mesh is symmetric under inversion */
-void Crystal::reducedBrillouinZoneMesh(int n, int ncell){
+void Crystal::reducedBrillouinZoneMesh(int n, int factor){
 
-	std::cout << "Creating BZ mesh... " << std::flush;
+	// First create mesh of whole BZ
+	brillouinZoneMesh(n*factor);
 
-	n = (n % 2 == 0) ? n - 1 : n;
+	// Now create submesh
 	int nk = pow(n, ndim);
-	arma::mat kpoints(pow(n, ndim), 3);
+
+	arma::mat kpoints(nk, 3);
 	arma::mat combinations = generateCombinations(n, ndim);
-	combinations += 1./2;
+	if (n % 2 == 1){
+		combinations += 1./2;
+	}
 	
-	int it = 0;
 	for (int i = 0; i < nk; i++){
 		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
-		// Remove "boundary" k so that mesh is symmetric under k <-> -k
-		if(!arma::all(combinations.row(i))){
-			arma::cout << combinations.row(i) << arma::endl;
-			continue;
-		};
 		for (int j = 0; j < ndim; j++){
-			kpoint += (2*combinations.row(i)(j) - n)/(2*ncell)*reciprocalLattice_.row(j);
+			kpoint += (2*combinations.row(i)(j) - n)/(2*n*factor)*reciprocalLattice_.row(j);
 		}
-		kpoints.row(it) = kpoint;
-		it++;
+		kpoints.row(i) = kpoint;
 	}
 	kpoints_ = kpoints;
-	nk_ = kpoints.n_rows;
-	std::cout << "Done. Number of k points: " << nk << std::endl;
+	nk_ = nk;
+	factor_ = factor;
+	std::cout << "Number of k points in submesh: " << nk << std::endl;
 }
 
 
@@ -487,6 +487,7 @@ int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 	if(inverseReciprocalMatrix.empty()){
 		calculateInverseReciprocalMatrix();
 	}
+	ncell = ncell * factor_;
 	arma::vec independentTerm = reciprocalLattice * kpoint.t();
 	arma::vec coefs = inverseReciprocalMatrix * independentTerm * 2*ncell;
 	coefs = (ncell % 2 == 1) ? coefs - 1 : coefs; 
@@ -511,3 +512,7 @@ int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 
 	return index;
 };
+
+
+}
+

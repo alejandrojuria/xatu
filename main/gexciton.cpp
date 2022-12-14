@@ -7,12 +7,7 @@
 #include <string>
 #include <chrono>
 
-#include "GExciton.hpp"
-#include "System.hpp"
-#include "Crystal.hpp"
-#include "Result.hpp"
-#include "utils.hpp"
-#include "CrystalDFTConfiguration.hpp"
+#include <xatu.hpp>
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -30,6 +25,9 @@ int main(int argc, char* argv[]){
     if (argc != 2){
 		throw std::invalid_argument("Error: One input file is expected");
 	}
+    else if (argc < 2){
+        throw std::invalid_argument("Error: At least one input file is required (system config.)");
+    };
 
     auto start = high_resolution_clock::now();
     
@@ -46,6 +44,8 @@ int main(int argc, char* argv[]){
     arma::rowvec parameters = {1., 1., 10.};
     //arma::rowvec parameters = {1., 1., 20.};
     std::string modelfile = argv[1];    
+
+    int nstates = 8;
 
     // ----------------- Model parameters & Output --------------------
     bool writeEigvals = false;
@@ -75,8 +75,8 @@ int main(int argc, char* argv[]){
     cout << "System configuration file: " << modelfile << "\n" << endl;
 
     //SystemConfiguration config = CrystalDFTConfiguration(modelfile, 70);
-    SystemConfiguration config = SystemConfiguration(modelfile);
-    GExciton bulkExciton = GExciton(config, ncell, nbands, nrmbands, parameters);
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::Exciton bulkExciton = xatu::Exciton(config, ncell, nbands, nrmbands, parameters);
     arma::cout << "Orbitals: " << bulkExciton.orbitals << arma::endl;
     bulkExciton.setMode("realspace");
 
@@ -88,17 +88,17 @@ int main(int argc, char* argv[]){
     cout << "|                                Initialization                             |" << endl;
     cout << "+---------------------------------------------------------------------------+" << endl;
 
-    bulkExciton.brillouinZoneMesh(ncell);
-    //bulkExciton.reducedBrillouinZoneMesh(ncell/2, ncell);
+    //bulkExciton.brillouinZoneMesh(ncell);
+    bulkExciton.reducedBrillouinZoneMesh(ncell, 2);
     bulkExciton.initializeHamiltonian();
     bulkExciton.BShamiltonian();
-    auto results = bulkExciton.diagonalize();
+    auto results = bulkExciton.diagonalize("diag", nstates);
 
     cout << "+---------------------------------------------------------------------------+" << endl;
     cout << "|                                    Results                                |" << endl;
     cout << "+---------------------------------------------------------------------------+" << endl;
 
-    printEnergies(results, 8, 4);
+    printEnergies(results, nstates, 6);
 
     cout << "+---------------------------------------------------------------------------+" << endl;
     cout << "|                                    Output                                 |" << endl;
@@ -112,14 +112,15 @@ int main(int argc, char* argv[]){
 
     if(writeStates){
         std::cout << "Writing states to file: " << filename_st << std::endl;
-        results.writeStates(textfile_st);
+        results.writeStates(textfile_st, nstates);
     }
     
     if(writeWF){
         std::cout << "Writing k w.f. to file: " << filename_kwf << std::endl;
         int nstates = 8;
         for(int stateindex = 0; stateindex < nstates; stateindex++){
-            results.writeExtendedReciprocalAmplitude(stateindex, textfile_kwf);        
+            //results.writeExtendedReciprocalAmplitude(stateindex, textfile_kwf);   
+            results.writeReciprocalAmplitude(stateindex, textfile_kwf);     
         }
     }
 

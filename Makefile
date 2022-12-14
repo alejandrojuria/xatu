@@ -6,7 +6,7 @@ CFLAGS = -O2 -Wall -lm
 INCLUDE = -I$(PWD)/include
 
 # Libraries
-LIBS = -DARMA_DONT_USE_WRAPPER -llapack -lopenblas -larmadillo -fopenmp
+LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD)/src -lxatu -larmadillo -lopenblas -llapack -fopenmp
 
 # Compilation targets
 SRC_FILES := $(wildcard src/*.cpp)
@@ -17,17 +17,18 @@ dummy_build_folder := $(shell mkdir -p build)
 dummy_bin_folder := $(shell mkdir -p bin)
 
 build:	$(OBJECTS)
+	ar rcs src/libxatu.a $(OBJECTS)
 	
-xatu: 	$(OBJECTS) main/xatu.cpp
-	$(CC) -o bin/$@ $^ $(CFLAGS) $(LIBS) $(INCLUDE)
+xatu: main/xatu.cpp $(OBJECTS) 
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
-exciton: $(OBJECTS) main/gexciton.cpp
-	$(CC) -o bin/$@ $^ $(CFLAGS) $(LIBS) $(INCLUDE)
+exciton: main/gexciton.cpp $(OBJECTS)
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
 # Compilation steps
 # $< refers to first prerequisite and $@ to the target
 build/%.o: src/%.cpp
-	$(CC) -c $< -o $@ $(CFLAGS) $(LIBS) $(INCLUDE)
+	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE) $(LIBS) 
 
 clean:
 	rm -f build/*.o bin/*

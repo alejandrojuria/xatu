@@ -58,7 +58,7 @@ int main(int argc, char* argv[]){
 
 	arma::cx_mat h, eigvec;
 	arma::vec eigval;
-    double left_edge_occupation, right_edge_occupation;
+    double left_edge_occupation, right_edge_occupation, spin;
 
     for(int i = 0; i < model.kpoints.n_rows; i++){
         arma::rowvec k = model.kpoints.row(i);
@@ -67,7 +67,8 @@ int main(int argc, char* argv[]){
 		for (int j = 0; j < eigval.n_elem; j++){
             left_edge_occupation = arma::norm(eigvec.col(j).subvec(0, 15));
             right_edge_occupation = arma::norm(eigvec.col(j).subvec(2*(N+1)*8 - 16, 2*(N+1)*8 - 1));
-			fprintf(textfile_en, "%f\t%f\t%f\t", eigval(j), left_edge_occupation, right_edge_occupation);
+            spin = model.expectedSpinZValue(eigvec.col(j));
+			fprintf(textfile_en, "%f\t%f\t%f\t%f\t", eigval(j), left_edge_occupation, right_edge_occupation, spin);
 		}
         fprintf(textfile_en, "\n");
 

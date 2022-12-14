@@ -3,10 +3,10 @@
 #include <complex>
 #include <iomanip>
 
-#include "Result.hpp"
+#include "xatu/Result.hpp"
+#include "xatu/utils.hpp"
 
-
-#include "utils.hpp"
+namespace xatu {
 
 void writeVectorToFile(arma::vec vector, FILE* file){
 	for (unsigned int i = 0; i < vector.n_elem; i++){
@@ -174,4 +174,6 @@ void printEnergies(Result result, int n, int precision){
 
         it++;
     }
+}
+
 }

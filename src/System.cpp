@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include "System.hpp"
+#include "xatu/System.hpp"
 
+namespace xatu {
 
 // -------------------- Constructors and destructor --------------------
 
@@ -207,3 +208,5 @@ double System::expectedSpinXValue(const arma::cx_vec& eigvec){
 	operatorSx.submat(5,2, 7,4) = arma::eye<arma::cx_mat>(3,3);
 
 };
+
+}

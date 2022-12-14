@@ -19,8 +19,9 @@
 #define eps0 8.8541878E-12
 #endif
 
+namespace xatu {
 
-class GExciton : public System {
+class Exciton : public System {
 
     // ----------------------------------- Attributes -----------------------------------
     private:
@@ -104,29 +105,29 @@ class GExciton : public System {
     // Constructor & Destructor
     private:
         // Private constructor to leverage to another method parameter initialization
-        GExciton(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
+        Exciton(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
 
     public:
         // Specify number of bands participating (int)
-        GExciton(const SystemConfiguration&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
+        Exciton(const SystemConfiguration&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
         // Specify which bands participate (vector with band numbers)
-        GExciton(const SystemConfiguration&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
+        Exciton(const SystemConfiguration&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
         
         // Use two files: the mandatory one for system config., and one for exciton config.
-        GExciton(const SystemConfiguration&, const ExcitonConfiguration&);
+        Exciton(const SystemConfiguration&, const ExcitonConfiguration&);
 
         // Initialize exciton passing directly a System object instead of a file using removed bands
-        GExciton(const System&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
+        Exciton(const System&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
         // Initialize exciton passing directly a System object instead of a file using bands vector
-        GExciton(const System&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
+        Exciton(const System&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
                  const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
 
-        ~GExciton();
+        ~Exciton();
 
         // Setters
         void setUnitCells(int);
@@ -203,5 +204,7 @@ class GExciton : public System {
         double pairDensityOfStates(double, double) const;
         void writePairDOS(FILE*, double delta, int n = 100);
         arma::cx_vec ehPairCoefs(double, const arma::vec&, std::string side = "right");
-        double fermiGoldenRule(const GExciton&, const arma::cx_vec&, const arma::cx_vec&, double);
+        double fermiGoldenRule(const Exciton&, const arma::cx_vec&, const arma::cx_vec&, double);
 };
+
+}

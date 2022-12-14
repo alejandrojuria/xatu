@@ -1,9 +1,5 @@
-# Script to represent the output from ./wavefunction program, i.e. the real-space 
-# exciton wavefunction
-
 import matplotlib.pyplot as plt
 import numpy as np
-import math
 
 # ---------------- Read data from file -----------------------
 file = open("./rswf.out", "r")

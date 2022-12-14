@@ -1,12 +1,14 @@
 #pragma once
 #include <armadillo>
-#include "GExciton.hpp"
+#include "Exciton.hpp"
 #include "forward_declaration.hpp"
+
+namespace xatu {
 
 class Result{
 
     private:
-        GExciton& exciton;
+        Exciton& exciton;
         arma::vec m_eigval;
         arma::cx_mat m_eigvec;
 
@@ -17,7 +19,7 @@ class Result{
         const arma::cx_mat& eigvec = m_eigvec;
 
     public:
-        Result(GExciton& exciton_, arma::vec& eigval_, arma::cx_mat& eigvec_) : 
+        Result(Exciton& exciton_, arma::vec& eigval_, arma::cx_mat& eigvec_) : 
                 exciton(exciton_),
                 m_eigval(eigval_),
                 m_eigvec(eigvec_){};
@@ -54,13 +56,15 @@ class Result{
         double realSpaceWavefunction(const arma::cx_vec&, int, int,
                                      const arma::rowvec&, const arma::rowvec&);
         
-        std::complex<double> densityMatrixElement(GExciton&, int, int, int, int);
+        std::complex<double> densityMatrixElement(Exciton&, int, int, int, int);
 
-        std::complex<double> densityMatrix(GExciton&, const arma::cx_vec&, int, int);
-        std::complex<double> densityMatrixK(int, GExciton&, const arma::cx_vec&, int, int);
+        std::complex<double> densityMatrix(Exciton&, const arma::cx_vec&, int, int);
+        std::complex<double> densityMatrixK(int, Exciton&, const arma::cx_vec&, int, int);
 
     private:
         int findExcitonPeak(int);
         double boundingBoxBZ();
         arma::cx_vec addExponential(arma::cx_vec&, const arma::rowvec&);
 };
+
+}

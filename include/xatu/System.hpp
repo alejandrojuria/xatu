@@ -8,6 +8,7 @@
 #define eps0 8.8541878E-12
 #endif
 
+namespace xatu {
 
 class System : public Crystal{
     
@@ -57,3 +58,5 @@ class System : public Crystal{
     private:
         void orthogonalize(const arma::rowvec&, arma::cx_mat&, bool) const;
 };
+
+}
