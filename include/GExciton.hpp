@@ -201,6 +201,7 @@ class GExciton : public System {
 
         // Fermi golden rule       
         double pairDensityOfStates(double, double) const;
+        void writePairDOS(FILE*, double delta, int n = 100);
         arma::cx_vec ehPairCoefs(double, const arma::vec&, std::string side = "right");
         double fermiGoldenRule(const GExciton&, const arma::cx_vec&, const arma::cx_vec&, double);
 };

@@ -47,6 +47,7 @@ class Result{
         void writeEigenvalues(FILE*, int n = 0);
         void writeStates(FILE*, int n = 0);
         void writeAbsorptionSpectrum(FILE*, double);
+        
 
         double fourierTransformExciton(int, const arma::rowvec&, const arma::rowvec&);
 
