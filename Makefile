@@ -6,7 +6,7 @@ CFLAGS = -O2 -Wall -lm
 INCLUDE = -I$(PWD)/include
 
 # Libraries
-LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD)/src -lxatu -larmadillo -lopenblas -llapack -fopenmp
+LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD) -lxatu -larmadillo -lopenblas -llapack -fopenmp
 
 # Compilation targets
 SRC_FILES := $(wildcard src/*.cpp)
@@ -17,7 +17,7 @@ dummy_build_folder := $(shell mkdir -p build)
 dummy_bin_folder := $(shell mkdir -p bin)
 
 build:	$(OBJECTS)
-	ar rcs src/libxatu.a $(OBJECTS)
+	ar rcs libxatu.a $(OBJECTS)
 	
 xatu: main/xatu.cpp $(OBJECTS) 
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
