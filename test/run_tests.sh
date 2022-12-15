@@ -1,6 +1,6 @@
 #!/bin/bash
 TESTS=$(ls *.x)
-NTESTS=${#TESTS[@]}
+NTESTS=$(echo $TESTS | wc -w)
 NSUC=0
 FAILED=()
 
