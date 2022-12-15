@@ -35,10 +35,6 @@ System::System(const SystemConfiguration& configuration) : Crystal(){
 	std::cout << "Correctly initiallized System object" << std::endl;
 };
 
-System::~System(){
-	std::cout << "Destroying System object..." << std::endl;
-};
-
 // ----------------------------- Methods -----------------------------
 /* Routine to extract the information contained in the SystemConfiguration object from
 parsing the input text file */
