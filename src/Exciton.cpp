@@ -964,7 +964,6 @@ cx_vec Exciton::ehPairCoefs(double energy, const vec& gapEnergy, std::string sid
 
     cout << "Energy gap (-k): " << gapEnergy(closestKindex) << endl;
     cout << "Energy gap (k): " << gapEnergy(nk - 1 - closestKindex) << endl;
-    this->pairEnergy = gapEnergy(closestKindex);
 
     return coefs;
 };
@@ -1029,7 +1028,7 @@ double Exciton::fermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec
     };
 
     double delta = 2.4/(2*ncell); // Adjust delta depending on number of k points
-    double rho = targetExciton.pairDensityOfStates(pairEnergy, delta);
+    double rho = targetExciton.pairDensityOfStates(energy, delta);
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
 
