@@ -25,10 +25,16 @@ xatu: main/xatu.cpp $(OBJECTS)
 exciton: main/gexciton.cpp $(OBJECTS)
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
+transition_rate: main/transition_rate.cpp $(OBJECTS)
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
+
+transition_conv: main/transition_conv.cpp $(OBJECTS)
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
+
 # Compilation steps
 # $< refers to first prerequisite and $@ to the target
 build/%.o: src/%.cpp
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE) $(LIBS) 
 
 clean:
-	rm -f build/*.o bin/*
+	rm -f build/*.o bin/* libxatu.a
