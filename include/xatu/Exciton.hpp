@@ -205,6 +205,7 @@ class Exciton : public System {
         void writePairDOS(FILE*, double delta, int n = 100);
         arma::cx_vec ehPairCoefs(double, const arma::vec&, std::string side = "right");
         double fermiGoldenRule(const Exciton&, const arma::cx_vec&, const arma::cx_vec&, double);
+        double edgeFermiGoldenRule(const Exciton&, const arma::cx_vec&, double, std::string side = "right");
 };
 
 }

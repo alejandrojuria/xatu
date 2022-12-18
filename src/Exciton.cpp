@@ -55,6 +55,7 @@ void Exciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     }
     this->valenceBands_ = arma::ivec(valence);
     this->conductionBands_ = arma::ivec(conduction);
+    this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 }
 
 Exciton::Exciton(const SystemConfiguration& config, int ncell, const arma::ivec& bands, 
@@ -80,6 +81,7 @@ Exciton::Exciton(const SystemConfiguration& config, int ncell, const arma::ivec&
     }
     this->valenceBands_ = arma::ivec(valence);
     this->conductionBands_ = arma::ivec(conduction);
+    this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 
     if(!bands.empty()){
         std::cout << "Correctly initialized Exciton object" << std::endl;
@@ -99,6 +101,7 @@ Exciton::Exciton(const SystemConfiguration& config, int ncell, int nbands, int n
     this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, 
                                                         fermiLevel + nbands + nrmbands);
     this->bands_ = arma::join_cols(valenceBands, conductionBands) - fermiLevel;
+    this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 
     std::cout << "Correctly initialized Exciton object" << std::endl;
 };
@@ -133,6 +136,7 @@ Exciton::Exciton(const System& system, int ncell, const arma::ivec& bands,
     }
     this->valenceBands_ = arma::ivec(valence);
     this->conductionBands_ = arma::ivec(conduction);
+    this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 
     if(!bands.empty()){
         std::cout << "Correctly initialized Exciton object" << std::endl;
@@ -153,6 +157,7 @@ Exciton::Exciton(const System& system, int ncell, int nbands, int nrmbands,
     this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, 
                                                         fermiLevel + nbands + nrmbands);
     this->bands_ = arma::join_cols(valenceBands, conductionBands) - fermiLevel;
+    this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 
     std::cout << "Correctly initialized Exciton object" << std::endl;
 };
@@ -536,7 +541,6 @@ arma::imat Exciton::createBasis(const arma::ivec& conductionBands,
     };
 
     basisStates_ = states;
-    bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 
     return states;
 };
@@ -1035,7 +1039,146 @@ double Exciton::fermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec
     transitionRate = 2*PI*std::norm(arma::cdot(finalState, W*initialState))*rho/hbar;
 
     return transitionRate;
+}
 
+/* Method to compute the transition to an edge e-h pair with the same energy (up to some error) as the bulk exciton. */
+double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec& initialState, double energy, std::string side){
+
+    double transitionRate = 0;
+    arma::imat initialBasis = basisStates;
+
+    // First identify k edge e-h pair with same energy as exciton
+    double n = 10; // Submeshing
+    arma::rowvec min_k, max_k, kmin, kmax;
+    if (side == "right"){
+        min_k = kpoints.row(nk/2);
+        max_k = kpoints.row(nk - 1);
+    }
+    else if(side == "left"){
+        min_k = kpoints.row(0);
+        max_k = kpoints.row(nk/2 - 1);
+    }
+    
+    arma::rowvec k;
+    arma::cx_vec coefsK, coefsKQ, auxCoefsK, auxCoefsKQ;
+    double threshold = 1E-8;
+    arma::vec eigval;
+    arma::cx_mat eigvec;
+    int currentIndex;
+    double currentEnergy = 0, vEnergy, cEnergy, gap;
+    double prevEnergy = currentEnergy;
+    
+    while(abs(currentEnergy - energy) > threshold){
+        for(double i = 0; i <= n; i++){
+            k = min_k * (1 - i/n) + max_k * i/n;
+            targetExciton.solveBands(k, eigval, eigvec);
+
+            eigval = eigval(targetExciton.bandList);
+            vEnergy = eigval(0);
+
+            eigvec = fixGlobalPhase(eigvec);
+            eigvec = eigvec.cols(targetExciton.bandList);
+            auxCoefsK = eigvec.col(0);
+
+            if(arma::norm(Q) != 0){
+                arma::rowvec kQ = k + Q;
+                targetExciton.solveBands(kQ, eigval, eigvec);
+
+                eigval = eigval(targetExciton.bandList);
+                eigvec = fixGlobalPhase(eigvec);
+                eigvec = eigvec.cols(targetExciton.bandList);
+            }
+            auxCoefsKQ = eigvec.col(1);
+            cEnergy = eigval(1);
+
+            gap = cEnergy - vEnergy;
+            if (abs(gap - energy) < abs(currentEnergy - energy)){
+                currentIndex = i;
+                currentEnergy = gap;
+
+                coefsK = auxCoefsK;
+                coefsKQ = auxCoefsKQ;
+
+                kmin = min_k * (1 - (currentIndex - 1)/n) + max_k * (currentIndex - 1)/n;
+                kmax = min_k * (1 - (currentIndex + 1)/n) + max_k * (currentIndex + 1)/n;
+            }
+        }
+        k = min_k * (1 - currentIndex/n) + max_k * currentIndex/n;
+        min_k = kmin;
+        max_k = kmax;
+        arma::cout << "Current edge pair energy: " << currentEnergy << arma::endl;
+        arma::cout << "Target energy: " << energy << "\n" << arma::endl;
+
+        if (currentEnergy == prevEnergy){
+            n += 1;
+        }
+        prevEnergy = currentEnergy;
+    }
+
+    arma::cout << "k: " << k << arma::endl;
+    
+    // Now compute motif FT using k of edge pair
+    double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
+    arma::mat cells = truncateSupercell(ncell, radius);
+
+    arma::cx_cube ftMotifStack = arma::cx_cube(natoms, natoms, meshBZ_.n_rows);
+    
+    for(int i = 0; i < nk; i++){
+        for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
+            for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
+                ftMotifStack(fAtomIndex, sAtomIndex, i) = 
+                motifFourierTransform(fAtomIndex, sAtomIndex, meshBZ_.row(i) - k, cells);
+                ftMotifStack(sAtomIndex, fAtomIndex, i) = conj(ftMotifStack(fAtomIndex, sAtomIndex, i));
+            }   
+        }
+    }
+    
+    arma::cx_vec W = arma::zeros<arma::cx_vec>(initialBasis.n_rows);
+
+    // -------- Main loop (W initialization) --------
+    #pragma omp parallel for
+    for (int i = 0; i < initialBasis.n_rows; i++){
+
+        arma::cx_vec coefsK2, coefsK2Q;
+        
+        int vi = bandToIndex[initialBasis(i, 0)];
+        int ci = bandToIndex[initialBasis(i, 1)];
+        double ki_index = initialBasis(i, 2);
+
+        // Using the atomic gauge
+        if(gauge == "atomic"){
+            coefsK2 = latticeToAtomicGauge(eigvecKStack.slice(ki_index).col(vi), kpoints.row(ki_index));
+            coefsK2Q = latticeToAtomicGauge(eigvecKQStack.slice(ki_index).col(ci), kpoints.row(ki_index));
+        }
+        else{
+            coefsK2 = eigvecKStack.slice(ki_index).col(vi);
+            coefsK2Q = eigvecKQStack.slice(ki_index).col(ci);
+        }
+
+        std::complex<double> D, X;
+        if (mode == "realspace"){
+            arma::cx_mat motifFT = ftMotifStack.slice(ki_index);
+            D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
+            X = 0;
+
+        }
+        else if (mode == "reciprocalspace"){
+            arma::rowvec k2 = kpoints.row(ki_index);
+            D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
+            X = 0;
+        }
+        
+        W(i) = - (D - X);                
+    };
+
+    double delta = 2.4/(2*ncell); // Adjust delta depending on number of k points
+    double rho = targetExciton.pairDensityOfStates(energy, delta);
+    cout << "DoS value: " << rho << endl;
+    double hbar = 6.582119624E-16; // Units are eV*s
+
+    transitionRate = 2*PI*std::norm(arma::dot(W, initialState))*rho/hbar;
+
+    return transitionRate;
 }
 
 
