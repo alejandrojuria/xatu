@@ -33,7 +33,7 @@ void BiRibbon::initializeConstants(){
 
     // System class attributes
 	this->ndim_      = 1;
-    this->orbitals_   = arma::urowvec{8};
+    this->orbitals_  = arma::urowvec{8};
     this->filling_   = 5;
 
 	//// Lattice parameters
@@ -341,5 +341,15 @@ void BiRibbon::offsetEdges(double energy){
 		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField;
 	}
 };
+
+/* Method to introduce a substrate that modifies the onsite energies of the atoms of the lower sublattice */
+void BiRibbon::addSubstrate(double energy){
+
+	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*energy;
+	for(unsigned int i = 0; i < natoms/2; i++){
+		hamiltonianMatrices.slice(0).submat(2*i*8, 2*i*8, (2*i + 1)*8 - 1, (2*i + 1)*8 - 1) += onsiteField;
+	}
+}
+
 
 }
