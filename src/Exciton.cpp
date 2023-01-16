@@ -911,7 +911,7 @@ arma::mat Exciton::C3ExcitonBasisRep(){
 
 /* Method to compute density of states associated to non-interacting electron-hole pairs.
 Considers only the bands defined as the basis for excitons. */
-double Exciton::pairDensityOfStates(double energy, double delta) const{
+double Exciton::pairDensityOfStates(double energy, double delta) const {
     
     double dos = 0;
     for(int v = 0; v < (int)valenceBands.n_elem; v++){
@@ -929,6 +929,19 @@ double Exciton::pairDensityOfStates(double energy, double delta) const{
     dos /= (a*nk);
 
     return dos;
+}
+
+
+/* Routine to compute and write to a file the density of states of non-interacting e-h pairs. */
+void Exciton::writePairDOS(FILE* file, double delta, int n){
+
+    double eMin = eigvalKStack.min();
+    double eMax = eigvalKQStack.max();
+    arma::vec energies = arma::linspace(0, (eMax - eMin)*1.1, n);
+    for (double energy : energies){
+        double dos = pairDensityOfStates(energy, delta);
+        fprintf(file, "%f\t%f\n", energy, dos);
+    }
 }
 
 
@@ -1042,7 +1055,7 @@ double Exciton::fermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec
 }
 
 /* Method to compute the transition to an edge e-h pair with the same energy (up to some error) as the bulk exciton. */
-double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec& initialState, double energy, std::string side){
+double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec& initialState, double energy, std::string side, bool increasing){
 
     double transitionRate = 0;
     arma::imat initialBasis = basisStates;
@@ -1065,11 +1078,13 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
     arma::vec eigval;
     arma::cx_mat eigvec;
     int currentIndex;
-    double currentEnergy = 0, vEnergy, cEnergy, gap;
+    double currentEnergy = 0, vEnergy, cEnergy, gap, prevGap;
     double prevEnergy = currentEnergy;
+    prevGap = 0;
     
     while(abs(currentEnergy - energy) > threshold){
         for(double i = 0; i <= n; i++){
+            
             k = min_k * (1 - i/n) + max_k * i/n;
             targetExciton.solveBands(k, eigval, eigvec);
 
@@ -1092,7 +1107,7 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
             cEnergy = eigval(1);
 
             gap = cEnergy - vEnergy;
-            if (abs(gap - energy) < abs(currentEnergy - energy)){
+            if (!increasing && (gap <= energy) && (prevGap > energy)){
                 currentIndex = i;
                 currentEnergy = gap;
 
@@ -1102,6 +1117,18 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
                 kmin = min_k * (1 - (currentIndex - 1)/n) + max_k * (currentIndex - 1)/n;
                 kmax = min_k * (1 - (currentIndex + 1)/n) + max_k * (currentIndex + 1)/n;
             }
+            if (increasing && (gap > energy) && (prevGap <= energy)){
+                currentIndex = i;
+                currentEnergy = gap;
+
+                coefsK = auxCoefsK;
+                coefsKQ = auxCoefsKQ;
+
+                kmin = min_k * (1 - (currentIndex - 1)/n) + max_k * (currentIndex - 1)/n;
+                kmax = min_k * (1 - (currentIndex + 1)/n) + max_k * (currentIndex + 1)/n;
+            }
+            prevGap = gap;
+
         }
         k = min_k * (1 - currentIndex/n) + max_k * currentIndex/n;
         min_k = kmin;
@@ -1116,8 +1143,27 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
     }
 
     arma::cout << "k: " << k << arma::endl;
+
+    bool computeOccupations = false;
+    if (computeOccupations){
+        //////// Specific for Bi ribbon; must be deleted afterwards.
+        int N = targetExciton.basisdim;
+        double l_e_edge_occ = arma::norm(coefsKQ.subvec(0, 15));
+        double r_e_edge_occ = arma::norm(coefsKQ.subvec(N - 16, N - 1));
+        double l_h_edge_occ = arma::norm(coefsK.subvec(0, 15));
+        double r_h_edge_occ = arma::norm(coefsK.subvec(N - 16, N - 1));
+
+        std::cout << "left e occ.: " << l_e_edge_occ << "\nright e occ: " << r_e_edge_occ << std::endl;
+        std::cout << "Total e occ.: " << std::sqrt(l_e_edge_occ*l_e_edge_occ + r_e_edge_occ*r_e_edge_occ) << arma::endl;
+        std::cout << "--------------------------------------" << std::endl;
+        std::cout << "left h occ.: " << l_h_edge_occ << "\nright h occ: " << r_h_edge_occ << std::endl;
+        std::cout << "Total h occ.: " << std::sqrt(l_h_edge_occ*l_h_edge_occ + r_h_edge_occ*r_h_edge_occ) << arma::endl;
+        std::cout << "--------------------------------------" << std::endl;
+        std::cout << "Total e-h pair edge occu.: " << std::sqrt(l_e_edge_occ*l_e_edge_occ + r_e_edge_occ*r_e_edge_occ) + std::sqrt(l_h_edge_occ*l_h_edge_occ + r_h_edge_occ*r_h_edge_occ) << std::endl;
+    }
     
     // Now compute motif FT using k of edge pair
+    
     double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
     arma::mat cells = truncateSupercell(ncell, radius);
 
@@ -1171,12 +1217,12 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
         W(i) = - (D - X);                
     };
 
-    double delta = 2.4/(2*ncell); // Adjust delta depending on number of k points
+    double delta = 2.0/targetExciton.nk; // Adjust delta depending on number of k points
     double rho = targetExciton.pairDensityOfStates(energy, delta);
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
 
-    transitionRate = 2*PI*std::norm(arma::dot(W, initialState))*rho/hbar;
+    transitionRate = (ncell*a)*2*PI*std::norm(arma::dot(W, initialState))*rho/hbar;
 
     return transitionRate;
 }
