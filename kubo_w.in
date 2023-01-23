@@ -1,15 +1,15 @@
 #initial frequency (eV)
-1.0d0
+0.0d0
 #frequency range (eV)
-8.0d0
+7.5
 #number of frequency points (integer)
 300
 #broadening parameter (eV)
-0.05d0
-#type of broadening (available: 'lorentzian')
+0.04d0
+#type of broadening (available: 'lorentzian', 'exponential', 'gaussian')
 lorentzian
-#name (tag) of the case study (available: 'hBN_TB', 'GeS_HSE06_TB')
-hBN_TB
+#name (tag) of the case study (available: 'hBN_TB', 'GeS_HSE06_TB_r010')
+GeS_HSE06_TB_r022
 #output kubo name files
-kubo_hBN_sp.dat
-kubo_hBN_ex.dat
+kubo_GeS_HSE06_r022_TB_sp.dat
+kubo_GeS_HSE06_r022_TB_ex.dat
