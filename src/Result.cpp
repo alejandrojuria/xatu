@@ -86,9 +86,6 @@ arma::cx_vec Result::spinX(int stateindex){
     arma::cx_mat spinHole = arma::zeros<arma::cx_mat>(dimX, dimX);
     arma::cx_mat spinElectron = arma::zeros<arma::cx_mat>(dimX, dimX);
 
-    arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nvbands, nvbands);
-    arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(ncbands, ncbands);
-
     arma::cx_mat vMatrix = arma::eye<arma::cx_mat>(nvbands, nvbands);
     arma::cx_mat cMatrix = arma::eye<arma::cx_mat>(ncbands, ncbands);
 
@@ -97,12 +94,14 @@ arma::cx_vec Result::spinX(int stateindex){
     int i = 0;
     for(double v : exciton.valenceBands){
         for(double c : exciton.conductionBands){
-            bandPairs.row(i) = {v, c};
+            bandPairs.row(i) = arma::rowvec{v, c};
             i++;
         }
     }
 
     for(unsigned int k = 0; k < exciton.kpoints.n_rows; k++){
+        arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nvbands, nvbands);
+        arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(ncbands, ncbands);
         for(int i = 0; i < nvbands; i++){
             int vIndex = exciton.bandToIndex[exciton.valenceBands(i)];
             for(int j = 0; j < nvbands; j++){
