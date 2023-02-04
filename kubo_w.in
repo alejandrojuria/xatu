@@ -5,11 +5,11 @@
 #number of frequency points (integer)
 300
 #broadening parameter (eV)
-0.04d0
+0.1d0
 #type of broadening (available: 'lorentzian', 'exponential', 'gaussian')
-lorentzian
+gaussian
 #name (tag) of the case study (available: 'hBN_TB', 'GeS_HSE06_TB_r010')
-GeS_HSE06_TB_r022
+GeS_HSE06_TB_r010
 #output kubo name files
 kubo_GeS_HSE06_r022_TB_sp.dat
 kubo_GeS_HSE06_r022_TB_ex.dat

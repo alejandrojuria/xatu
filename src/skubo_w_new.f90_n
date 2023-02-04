@@ -110,7 +110,8 @@
       kcount=1
 	  
 	  call hoppings_observables_TB(norb,nR,nRvec,R,B,shop,hhop,rhop,sderhop,hderhop)	
-	  write(*,*) 'mapping the BZ...'		  
+	  write(*,*) 'mapping the BZ...'
+      open(10,file='velocities.dat')	  
 	  do ibz=1,npointstotal
         !write(*,*) 'point:',ibz,npointstotal         
         rkxp=rkx(ibz)
@@ -127,7 +128,9 @@
 	    hkernel,skernel,akernel,sderkernel,hderkernel, &
 	    pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme) 
         
-		!write(*,*) ibz,vme(1,2,1)
+		if (rkyp.eq.0.0d0) then
+		  write(10,*) ibz,rkxp,rkyp,rkzp,realpart(vme(1,1,2)),aimag(vme(1,1,2))
+		end if
 		!pause
 		!compute exciton velocity matrix element
 		do iex=1,nkubo_ex
@@ -141,6 +144,7 @@
 		!get strength for kubo SP
 		call get_kubo_intens(nv,npointstotal,vcell,norb,nkubo_sp,e,kcount,vme,wn_sp,skubo_sp_int)		
 	  end do
+	  close(10)
 	  
 	  !fill kubo oscillators of EXCITONS
       do nn=1,nkubo_ex	 	  

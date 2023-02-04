@@ -20,3 +20,5 @@ xatu_old/
 libxatu.a
 main/
 exciton_files/
+/test/*
+
