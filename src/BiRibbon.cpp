@@ -3,10 +3,12 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include "BiRibbon.hpp"
+#include "xatu/BiRibbon.hpp"
 
 using namespace arma;
 using namespace std::chrono;
+
+namespace xatu {
 
 BiRibbon::BiRibbon(int N, std::string zeeman_axis){
 
@@ -31,7 +33,7 @@ void BiRibbon::initializeConstants(){
 
     // System class attributes
 	this->ndim_      = 1;
-    this->orbitals_   = arma::urowvec{8};
+    this->orbitals_  = arma::urowvec{8};
     this->filling_   = 5;
 
 	//// Lattice parameters
@@ -50,7 +52,7 @@ void BiRibbon::initializeConstants(){
 	this->Vppp = -0.600;
 
 	// Spin-orbit coupling 
-	this->lambda = 0.0;
+	this->lambda = 1.5;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
 	this->zeeman = 1E-7;
@@ -293,10 +295,10 @@ void BiRibbon::prepareHamiltonian() {
 	this->unitCellList_ = arma::zeros(ncells, 3);
 	this->unitCellList_.row(1) = bravaisLattice.row(0);
 	this->unitCellList_.row(2) = -bravaisLattice.row(0);
-    this->hamiltonianMatrices = arma::zeros<arma::cx_cube>(basisdim, basisdim, ncells);
-    this->hamiltonianMatrices.slice(0) = H0 + Hsoc + Hzeeman;
-    this->hamiltonianMatrices.slice(1) = Ha;
-	this->hamiltonianMatrices.slice(2) = Ha.t();
+    this->hamiltonianMatrices_ = arma::zeros<arma::cx_cube>(basisdim, basisdim, ncells);
+    this->hamiltonianMatrices_.slice(0) = H0 + Hsoc + Hzeeman;
+    this->hamiltonianMatrices_.slice(1) = Ha;
+	this->hamiltonianMatrices_.slice(2) = Ha.t();
 
 };
 
@@ -319,3 +321,36 @@ cx_mat BiRibbon::inversionOperator(const cx_vec& eigenvector){
 	return P*eigenvector;
 };
 
+
+/* Method to modify the onsite energies according to a electric field perpendicular to the periodic direction */
+void BiRibbon::applyElectricField(double amplitude){
+
+	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*amplitude;
+	for(int i = 0; i < natoms; i++){
+		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField*motif.row(i)(0);
+	}
+};
+
+/* Method to introduce additional onsite energy at the edges to break the edge state degeneracy 
+and identify them. */
+void BiRibbon::offsetEdges(double energy){
+
+	// arma::uvec indices = {(unsigned)natoms - 2, (unsigned)natoms - 1};
+	arma::uvec indices = {0, 1};
+	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*energy;
+	for (unsigned int i : indices){
+		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField;
+	}
+};
+
+/* Method to introduce a substrate that modifies the onsite energies of the atoms of the lower sublattice */
+void BiRibbon::addSubstrate(double energy){
+
+	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*energy;
+	for(unsigned int i = 0; i < natoms/2; i++){
+		hamiltonianMatrices.slice(0).submat(2*i*8, 2*i*8, (2*i + 1)*8 - 1, (2*i + 1)*8 - 1) += onsiteField;
+	}
+}
+
+
+}

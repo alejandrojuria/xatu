@@ -8,6 +8,7 @@
 #define eps0 8.8541878E-12
 #endif
 
+namespace xatu {
 
 class System : public Crystal{
     
@@ -17,8 +18,8 @@ class System : public Crystal{
         std::string systemName;
 
         arma::urowvec orbitals_;
-        arma::cx_cube hamiltonianMatrices;
-        arma::cx_cube overlapMatrices;
+        arma::cx_cube hamiltonianMatrices_;
+        arma::cx_cube overlapMatrices_;
 
     // Const references to expose relevant attributes in a read-only way
     public:
@@ -30,6 +31,11 @@ class System : public Crystal{
         const int& filling = filling_;
         // Returns index of band corresponding to Fermi level
         const int& fermiLevel = fermiLevel_;
+        // Fock matrices
+        const arma::cx_cube& hamiltonianMatrices = hamiltonianMatrices_;
+        // Overlap matrices
+        const arma::cx_cube& overlapMatrices = overlapMatrices_;
+
 
     //// Methods
     public:
@@ -37,15 +43,14 @@ class System : public Crystal{
         System();
         System(const System&);
         System(const SystemConfiguration&);  
-        ~System();
 
         void setFilling(int);
 
         /* Bloch Hamiltonian */
-        arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false);
-        arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false);
-        void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&, bool triangular = false);
-        void solveBands(std::string, bool triangular = false);
+        arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false) const;
+        arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false) const;
+        void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&, bool triangular = false) const;
+        void solveBands(std::string, bool triangular = false) const;
 
         /* Expected value of spin components */
         double expectedSpinZValue(const arma::cx_vec&);
@@ -55,5 +60,7 @@ class System : public Crystal{
         void initializeSystemAttributes(const SystemConfiguration&);
 
     private:
-        void orthogonalize(const arma::rowvec&, arma::cx_mat&, bool);
+        void orthogonalize(const arma::rowvec&, arma::cx_mat&, bool) const;
 };
+
+}

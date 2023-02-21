@@ -1,5 +1,8 @@
-#include "Result.hpp"
+#include "xatu/Result.hpp"
 #include <complex>
+
+namespace xatu {
+
 
 double Result::kineticEnergy(int stateindex){
     arma::cx_vec coefs = eigvec.col(stateindex);
@@ -68,47 +71,60 @@ arma::cx_vec Result::spinX(int stateindex){
     for(int atomIndex = 0; atomIndex < exciton.natoms; atomIndex++){
         int species = exciton.motif.row(atomIndex)(3);
         int norbitals = exciton.orbitals(species);
-        spinVector.subvec(vecIterator, vecIterator + norbitals) = 
-                          arma::kron(spinEigvalues, arma::ones(norbitals));
+        spinVector.subvec(vecIterator, vecIterator + norbitals - 1) = 
+                          arma::kron(arma::ones(norbitals/2), spinEigvalues);
         vecIterator += exciton.orbitals(species);
     }
     
 	arma::cx_vec eigvec, spinEigvec;
 
     // Initialize hole spin and electron spin operators
-    int nbands = exciton.bandList.n_elem;
-    int nbandsSq = nbands*nbands;
+    int nvbands = exciton.valenceBands.n_elem;
+    int ncbands = exciton.conductionBands.n_elem;
+    int npairs = nvbands*ncbands;
 
     arma::cx_mat spinHole = arma::zeros<arma::cx_mat>(dimX, dimX);
     arma::cx_mat spinElectron = arma::zeros<arma::cx_mat>(dimX, dimX);
 
-    arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nbands, nbands);
-    arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(nbands, nbands);
+    arma::cx_mat vMatrix = arma::eye<arma::cx_mat>(nvbands, nvbands);
+    arma::cx_mat cMatrix = arma::eye<arma::cx_mat>(ncbands, ncbands);
 
-    arma::cx_mat vMatrix = arma::eye<arma::cx_mat>(nbands, nbands);
-    arma::cx_mat cMatrix = arma::eye<arma::cx_mat>(nbands, nbands);
+    // Initialize list of pairs of valence-conduction bands
+    arma::mat bandPairs = arma::zeros(npairs, 2);
+    int i = 0;
+    for(double v : exciton.valenceBands){
+        for(double c : exciton.conductionBands){
+            bandPairs.row(i) = arma::rowvec{v, c};
+            i++;
+        }
+    }
 
     for(unsigned int k = 0; k < exciton.kpoints.n_rows; k++){
-
-        for(int i = 0; i < nbands; i++){
+        arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nvbands, nvbands);
+        arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(ncbands, ncbands);
+        for(int i = 0; i < nvbands; i++){
             int vIndex = exciton.bandToIndex[exciton.valenceBands(i)];
-            int cIndex = exciton.bandToIndex[exciton.conductionBands(i)];
-            for(int j = 0; j < nbands; j++){
+            for(int j = 0; j < nvbands; j++){
                 int vIndex2 = exciton.bandToIndex[exciton.valenceBands(j)];
-                int cIndex2 = exciton.bandToIndex[exciton.conductionBands(j)];
                 eigvec = exciton.eigvecKStack.slice(k).col(vIndex);
                 spinEigvec = eigvec % spinVector;
                 eigvec = exciton.eigvecKStack.slice(k).col(vIndex2);
                 spinHoleReduced(i,j) = arma::cdot(eigvec, spinEigvec);
-
+            }
+        }
+        for(int i = 0; i < ncbands; i++){
+            int cIndex = exciton.bandToIndex[exciton.conductionBands(i)];
+            for(int j = 0; j < ncbands; j++){
+                int cIndex2 = exciton.bandToIndex[exciton.conductionBands(j)];
                 eigvec = exciton.eigvecKQStack.slice(k).col(cIndex);
                 spinEigvec = eigvec % spinVector;
                 eigvec = exciton.eigvecKQStack.slice(k).col(cIndex2);
                 spinElectronReduced(i,j) = arma::cdot(eigvec, spinEigvec);
             }
         }
-        spinHole.submat(k*nbandsSq, k*nbandsSq, (k+1)*nbandsSq - 1, (k+1)*nbandsSq - 1) = arma::kron(cMatrix, spinHoleReduced);
-        spinElectron.submat(k*nbandsSq, k*nbandsSq, (k+1)*nbandsSq - 1, (k+1)*nbandsSq - 1) = arma::kron(spinElectronReduced, vMatrix);
+            
+        spinHole.submat(k*npairs, k*npairs, (k+1)*npairs - 1, (k+1)*npairs - 1) = arma::kron(cMatrix, spinHoleReduced);
+        spinElectron.submat(k*npairs, k*npairs, (k+1)*npairs - 1, (k+1)*npairs - 1) = arma::kron(spinElectronReduced, vMatrix);
     }
 
     // Perform tensor products with the remaining quantum numbers
@@ -482,7 +498,7 @@ arma::cx_vec Result::addExponential(arma::cx_vec& coefs, const arma::rowvec& cel
 
 // This routine requires having ALL eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.
 // Meaning bool storeAllVectors must be set to TRUE when initializing the exciton object.
-std::complex<double> Result::densityMatrix(GExciton& exciton, const arma::cx_vec& BSEcoefs, 
+std::complex<double> Result::densityMatrix(Exciton& exciton, const arma::cx_vec& BSEcoefs, 
                                     int eIndex, int hIndex){
 
     std::complex<double> rho;
@@ -530,7 +546,7 @@ std::complex<double> Result::densityMatrix(GExciton& exciton, const arma::cx_vec
 
 // This routine requires having ALL eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.
 // Meaning bool storeAllVectors must be set to TRUE when initializing the exciton object.
-std::complex<double> Result::densityMatrixK(int kIndex, GExciton& exciton, const arma::cx_vec& BSEcoefs, 
+std::complex<double> Result::densityMatrixK(int kIndex, Exciton& exciton, const arma::cx_vec& BSEcoefs, 
                                     int eIndex, int hIndex){
 
     std::complex<double> rho;
@@ -572,3 +588,5 @@ std::complex<double> Result::densityMatrixK(int kIndex, GExciton& exciton, const
     rho += arma::cdot(blochState, blochState2);
     return rho;
 };
+
+}

@@ -1,7 +1,11 @@
 #ifndef _FORWARD_DECLARATIONS_H_
 #define _FORWARD_DECLARATIONS_H_
 
-class GExciton;
+namespace xatu {
+
+class Exciton;
 class Result;
+
+}
 
 #endif

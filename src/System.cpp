@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <iostream>
 
-#include "System.hpp"
+#include "xatu/System.hpp"
 
+namespace xatu {
 
 // -------------------- Constructors and destructor --------------------
 
@@ -16,8 +17,8 @@ System::System(const System& system) : Crystal(system){
 
 	systemName			 = system.systemName;
 	orbitals_            = system.orbitals;
-	hamiltonianMatrices  = system.hamiltonianMatrices;
-	overlapMatrices      = system.overlapMatrices;
+	hamiltonianMatrices_ = system.hamiltonianMatrices;
+	overlapMatrices_     = system.overlapMatrices;
 	filling_			 = system.filling;
 	fermiLevel_			 = filling_ - 1;
 	basisdim_ 			 = system.basisdim;
@@ -34,10 +35,6 @@ System::System(const SystemConfiguration& configuration) : Crystal(){
 	std::cout << "Correctly initiallized System object" << std::endl;
 };
 
-System::~System(){
-	std::cout << "Destroying System object..." << std::endl;
-};
-
 // ----------------------------- Methods -----------------------------
 /* Routine to extract the information contained in the SystemConfiguration object from
 parsing the input text file */
@@ -45,8 +42,8 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	
 	systemName			 = configuration.systemInfo.name;
 	orbitals_            = configuration.systemInfo.norbitals;
-	hamiltonianMatrices  = configuration.systemInfo.hamiltonian;
-	overlapMatrices      = configuration.systemInfo.overlap;
+	hamiltonianMatrices_ = configuration.systemInfo.hamiltonian;
+	overlapMatrices_     = configuration.systemInfo.overlap;
 	filling_			 = configuration.systemInfo.filling;
 	fermiLevel_			 = filling_ - 1;
 
@@ -59,7 +56,7 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 }
 
 /* Bloch hamiltonian for posterior diagonalization. Input: arma::vec k (wave number) */
-arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
+arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular) const{
 
 	arma::cx_mat h = arma::zeros<arma::cx_mat>(basisdim, basisdim);
 	std::complex<double> imag(0, 1);
@@ -77,7 +74,7 @@ arma::cx_mat System::hamiltonian(arma::rowvec k, bool isTriangular){
 };
 
 /* Overlap matrix in reciprocal space to solve generalized eigenvalue problem */
-arma::cx_mat System::overlap(arma::rowvec k, bool isTriangular){
+arma::cx_mat System::overlap(arma::rowvec k, bool isTriangular) const{
 
 	arma::cx_mat s = arma::zeros<arma::cx_mat>(basisdim, basisdim);
 	std::complex<double> imag(0, 1);
@@ -104,7 +101,7 @@ void System::setFilling(int filling){
 	}
 }
 
-void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec, bool triangular){
+void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec, bool triangular) const {
 	arma::cx_mat h = hamiltonian(k, triangular);
 	double auToEV = 27.2;
 	if (!overlapMatrices.empty()){
@@ -127,7 +124,7 @@ void System::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigvec
 	
 }
 
-void System::solveBands(std::string kpointsfile, bool triangular){
+void System::solveBands(std::string kpointsfile, bool triangular) const {
 	std::ifstream inputfile;
 	std::string line;
 	double kx, ky, kz;
@@ -153,7 +150,7 @@ void System::solveBands(std::string kpointsfile, bool triangular){
 	}
 }
 
-void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool triangular){
+void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool triangular) const {
 	// First compute X
 	arma::cx_mat s = overlap(k, triangular);
 	arma::vec eigval;
@@ -176,14 +173,7 @@ Sz of a TB eigenstate. */
 double System::expectedSpinZValue(const arma::cx_vec& eigvec){
 
 	arma::cx_vec spinEigvalues = {1./2, -1./2};
-    arma::cx_vec spinVector = arma::zeros<arma::cx_vec>(basisdim, 1);
-    int vecIterator = 0;
-    for(int atomIndex = 0; atomIndex < natoms; atomIndex++){
-        int species = motif.row(atomIndex)(3);
-        spinVector.subvec(vecIterator, vecIterator + orbitals(species)) = 
-                    arma::kron(spinEigvalues, arma::ones(orbitals(species)/2, 1));
-    }
-
+    arma::cx_vec spinVector = arma::kron(arma::ones(basisdim/2), spinEigvalues);
 	arma::cx_vec spinEigvec = eigvec % spinVector;
 
 	return real(arma::cdot(eigvec, spinEigvec));
@@ -214,3 +204,5 @@ double System::expectedSpinXValue(const arma::cx_vec& eigvec){
 	operatorSx.submat(5,2, 7,4) = arma::eye<arma::cx_mat>(3,3);
 
 };
+
+}

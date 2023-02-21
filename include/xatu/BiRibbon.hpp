@@ -1,7 +1,7 @@
 #pragma once
 #include <armadillo>
 #include <string>
-#include "System.hpp"
+#include "xatu/System.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -9,6 +9,7 @@
 #define eps0 8.8541878E-12
 #endif
 
+namespace xatu {
 
 class BiRibbon : public System{
     
@@ -45,8 +46,13 @@ class BiRibbon : public System{
 
     public:
         void setZeeman(double);
+        void applyElectricField(double);
+        void offsetEdges(double);
+        void addSubstrate(double);
 
         /* Some utilities/extra information */
         arma::cx_mat inversionOperator(const arma::cx_vec&);
 
 };
+
+}

@@ -1,5 +1,8 @@
+#pragma once
 #include "ConfigurationBase.hpp"
 #include <armadillo>
+
+namespace xatu {
 
 class ExcitonConfiguration : public ConfigurationBase{
 
@@ -27,3 +30,5 @@ class ExcitonConfiguration : public ConfigurationBase{
         virtual void parseContent();
         void checkContentCoherence();
 };
+
+}

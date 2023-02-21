@@ -6,7 +6,6 @@ results/
 .vs/
 CppProperties.json
 Plots/
-plot/
 Debug/
 build/
 bin/
@@ -16,3 +15,15 @@ exciton.vcxproj.filters
 exciton.vcxproj.user
 old/
 xatu_old/
+libxatu.a
+exciton_files/
+plot/
+main/
+test/*.x
+*
+/src/libxatu.a
+libxatu.a
+main/
+exciton_files/
+/test/*
+

@@ -1,8 +1,10 @@
 #include <armadillo>
-#include "CrystalDFTConfiguration.hpp"
-#include "SystemConfiguration.hpp"
+#include "xatu/CrystalDFTConfiguration.hpp"
+#include "xatu/SystemConfiguration.hpp"
 #include <fstream>
 #include <algorithm>
+
+namespace xatu {
 
 CrystalDFTConfiguration::CrystalDFTConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
     parseContent(ncells);
@@ -212,7 +214,7 @@ void CrystalDFTConfiguration::parseAtoms(){
 }
 
 void CrystalDFTConfiguration::parseAtomicBasis(){
-    std::string line;
+    std::string line, prev_line;
     int norbitals, totalOrbitals = 0;
     std::string shellType;
     std::vector<std::string> shellTypes;
@@ -223,6 +225,31 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
     std::getline(m_file, line); // Parse asterisks
     std::getline(m_file, line); // Parse header
     std::getline(m_file, line); // Parse asterisks
+
+    int natoms = 0;
+    // std::vector<arma::mat> gaussianCoefficients;
+    int atomIndex;
+    std::string species;
+    double x, y, z;
+    while(std::getline(m_file, line)){
+        std::istringstream iss(line);
+        iss >> atomIndex >> species >> x >> y >> z;
+
+
+
+        if(iss.rdstate() == std::ios::failbit){
+            iss >> norbitals >> shellType;
+            if(shellType == "-"){
+                iss >> norbitals >> shellType;
+            }
+            shellTypes.push_back(shellType);
+        }
+        else{
+            if (!shellTypes.empty()){
+
+            }
+        }
+    }
     
     for(int atomIndex = 0; atomIndex < this->natoms; atomIndex++){
         std::getline(m_file, line); // Skip line with positions
@@ -232,23 +259,21 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
             std::getline(m_file, line);
             std::istringstream iss(line);
         
-            iss >> norbitals >> shellType;
-            if(shellType == "-"){
-                iss >> norbitals >> shellType;
-            }
+            
 
-            shellTypes.push_back(shellType);
-
-            for(int i = 0; i < 4; i++){
+            int i = 0;
+            while(std::getline(m_file, line)){
                 // Suppose that there are only four coefs per shell
-                std::getline(m_file, line);
                 std::istringstream iss(line);
                 iss >> exponent >> sCoef >> pCoef >> dCoef;
+                if (iss.rdstate() == std::ios::failbit){
+                    break;
+                }
                 coefs = {exponent, sCoef, pCoef, dCoef};
                 
                 gaussianCoefficients.slice(shellIndex).row(i) = arma::rowvec(coefs);
+                i++;
             }
-
             this->gaussianCoefficients[atomIndex] = gaussianCoefficients;
         }
         this->orbitalsPerAtom.push_back(norbitals - totalOrbitals);
@@ -309,3 +334,6 @@ void CrystalDFTConfiguration::mapContent(){
     }
     systemInfo.norbitals      = norbitals;
 }
+
+}
+
