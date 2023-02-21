@@ -22,10 +22,13 @@ build:	$(OBJECTS)
 xatu: main/xatu.cpp $(OBJECTS) 
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
-exciton: main/gexciton.cpp $(OBJECTS)
+ribbon_offset: main/ribbon_offset.cpp $(OBJECTS) 
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
-transition_rate: main/transition_rate.cpp $(OBJECTS)
+exciton: main/exciton.cpp $(OBJECTS)
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
+
+transition_rate: main/transition.cpp $(OBJECTS)
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
 transition_conv: main/transition_conv.cpp $(OBJECTS)

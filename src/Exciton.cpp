@@ -1065,7 +1065,7 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
     arma::rowvec min_k, max_k, kmin, kmax;
     if (side == "right"){
         min_k = kpoints.row(nk/2);
-        max_k = kpoints.row(nk - 1);
+        max_k = -kpoints.row(0);
     }
     else if(side == "left"){
         max_k = kpoints.row(0);

@@ -132,7 +132,6 @@ arma::cx_vec Result::spinX(int stateindex){
     electronSpin = arma::cdot(coefs, spinElectron*coefs);
     totalSpin = real((holeSpin + electronSpin));
     
-    
     arma::cx_vec results = {holeSpin, electronSpin, totalSpin};
     return results;
 }

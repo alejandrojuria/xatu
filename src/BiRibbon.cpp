@@ -55,10 +55,10 @@ void BiRibbon::initializeConstants(){
 	this->lambda = 1.5;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
-	this->zeeman = 0.0;
+	this->zeeman = 1E-7;
 
 	// Infinitesimal on-site energy to split edges
-	this->onsiteEdge = 1E-7;
+	this->onsiteEdge = 0.0;
 
 	//// Lattice vectors
 	// Bulk Bravais basis
@@ -335,7 +335,8 @@ void BiRibbon::applyElectricField(double amplitude){
 and identify them. */
 void BiRibbon::offsetEdges(double energy){
 
-	arma::uvec indices = {(unsigned)natoms - 2, (unsigned)natoms - 1};
+	// arma::uvec indices = {(unsigned)natoms - 2, (unsigned)natoms - 1};
+	arma::uvec indices = {0, 1};
 	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*energy;
 	for (unsigned int i : indices){
 		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField;
