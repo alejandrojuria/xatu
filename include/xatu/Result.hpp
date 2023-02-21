@@ -3,6 +3,13 @@
 #include "Exciton.hpp"
 #include "forward_declaration.hpp"
 
+
+extern "C" {
+    void skubo_w_(int* nR, int* norb, int* norb_ex, int* nv, double* nRvec, double* bravaisLattice, double* motif, 
+                  double* hhop, double* shop, int* nk, double* rkx, double* rky, double* rkz, 
+                  std::complex<double>* fk_ex, double* e_ex);
+}
+
 namespace xatu {
 
 class Result{
@@ -48,7 +55,7 @@ class Result{
         void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*, int ncells = 3);
         void writeEigenvalues(FILE*, int n = 0);
         void writeStates(FILE*, int n = 0);
-        void writeAbsorptionSpectrum(FILE*, double);
+        void writeAbsorptionSpectrum();
         
 
         double fourierTransformExciton(int, const arma::rowvec&, const arma::rowvec&);

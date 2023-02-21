@@ -388,8 +388,40 @@ void Result::writeStates(FILE* textfile, int n){
     }
 }
 
-void Result::writeAbsorptionSpectrum(FILE* textfile, double broadening){
-    // TODO
+void Result::writeAbsorptionSpectrum(){
+
+    int nR = exciton.unitCellList.n_rows;
+    int norb = exciton.basisdim;
+    int norb_ex = exciton.excitonbasisdim;
+    int nv = exciton.valenceBands.n_elem;
+    int nc = exciton.conductionBands.n_elem;
+
+    //arma::mat nRvec = {{0,0,0}, {-1,0,0}, {0, -1, 0}, {0, 1, 0}, {1,0,0}}; // This has to be adapted.
+    arma::mat nRvec = exciton.unitCellList;
+    // Extend bravais lattice to 3x3 matrix
+    arma::mat R = arma::zeros(3, 3);
+    for (int i = 0; i < exciton.bravaisLattice.n_rows; i++){
+        R.row(i) = exciton.bravaisLattice.row(i);
+    }
+
+    arma::mat B = exciton.motif.cols(0, 2);
+    arma::cube hhop = arma::real(exciton.hamiltonianMatrices);
+    arma::cube shop(arma::size(hhop));
+    if (exciton.overlapMatrices.empty()){
+        for (int i = 0; i < hhop.n_slices; i++){
+            shop.slice(i) = arma::eye(size(hhop.slice(i)));
+        }
+    }
+    else{
+        shop = arma::real(exciton.overlapMatrices);
+    }
+    int nk = exciton.nk;
+    arma::vec rkx = exciton.kpoints.col(0);
+    arma::vec rky = exciton.kpoints.col(1);
+    arma::vec rkz = exciton.kpoints.col(2);
+
+    skubo_w_(&nR, &norb, &norb_ex, &nv, nRvec.memptr(), R.memptr(), B.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
+             rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr());
 }
 
 double Result::fourierTransformExciton(int stateindex, const arma::rowvec& electron_position, 
