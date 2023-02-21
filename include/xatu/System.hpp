@@ -18,8 +18,8 @@ class System : public Crystal{
         std::string systemName;
 
         arma::urowvec orbitals_;
-        arma::cx_cube hamiltonianMatrices;
-        arma::cx_cube overlapMatrices;
+        arma::cx_cube hamiltonianMatrices_;
+        arma::cx_cube overlapMatrices_;
 
     // Const references to expose relevant attributes in a read-only way
     public:
@@ -31,6 +31,11 @@ class System : public Crystal{
         const int& filling = filling_;
         // Returns index of band corresponding to Fermi level
         const int& fermiLevel = fermiLevel_;
+        // Fock matrices
+        const arma::cx_cube& hamiltonianMatrices = hamiltonianMatrices_;
+        // Overlap matrices
+        const arma::cx_cube& overlapMatrices = overlapMatrices_;
+
 
     //// Methods
     public:

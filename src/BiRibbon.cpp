@@ -295,10 +295,10 @@ void BiRibbon::prepareHamiltonian() {
 	this->unitCellList_ = arma::zeros(ncells, 3);
 	this->unitCellList_.row(1) = bravaisLattice.row(0);
 	this->unitCellList_.row(2) = -bravaisLattice.row(0);
-    this->hamiltonianMatrices = arma::zeros<arma::cx_cube>(basisdim, basisdim, ncells);
-    this->hamiltonianMatrices.slice(0) = H0 + Hsoc + Hzeeman;
-    this->hamiltonianMatrices.slice(1) = Ha;
-	this->hamiltonianMatrices.slice(2) = Ha.t();
+    this->hamiltonianMatrices_ = arma::zeros<arma::cx_cube>(basisdim, basisdim, ncells);
+    this->hamiltonianMatrices_.slice(0) = H0 + Hsoc + Hzeeman;
+    this->hamiltonianMatrices_.slice(1) = Ha;
+	this->hamiltonianMatrices_.slice(2) = Ha.t();
 
 };
 

@@ -21,3 +21,9 @@ plot/
 main/
 test/*.x
 *
+/src/libxatu.a
+libxatu.a
+main/
+exciton_files/
+/test/*
+

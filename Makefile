@@ -1,6 +1,8 @@
 # Compiler & compiler flags
 CC = g++
+CF = gfortran
 CFLAGS = -O2 -Wall -lm
+FFLAGS = -O2 -Wall -Wno-tabs -lm
 
 # Include folders
 INCLUDE = -I$(PWD)/include
@@ -9,8 +11,11 @@ INCLUDE = -I$(PWD)/include
 LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD) -lxatu -larmadillo -lopenblas -llapack -fopenmp
 
 # Compilation targets
-SRC_FILES := $(wildcard src/*.cpp)
-OBJECTS := $(patsubst src/%.cpp, build/%.o, $(SRC_FILES))
+CC_SRC_FILES := $(wildcard src/*.cpp)
+OBJECTS := $(patsubst src/%.cpp, build/%.o, $(CC_SRC_FILES))
+FC_SRC_FILES := $(wildcard src/*.f90)
+OBJECTS_FC := $(patsubst src/%.f90, build/%.o, $(FC_SRC_FILES))
+OBJECTS += $(OBJECTS_FC)
 
 # Create folders
 dummy_build_folder := $(shell mkdir -p build)
@@ -38,6 +43,9 @@ transition_conv: main/transition_conv.cpp $(OBJECTS)
 # $< refers to first prerequisite and $@ to the target
 build/%.o: src/%.cpp
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE) $(LIBS) 
+
+build/%.o: src/%.f90
+	$(FC) -c $< -o $@ $(FFLAGS) $(LIBS) $(INCLUDE) -Wno-tabs
 
 clean:
 	rm -f build/*.o bin/* libxatu.a
