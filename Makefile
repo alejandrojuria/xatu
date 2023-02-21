@@ -8,7 +8,7 @@ FFLAGS = -O2 -Wall -Wno-tabs -lm
 INCLUDE = -I$(PWD)/include
 
 # Libraries
-LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD) -lxatu -larmadillo -lopenblas -llapack -fopenmp
+LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD) -lxatu -larmadillo -lopenblas -llapack -fopenmp -lgfortran
 
 # Compilation targets
 CC_SRC_FILES := $(wildcard src/*.cpp)
@@ -27,25 +27,13 @@ build:	$(OBJECTS)
 xatu: main/xatu.cpp $(OBJECTS) 
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
-ribbon_offset: main/ribbon_offset.cpp $(OBJECTS) 
-	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
-
-exciton: main/exciton.cpp $(OBJECTS)
-	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
-
-transition_rate: main/transition.cpp $(OBJECTS)
-	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
-
-transition_conv: main/transition_conv.cpp $(OBJECTS)
-	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
-
 # Compilation steps
 # $< refers to first prerequisite and $@ to the target
 build/%.o: src/%.cpp
 	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE) $(LIBS) 
 
 build/%.o: src/%.f90
-	$(FC) -c $< -o $@ $(FFLAGS) $(LIBS) $(INCLUDE) -Wno-tabs
+	$(FC) -c $< -o $@ $(FFLAGS) $(LIBS) $(INCLUDE)
 
 clean:
 	rm -f build/*.o bin/* libxatu.a
