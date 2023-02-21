@@ -31,7 +31,7 @@ int main(int argc, char* argv[]){
     TCLAP::ValueArg<int>    precisionArg("p", "precision", "Desired energy precision. Used to compute degeneracies.", false, 6, "No. decimals", cmd);
     TCLAP::SwitchArg        spinArg("s", "spin", "Compute exciton spin and write it to file.", cmd, false);
     TCLAP::ValueArg<int>    dftArg("d", "dft", "Indicates that the system file is a .outp CRYSTAL file.", false, -1, "No. Fock matrices", cmd);
-    TCLAP::ValueArg<double> absorptionArg("a", "absorption", "Computes the absorption spectrum.", false, 0.01, "Broadening", cmd);
+    TCLAP::SwitchArg        absorptionArg("a", "absorption", "Computes the absorption spectrum.", cmd, false);
 
     TCLAP::AnyOf         outputOptions;
     TCLAP::SwitchArg     energyArg("e", "energy", "Write energies.", false);
@@ -57,7 +57,6 @@ int main(int argc, char* argv[]){
     int ncells         = dftArg.getValue();
     bool triangular    = dftArg.isSet();
     int decimals       = precisionArg.getValue();
-    float broadening   = absorptionArg.getValue();
     std::string method = methodArg.getValue();
     std::vector<int> rsInfo = realspaceArg.getValue();
     int holeIndex = 0, ncellsRSWF = 8;
@@ -189,8 +188,8 @@ int main(int argc, char* argv[]){
     }
 
     if(writeAbs){
-        std::cout << "Writing absorption spectrum fo file: " << filename_abs << std::endl;
-        results.writeAbsorptionSpectrum(textfile_abs, broadening);
+        std::cout << "Writing absorption spectrum fo file... " << std::endl;
+        results.writeAbsorptionSpectrum();
     }
 
     fclose(textfile_en);
