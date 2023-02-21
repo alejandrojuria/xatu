@@ -327,7 +327,7 @@ void BiRibbon::applyElectricField(double amplitude){
 
 	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*amplitude;
 	for(int i = 0; i < natoms; i++){
-		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField*motif.row(i)(0);
+		hamiltonianMatrices_.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField*motif.row(i)(0);
 	}
 };
 
@@ -339,7 +339,7 @@ void BiRibbon::offsetEdges(double energy){
 	arma::uvec indices = {0, 1};
 	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*energy;
 	for (unsigned int i : indices){
-		hamiltonianMatrices.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField;
+		hamiltonianMatrices_.slice(0).submat(i*8, i*8, (i + 1)*8 - 1, (i + 1)*8 - 1) += onsiteField;
 	}
 };
 
@@ -348,7 +348,7 @@ void BiRibbon::addSubstrate(double energy){
 
 	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*energy;
 	for(unsigned int i = 0; i < natoms/2; i++){
-		hamiltonianMatrices.slice(0).submat(2*i*8, 2*i*8, (2*i + 1)*8 - 1, (2*i + 1)*8 - 1) += onsiteField;
+		hamiltonianMatrices_.slice(0).submat(2*i*8, 2*i*8, (2*i + 1)*8 - 1, (2*i + 1)*8 - 1) += onsiteField;
 	}
 }
 
