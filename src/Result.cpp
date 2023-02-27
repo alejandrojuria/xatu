@@ -349,7 +349,7 @@ void Result::writeRealspaceAmplitude(int stateindex, int holeIndex,
 argument n to specify the number of eigenvalues to write (ascending order). */
 void Result::writeEigenvalues(FILE* textfile, int n){
 
-    if(n > exciton.ncell || n < 0){
+    if(n > exciton.excitonbasisdim || n < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
 
@@ -364,7 +364,7 @@ void Result::writeEigenvalues(FILE* textfile, int n){
 /* Method to write eigenstates into a file. Has optional argument n to specify the number of states
 to write (in ascending energy order) */
 void Result::writeStates(FILE* textfile, int n){
-    if(n > exciton.ncell || n < 0){
+    if(n > exciton.excitonbasisdim || n < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
     // First write basis
