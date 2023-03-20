@@ -15,9 +15,9 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         
         arma::mat motif, bravaisLattice;
         
-        std::vector<int> shellsPerAtom;
-        std::vector<int> orbitalsPerAtom;
-        std::map<int, std::vector<std::string>> shellTypesPerAtom;
+        std::vector<int> shellsPerSpecies;
+        std::vector<int> orbitalsPerSpecies;
+        std::map<int, std::vector<std::string>> shellTypesPerSpecies;
         std::map<int, cube_vector> gaussianCoefficients;
 
         arma::mat bravaisVectors;
@@ -40,4 +40,4 @@ class CrystalDFTConfiguration : public SystemConfiguration {
 
 }
 
-size_t split(const std::string&, std::vector<std::string>&);
+size_t split(const std::string&, std::vector<double>&);
