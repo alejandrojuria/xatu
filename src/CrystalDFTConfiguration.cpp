@@ -1,6 +1,5 @@
 #include <armadillo>
-#include "xatu/CrystalDFTConfiguration.hpp"
-#include "xatu/SystemConfiguration.hpp"
+#include "xatu.hpp"
 #include <fstream>
 #include <algorithm>
 
@@ -64,7 +63,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             arma::cout << "N. electrons per cell: " << valenceElectrons << arma::endl;
         }
 
-        // N. electrons
+        // N. core electrons
         else if(line.find("CORE ELECTRONS PER CELL") != std::string::npos){
             int pos = line.find("CORE ELECTRONS PER CELL");
             int strsize = strlen("CORE ELECTRONS PER CELL");
@@ -91,12 +90,17 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
         else if(line.find("LOCAL ATOMIC FUNCTIONS BASIS SET") != std::string::npos){
             parseAtomicBasis();
             printVector(orbitalsPerAtom);
-            for(auto const& [key, val]: gaussianCoefficients){
-                arma::cout << val << arma::endl;
+            for(auto const& [key, cube_vec]: gaussianCoefficients){
+                for (int i = 0; i < cube_vec.size(); i++){
+                    auto coefs = cube_vec[i];
+                    for (int j = 0; j < coefs.size(); j++){
+                        printVector(coefs[j]);
+                    }
+                }
             }
             for(auto const& [key, val]: shellTypesPerAtom){
+                arma::cout << key << arma::endl;
                 for(int i = 0; i < val.size(); i++){
-                    arma::cout << key << arma::endl;
                     arma::cout << val[i] << arma::endl;
                 }
             }
@@ -122,6 +126,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
                 this->bravaisVectors = arma::join_vert(bravaisVectors, cell);
 
                 arma::cx_mat overlapMatrix = parseMatrix();
+                arma::cout << overlapMatrix << arma::endl;
 
                 this->overlapMatrices = arma::join_slices(this->overlapMatrices, overlapMatrix);
             }
@@ -141,7 +146,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
                 arma::cx_mat fockMatrix = parseMatrix();
                 arma::cout << "Ncell: " << cellIndex << arma::endl;
                 arma::cout << "Cell combi:" << x << " " << y << " " << z << arma::endl;
-                arma::cout << fockMatrix << arma::endl;
+                // arma::cout << fockMatrix << arma::endl;
 
                 this->fockMatrices = arma::join_slices(this->fockMatrices, fockMatrix);
                 
@@ -214,66 +219,55 @@ void CrystalDFTConfiguration::parseAtoms(){
 }
 
 void CrystalDFTConfiguration::parseAtomicBasis(){
-    std::string line, prev_line;
+    std::string line;
     int norbitals, totalOrbitals = 0;
     std::string shellType;
     std::vector<std::string> shellTypes;
     double exponent, sCoef, pCoef, dCoef;
     std::vector<double> coefs;
-    arma::cube gaussianCoefficients;
+    cube_vector gaussianCoefficients;
 
     std::getline(m_file, line); // Parse asterisks
     std::getline(m_file, line); // Parse header
     std::getline(m_file, line); // Parse asterisks
+    
+    for(int atomIndex = 0; atomIndex < this->natoms; atomIndex++){
+        if (atomIndex == 0){
+            std::getline(m_file, line); // Skip line with positions
+        }
 
-    int natoms = 0;
-    // std::vector<arma::mat> gaussianCoefficients;
-    int atomIndex;
-    std::string species;
-    double x, y, z;
-    while(std::getline(m_file, line)){
-        std::istringstream iss(line);
-        iss >> atomIndex >> species >> x >> y >> z;
+        gaussianCoefficients.clear();
+        shellTypes.clear();
+        for(int shellIndex = 0; shellIndex < shellsPerAtom[atomIndex]; shellIndex++){
+            if (shellIndex == 0){
+                std::getline(m_file, line);
+            }
 
-
-
-        if(iss.rdstate() == std::ios::failbit){
+            std::istringstream iss(line);
+            
             iss >> norbitals >> shellType;
             if(shellType == "-"){
                 iss >> norbitals >> shellType;
             }
+
             shellTypes.push_back(shellType);
-        }
-        else{
-            if (!shellTypes.empty()){
 
-            }
-        }
-    }
-    
-    for(int atomIndex = 0; atomIndex < this->natoms; atomIndex++){
-        std::getline(m_file, line); // Skip line with positions
-        gaussianCoefficients = arma::zeros(4, 4, shellsPerAtom[atomIndex]);
-        shellTypes.clear();
-        for(int shellIndex = 0; shellIndex < shellsPerAtom[atomIndex]; shellIndex++){
-            std::getline(m_file, line);
-            std::istringstream iss(line);
-        
-            
-
-            int i = 0;
-            while(std::getline(m_file, line)){
-                // Suppose that there are only four coefs per shell
-                std::istringstream iss(line);
-                iss >> exponent >> sCoef >> pCoef >> dCoef;
-                if (iss.rdstate() == std::ios::failbit){
+            std::vector<std::vector<double>> coefList;
+            while (std::getline(m_file, line)){
+                std::vector<std::string> tokenized_line;
+                split(line, tokenized_line);
+                if (tokenized_line.size() != 4){
                     break;
                 }
-                coefs = {exponent, sCoef, pCoef, dCoef};
                 
-                gaussianCoefficients.slice(shellIndex).row(i) = arma::rowvec(coefs);
-                i++;
+                std::istringstream iss(line);
+                iss >> exponent >> sCoef >> pCoef >> dCoef;
+                coefs = {exponent, sCoef, pCoef, dCoef};
+
+                coefList.push_back(coefs);
             }
+            gaussianCoefficients.push_back(coefList);
+
             this->gaussianCoefficients[atomIndex] = gaussianCoefficients;
         }
         this->orbitalsPerAtom.push_back(norbitals - totalOrbitals);
@@ -290,33 +284,37 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
     bool firstNonEmptyLineFound = false;
     arma::cx_rowvec matrixRow;
     double coef;
-    int i, j = 0, index = 0;
+    std::string colIndicesStr;
+    std::vector<int> colIndices;
+    int i, index, colIndex = 0, rowIndex = 0;
 
     while(std::getline(m_file, line)){
-        if (line.empty() && matrix.is_zero()){
-            continue;
+        if (line.empty()){
+            colIndices.clear();
+            std::getline(m_file, colIndicesStr); // After blank line get indices
+            std::istringstream iss(colIndicesStr);
+            while(iss >> index){
+                colIndices.push_back(index);
+            }
+            std::getline(m_file, line); // Get next line
+            if (line.empty()){
+                continue;
+            }
         }
-        else if (!line.empty() && !firstNonEmptyLineFound){
-            firstNonEmptyLineFound = true;
-            continue;
-        }
-        else if (line.empty() && firstNonEmptyLineFound){
-            return matrix;
-        }
-        std::istringstream iss(line);
-        matrixRow = arma::zeros<arma::cx_rowvec>(norbitals);
-
+        
         i = 0;
-        iss >> index;
+        std::istringstream iss(line);
+        iss >> rowIndex;
         while(iss >> coef){
-            matrixRow(i) = coef;
+            colIndex = colIndices[i];
+            matrix(rowIndex - 1, colIndex - 1) = coef;
             i++;
         }
 
-        matrix.row(j) = matrixRow;
-        j++;
+        if (rowIndex == (norbitals - 1) && rowIndex == (norbitals - 1)){
+            return matrix;
+        }
     }
-    return matrix;
 }
 
 void CrystalDFTConfiguration::mapContent(){
@@ -334,6 +332,18 @@ void CrystalDFTConfiguration::mapContent(){
     }
     systemInfo.norbitals      = norbitals;
 }
-
+    
 }
 
+size_t split(const std::string &txt, std::vector<std::string> &strs)
+{
+    std::istringstream iss(txt);
+    std::string token;
+    size_t size = 0;
+    while(iss >> token){
+        strs.push_back(token);
+        size++;
+    }
+
+    return size;
+}
