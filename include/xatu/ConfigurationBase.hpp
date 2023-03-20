@@ -54,8 +54,9 @@ class ConfigurationBase {
         template<typename T>
         void printVector(std::vector<T>& v){
             for (auto i = v.begin(); i != v.end(); i++){
-                std::cout << *i << std::endl;
+                std::cout << *i << "\t"; 
             }
+            std::cout << std::endl;
         };
 
         void printContent();
