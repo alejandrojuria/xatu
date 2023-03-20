@@ -82,14 +82,14 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             parseAtoms();
             arma::cout << "Motif: " << arma::endl;
             arma::cout << motif << arma::endl;
-            printVector(shellsPerAtom);
+            printVector(shellsPerSpecies);
             arma::cout << "N. species: " << nspecies << arma::endl;
         }
 
         // Parse atomic basis info
         else if(line.find("LOCAL ATOMIC FUNCTIONS BASIS SET") != std::string::npos){
             parseAtomicBasis();
-            printVector(orbitalsPerAtom);
+            printVector(orbitalsPerSpecies);
             for(auto const& [key, cube_vec]: gaussianCoefficients){
                 for (int i = 0; i < cube_vec.size(); i++){
                     auto coefs = cube_vec[i];
@@ -98,7 +98,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
                     }
                 }
             }
-            for(auto const& [key, val]: shellTypesPerAtom){
+            for(auto const& [key, val]: shellTypesPerSpecies){
                 arma::cout << key << arma::endl;
                 for(int i = 0; i < val.size(); i++){
                     arma::cout << val[i] << arma::endl;
@@ -126,7 +126,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
                 this->bravaisVectors = arma::join_vert(bravaisVectors, cell);
 
                 arma::cx_mat overlapMatrix = parseMatrix();
-                arma::cout << overlapMatrix << arma::endl;
+                arma::cout << overlapMatrix(91, 90) << arma::endl;
 
                 this->overlapMatrices = arma::join_slices(this->overlapMatrices, overlapMatrix);
             }
@@ -146,7 +146,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
                 arma::cx_mat fockMatrix = parseMatrix();
                 arma::cout << "Ncell: " << cellIndex << arma::endl;
                 arma::cout << "Cell combi:" << x << " " << y << " " << z << arma::endl;
-                // arma::cout << fockMatrix << arma::endl;
+                //arma::cout << fockMatrix << arma::endl;
 
                 this->fockMatrices = arma::join_slices(this->fockMatrices, fockMatrix);
                 
@@ -183,7 +183,7 @@ void CrystalDFTConfiguration::parseAtoms(){
     int index, natom, nshells, nspecies = 0;
     double x, y, z;
     std::string chemical_species;
-    std::vector<int> shellsPerAtom;
+    std::vector<int> shellsPerSpecies;
     std::vector<double> atom;
     std::map<std::string, int> chemical_species_to_index;
     std::vector<std::string> species;
@@ -197,7 +197,7 @@ void CrystalDFTConfiguration::parseAtoms(){
 
         if(std::find(species.begin(), species.end(), chemical_species) == species.end()){
             species.push_back(chemical_species);
-            shellsPerAtom.push_back(nshells);
+            shellsPerSpecies.push_back(nshells);
             chemical_species_to_index[chemical_species] = chemical_species_to_index.size();
             nspecies++;
         }
@@ -214,35 +214,47 @@ void CrystalDFTConfiguration::parseAtoms(){
     }
 
     this->motif = motif;
-    this->shellsPerAtom = shellsPerAtom;
+    this->shellsPerSpecies = shellsPerSpecies;
     this->nspecies = nspecies;
 }
 
 void CrystalDFTConfiguration::parseAtomicBasis(){
-    std::string line;
-    int norbitals, totalOrbitals = 0;
+    std::string line, chemical_species;
+    int norbitals, natom, totalOrbitals = 0, nspecies = 0;
     std::string shellType;
     std::vector<std::string> shellTypes;
     double exponent, sCoef, pCoef, dCoef;
     std::vector<double> coefs;
     cube_vector gaussianCoefficients;
+    std::vector<std::string> species;
 
     std::getline(m_file, line); // Parse asterisks
     std::getline(m_file, line); // Parse header
     std::getline(m_file, line); // Parse asterisks
     
     for(int atomIndex = 0; atomIndex < this->natoms; atomIndex++){
-        if (atomIndex == 0){
-            std::getline(m_file, line); // Skip line with positions
+
+        std::cout << "atom index: " << atomIndex << std::endl;
+
+        // First parse chemical species and add to list if not present.
+        std::getline(m_file, line);
+        std::istringstream iss(line);
+        iss >> natom >> chemical_species; 
+
+        if(std::find(species.begin(), species.end(), chemical_species) == species.end()){
+            species.push_back(chemical_species);
+            std::cout << "Chemical: " << chemical_species << std::endl;
+        }
+        else{
+            continue; // Skip already parsed
         }
 
         gaussianCoefficients.clear();
         shellTypes.clear();
-        for(int shellIndex = 0; shellIndex < shellsPerAtom[atomIndex]; shellIndex++){
-            if (shellIndex == 0){
-                std::getline(m_file, line);
-            }
 
+        for(int shellIndex = 0; shellIndex < shellsPerSpecies[nspecies]; shellIndex++){
+
+            std::getline(m_file, line);
             std::istringstream iss(line);
             
             iss >> norbitals >> shellType;
@@ -253,10 +265,12 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
             shellTypes.push_back(shellType);
 
             std::vector<std::vector<double>> coefList;
+            long int previousLine = m_file.tellg(); // Store beginning of next line
             while (std::getline(m_file, line)){
-                std::vector<std::string> tokenized_line;
+                std::vector<double> tokenized_line;
                 split(line, tokenized_line);
                 if (tokenized_line.size() != 4){
+                    m_file.seekg(previousLine); // Restore line
                     break;
                 }
                 
@@ -265,15 +279,18 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
                 coefs = {exponent, sCoef, pCoef, dCoef};
 
                 coefList.push_back(coefs);
+
+                previousLine = m_file.tellg(); // Store beginning of next line
             }
             gaussianCoefficients.push_back(coefList);
 
-            this->gaussianCoefficients[atomIndex] = gaussianCoefficients;
+            this->gaussianCoefficients[nspecies] = gaussianCoefficients;
         }
-        this->orbitalsPerAtom.push_back(norbitals - totalOrbitals);
+        this->orbitalsPerSpecies.push_back(norbitals - totalOrbitals);
         totalOrbitals += norbitals;
 
-        this->shellTypesPerAtom[atomIndex] = shellTypes;
+        this->shellTypesPerSpecies[nspecies] = shellTypes;
+        nspecies++;
     }
 
 }
@@ -296,6 +313,7 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
             while(iss >> index){
                 colIndices.push_back(index);
             }
+            printVector(colIndices);
             std::getline(m_file, line); // Get next line
             if (line.empty()){
                 continue;
@@ -311,7 +329,7 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
             i++;
         }
 
-        if (rowIndex == (norbitals - 1) && rowIndex == (norbitals - 1)){
+        if (rowIndex == norbitals && colIndex == norbitals){
             return matrix;
         }
     }
@@ -326,19 +344,19 @@ void CrystalDFTConfiguration::mapContent(){
     systemInfo.ndim           = ndim;
     systemInfo.bravaisVectors = bravaisVectors;
 
-    arma::urowvec norbitals = arma::zeros<arma::urowvec>(orbitalsPerAtom.size());
-    for (int i = 0; i < orbitalsPerAtom.size(); i++){
-        norbitals(i) = orbitalsPerAtom[i];
+    arma::urowvec norbitals = arma::zeros<arma::urowvec>(orbitalsPerSpecies.size());
+    for (int i = 0; i < orbitalsPerSpecies.size(); i++){
+        norbitals(i) = orbitalsPerSpecies[i];
     }
     systemInfo.norbitals      = norbitals;
 }
     
 }
 
-size_t split(const std::string &txt, std::vector<std::string> &strs)
+size_t split(const std::string &txt, std::vector<double> &strs)
 {
     std::istringstream iss(txt);
-    std::string token;
+    double token;
     size_t size = 0;
     while(iss >> token){
         strs.push_back(token);
