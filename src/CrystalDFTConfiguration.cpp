@@ -1,7 +1,9 @@
 #include <armadillo>
-#include "xatu.hpp"
+#include "xatu/CrystalDFTConfiguration.hpp"
 #include <fstream>
 #include <algorithm>
+
+#define SOC_STRING "to_be_defined_for_crystal23"
 
 namespace xatu {
 
@@ -18,8 +20,9 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
         // Bravais lattice
         if (line.find("DIRECT LATTICE VECTOR COMPONENTS") != std::string::npos){
             parseBravaisLattice(threshold);
-            arma::cout << "Bravais lattice: " << arma::endl;
-            arma::cout << bravaisLattice << arma::endl;
+            
+            // arma::cout << "Bravais lattice: " << arma::endl;
+            // arma::cout << bravaisLattice << arma::endl;
         }
 
         // Motif
@@ -29,7 +32,8 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
             iss >> natoms;
-            arma::cout << "N. atoms per cell: " << natoms << arma::endl;
+            
+            // arma::cout << "N. atoms per cell: " << natoms << arma::endl;
         }
 
         // N. shells (total)
@@ -39,7 +43,8 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
             iss >> nshells;
-            arma::cout << "N. shells: " << nshells << arma::endl;
+            
+            // arma::cout << "N. shells: " << nshells << arma::endl;
         }
 
         // N. orbitals (total)
@@ -49,7 +54,8 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
             iss >> norbitals;
-            arma::cout << "N. orbitals: " << norbitals << arma::endl;
+            
+            // arma::cout << "N. orbitals: " << norbitals << arma::endl;
         }
 
         // N. electrons
@@ -58,9 +64,9 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             int strsize = strlen("N. OF ELECTRONS PER CELL");
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
-            iss >> valenceElectrons;
+            iss >> totalElectrons;
 
-            arma::cout << "N. electrons per cell: " << valenceElectrons << arma::endl;
+            //arma::cout << "N. electrons per cell: " << totalElectrons << arma::endl;
         }
 
         // N. core electrons
@@ -71,7 +77,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             std::istringstream iss(line);
             iss >> coreElectrons;
 
-            arma::cout << "N. core electrons per cell: " << coreElectrons << arma::endl;
+            // arma::cout << "N. core electrons per cell: " << coreElectrons << arma::endl;
         }
 
         // 
@@ -80,30 +86,32 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
                 throw std::logic_error("Must parse first number of atoms");
             }
             parseAtoms();
-            arma::cout << "Motif: " << arma::endl;
-            arma::cout << motif << arma::endl;
-            printVector(shellsPerSpecies);
-            arma::cout << "N. species: " << nspecies << arma::endl;
+
+            // arma::cout << "Motif: " << arma::endl;
+            // arma::cout << motif << arma::endl;
+            // printVector(shellsPerSpecies);
+            // arma::cout << "N. species: " << nspecies << arma::endl;
         }
 
         // Parse atomic basis info
         else if(line.find("LOCAL ATOMIC FUNCTIONS BASIS SET") != std::string::npos){
             parseAtomicBasis();
-            printVector(orbitalsPerSpecies);
-            for(auto const& [key, cube_vec]: gaussianCoefficients){
-                for (int i = 0; i < cube_vec.size(); i++){
-                    auto coefs = cube_vec[i];
-                    for (int j = 0; j < coefs.size(); j++){
-                        printVector(coefs[j]);
-                    }
-                }
-            }
-            for(auto const& [key, val]: shellTypesPerSpecies){
-                arma::cout << key << arma::endl;
-                for(int i = 0; i < val.size(); i++){
-                    arma::cout << val[i] << arma::endl;
-                }
-            }
+            
+            //printVector(orbitalsPerSpecies);
+            // for(auto const& [key, cube_vec]: gaussianCoefficients){
+            //     for (int i = 0; i < cube_vec.size(); i++){
+            //         auto coefs = cube_vec[i];
+            //         for (int j = 0; j < coefs.size(); j++){
+            //             printVector(coefs[j]);
+            //         }
+            //     }
+            // }
+            // for(auto const& [key, val]: shellTypesPerSpecies){
+            //     arma::cout << key << arma::endl;
+            //     for(int i = 0; i < val.size(); i++){
+            //         arma::cout << val[i] << arma::endl;
+            //     }
+            // }
         }
 
         else if(line.find("OVERLAP MATRIX") != std::string::npos){
@@ -126,9 +134,8 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
                 this->bravaisVectors = arma::join_vert(bravaisVectors, cell);
 
                 arma::cx_mat overlapMatrix = parseMatrix();
-                arma::cout << overlapMatrix(91, 90) << arma::endl;
-
                 this->overlapMatrices = arma::join_slices(this->overlapMatrices, overlapMatrix);
+                // arma::cout << overlapMatrix(91, 90) << arma::endl;
             }
         }
 
@@ -144,14 +151,17 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
 
             if(cellIndex <= ncells){
                 arma::cx_mat fockMatrix = parseMatrix();
-                arma::cout << "Ncell: " << cellIndex << arma::endl;
-                arma::cout << "Cell combi:" << x << " " << y << " " << z << arma::endl;
-                //arma::cout << fockMatrix << arma::endl;
-
                 this->fockMatrices = arma::join_slices(this->fockMatrices, fockMatrix);
                 
+                //arma::cout << "Ncell: " << cellIndex << arma::endl;
+                //arma::cout << "Cell combi:" << x << " " << y << " " << z << arma::endl;
+                //arma::cout << fockMatrix << arma::endl;
             }
-            
+        }
+
+        // Toggle SOC flag if calculation is done with spin-orbit coupling
+        else if(line.find(SOC_STRING) != std::string::npos){
+            this->SOC_FLAG = true;
         }
     }    
 }
@@ -234,8 +244,6 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
     
     for(int atomIndex = 0; atomIndex < this->natoms; atomIndex++){
 
-        std::cout << "atom index: " << atomIndex << std::endl;
-
         // First parse chemical species and add to list if not present.
         std::getline(m_file, line);
         std::istringstream iss(line);
@@ -243,9 +251,9 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
 
         if(std::find(species.begin(), species.end(), chemical_species) == species.end()){
             species.push_back(chemical_species);
-            std::cout << "Chemical: " << chemical_species << std::endl;
         }
         else{
+            totalOrbitals += orbitalsPerSpecies[motif.row(atomIndex)(3)]; // Track total num. orbitals
             continue; // Skip already parsed
         }
 
@@ -313,7 +321,6 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
             while(iss >> index){
                 colIndices.push_back(index);
             }
-            printVector(colIndices);
             std::getline(m_file, line); // Get next line
             if (line.empty()){
                 continue;
@@ -338,7 +345,11 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
 void CrystalDFTConfiguration::mapContent(){
     systemInfo.bravaisLattice = bravaisLattice;
     systemInfo.motif          = motif;
-    systemInfo.filling        = (valenceElectrons + coreElectrons)/2;
+    systemInfo.filling        = totalElectrons/2;
+    if (SOC_FLAG) {
+        systemInfo.filling   *= 2; 
+    }
+
     systemInfo.hamiltonian    = fockMatrices;
     systemInfo.overlap        = overlapMatrices;
     systemInfo.ndim           = ndim;
