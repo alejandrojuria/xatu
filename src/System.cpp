@@ -148,6 +148,8 @@ void System::solveBands(std::string kpointsfile, bool triangular) const {
 	catch(const std::exception& e){
 		std::cerr << e.what() << std::endl;
 	}
+	fclose(bandfile);
+	arma::cout << "Done" << arma::endl;
 }
 
 void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool triangular) const {
@@ -157,12 +159,16 @@ void System::orthogonalize(const arma::rowvec& k, arma::cx_mat& states, bool tri
 	arma::cx_mat eigvec;
 	arma::eig_sym(eigval, eigvec, s);
 
-	eigval = 1./arma::sqrt(eigval);
+	eigval = arma::sqrt(eigval);
 	arma::cx_mat sRoot = arma::zeros<arma::cx_mat>(eigval.n_elem, eigval.n_elem);
 	sRoot.diag() = arma::conv_to<arma::cx_vec>::from(eigval);
 	sRoot = eigvec*sRoot*eigvec.t();
 
-	states = arma::inv_sympd(sRoot) * states;	
+	// states = arma::inv_sympd(eigvec) * states;
+	states = sRoot * states;
+	// for(int i = 0; i < states.n_cols; i++){
+	// 	states.col(i) = arma::normalise(states.col(i));
+	// }
 }
 
 // /*------------------ Utilities/Additional observables ------------------*/
