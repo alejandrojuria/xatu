@@ -1,6 +1,6 @@
 #pragma once
 #include <armadillo>
-#include "SystemConfiguration.hpp"
+#include "xatu/SystemConfiguration.hpp"
 
 
 typedef std::vector<std::vector<std::vector<double>>> cube_vector;
@@ -11,7 +11,8 @@ class CrystalDFTConfiguration : public SystemConfiguration {
 
     public:
         int ndim, natoms, norbitals, nshells, nspecies;
-        int valenceElectrons, coreElectrons;
+        int totalElectrons, coreElectrons;
+        bool SOC_FLAG = false;
         
         arma::mat motif, bravaisLattice;
         
@@ -25,6 +26,8 @@ class CrystalDFTConfiguration : public SystemConfiguration {
 
     public:
         CrystalDFTConfiguration(std::string, int ncells = 20);
+        virtual ~CrystalDFTConfiguration(){std::cout << "Calling CrystalDFTConfig destructor..." << std::endl;};
+
 
         void parseContent(int, double threshold = 100.);
 

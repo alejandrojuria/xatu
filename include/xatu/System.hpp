@@ -1,6 +1,6 @@
 #pragma once
-#include "Crystal.hpp"
-#include "SystemConfiguration.hpp"
+#include "xatu/Crystal.hpp"
+#include "xatu/SystemConfiguration.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793

@@ -1,6 +1,6 @@
 #pragma once
 #include <armadillo>
-#include "ConfigurationBase.hpp"
+#include "xatu/ConfigurationBase.hpp"
 #include <iostream>
 
 namespace xatu {
@@ -26,6 +26,7 @@ class SystemConfiguration : public virtual ConfigurationBase {
         SystemConfiguration();
     public:
         SystemConfiguration(std::string);
+        ~SystemConfiguration(){std::cout << "Calling SystemConfig destructor..." << std::endl;};
 
         void printConfiguration(std::ostream& stream = std::cout) const;
         friend std::ostream& operator<< (std::ostream&, const SystemConfiguration&);

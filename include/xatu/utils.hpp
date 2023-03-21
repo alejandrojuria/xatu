@@ -1,6 +1,6 @@
 #pragma once
-#include "armadillo"
-#include "Result.hpp"
+#include <armadillo>
+#include "xatu/Result.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793

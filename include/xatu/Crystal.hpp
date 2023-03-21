@@ -2,7 +2,7 @@
 #include <armadillo>
 #include <string>
 #include <iostream>
-#include "SystemConfiguration.hpp"
+#include "xatu/SystemConfiguration.hpp"
 
 
 #ifndef constants

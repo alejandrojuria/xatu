@@ -1,7 +1,7 @@
 #pragma once
 #include <armadillo>
-#include "Exciton.hpp"
-#include "forward_declaration.hpp"
+#include "xatu/Exciton.hpp"
+#include "xatu/forward_declaration.hpp"
 
 
 extern "C" {

@@ -5,13 +5,12 @@
 #include <stdlib.h>
 #include <memory>
 
-#include "BiRibbon.hpp"
 #include "System.hpp"
-#include "ExcitonConfiguration.hpp"
-#include "SystemConfiguration.hpp"
-#include "Result.hpp"
-#include "forward_declaration.hpp"
-#include "utils.hpp"
+#include "xatu/SystemConfiguration.hpp"
+#include "xatu/ExcitonConfiguration.hpp"
+#include "xatu/Result.hpp"
+#include "xatu/forward_declaration.hpp"
+#include "xatu/utils.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793

@@ -1,5 +1,5 @@
 #pragma once
-#include "ConfigurationBase.hpp"
+#include "xatu/ConfigurationBase.hpp"
 #include <armadillo>
 
 namespace xatu {
