@@ -159,10 +159,12 @@ arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& conte
                 if (vartype == "real") {
                     valuestream >> re;
                     im = 0.0;
-                    std::cout << "this" << std::endl;
                 }
                 else {
-                    valuestream >> placeholder >> re >> im >> placeholder;
+                    valuestream >> re;
+                    iss >> strValue;
+                    std::istringstream valuestream(strValue);
+                    valuestream >> im;
                 }
                 std::complex<double> value(re, im);
                 row(j) = value;
