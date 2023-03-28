@@ -5,9 +5,10 @@
 
 
 extern "C" {
-    void skubo_w_(int* nR, int* norb, int* norb_ex, int* nv, double* nRvec, double* bravaisLattice, double* motif, 
-                  double* hhop, double* shop, int* nk, double* rkx, double* rky, double* rkz, 
-                  std::complex<double>* fk_ex, double* e_ex);
+    void skubo_w_(int* nR, int* norb, int* norb_ex, int* nv, int* nc, int* filling, 
+                  double* Rvec, double* bravaisLattice, double* motif, 
+                  std::complex<double>* hhop, double* shop, int* nk, double* rkx, 
+                  double* rky, double* rkz, std::complex<double>* fk_ex, double* e_ex);
 }
 
 namespace xatu {
