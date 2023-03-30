@@ -404,7 +404,17 @@ void Result::writeAbsorptionSpectrum(){
         R.row(i) = exciton.bravaisLattice.row(i);
     }
 
-    arma::mat B = exciton.motif.cols(0, 2);
+    // arma::mat B = exciton.motif.cols(0, 2);
+    arma::mat extendedMotif = arma::zeros(exciton.basisdim, 3);
+    int it = 0;
+    for(int i = 0; i < exciton.natoms; i++){
+        arma::rowvec atom = exciton.motif.row(i).subvec(0, 2);
+        int species = exciton.motif.row(i)(3);
+        for(int j = 0; j < exciton.orbitals(species); j++){
+            extendedMotif.row(it) = atom; 
+            it++;
+        }
+    }
     arma::cx_cube hhop = exciton.hamiltonianMatrices;
     arma::cube shop(arma::size(hhop));
     if (exciton.overlapMatrices.empty()){
@@ -421,7 +431,7 @@ void Result::writeAbsorptionSpectrum(){
     arma::vec rkz = exciton.kpoints.col(2);
 
     skubo_w_(&nR, &norb, &norb_ex, &nv, &nc, &filling, 
-             Rvec.memptr(), R.memptr(), B.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
+             Rvec.memptr(), R.memptr(), extendedMotif.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
              rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr());
 }
 
