@@ -393,19 +393,29 @@ void Result::writeAbsorptionSpectrum(){
     int nR = exciton.unitCellList.n_rows;
     int norb = exciton.basisdim;
     int norb_ex = exciton.excitonbasisdim;
+    int filling = exciton.filling;
     int nv = exciton.valenceBands.n_elem;
     int nc = exciton.conductionBands.n_elem;
 
-    //arma::mat nRvec = {{0,0,0}, {-1,0,0}, {0, -1, 0}, {0, 1, 0}, {1,0,0}}; // This has to be adapted.
-    arma::mat nRvec = exciton.unitCellList;
+    arma::mat Rvec = exciton.unitCellList;
     // Extend bravais lattice to 3x3 matrix
     arma::mat R = arma::zeros(3, 3);
     for (int i = 0; i < exciton.bravaisLattice.n_rows; i++){
         R.row(i) = exciton.bravaisLattice.row(i);
     }
 
-    arma::mat B = exciton.motif.cols(0, 2);
-    arma::cube hhop = arma::real(exciton.hamiltonianMatrices);
+    // arma::mat B = exciton.motif.cols(0, 2);
+    arma::mat extendedMotif = arma::zeros(exciton.basisdim, 3);
+    int it = 0;
+    for(int i = 0; i < exciton.natoms; i++){
+        arma::rowvec atom = exciton.motif.row(i).subvec(0, 2);
+        int species = exciton.motif.row(i)(3);
+        for(int j = 0; j < exciton.orbitals(species); j++){
+            extendedMotif.row(it) = atom; 
+            it++;
+        }
+    }
+    arma::cx_cube hhop = exciton.hamiltonianMatrices;
     arma::cube shop(arma::size(hhop));
     if (exciton.overlapMatrices.empty()){
         for (int i = 0; i < hhop.n_slices; i++){
@@ -420,7 +430,8 @@ void Result::writeAbsorptionSpectrum(){
     arma::vec rky = exciton.kpoints.col(1);
     arma::vec rkz = exciton.kpoints.col(2);
 
-    skubo_w_(&nR, &norb, &norb_ex, &nv, nRvec.memptr(), R.memptr(), B.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
+    skubo_w_(&nR, &norb, &norb_ex, &nv, &nc, &filling, 
+             Rvec.memptr(), R.memptr(), extendedMotif.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
              rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr());
 }
 
