@@ -460,10 +460,7 @@ std::complex<double> Exciton::exactInteractionTermMFT(const arma::cx_vec& coefsK
     arma::cx_vec firstCoefArray = arma::conj(coefsK1) % coefsK3;
     arma::cx_vec secondCoefArray = arma::conj(coefsK2) % coefsK4;
     std::complex<double> term = arma::dot(firstCoefArray, extendMotifFT(motifFT) * secondCoefArray);
-    
-    //arma::cx_vec coefVector = arma::kron(firstCoefArray, secondCoefArray);
-    //std::complex<double> term = arma::dot(coefVector, extendMotifFT(motifFT));
-    
+        
     return term;
 };
 
@@ -820,7 +817,6 @@ void Exciton::BShamiltonian(const arma::imat& basis){
         int c2 = bandToIndex[basisStates(j, 1)];
         int k2Q_index = k2_index;
 
-
         // Using the atomic gauge
         if(gauge == "atomic"){
             coefsK = latticeToAtomicGauge(eigvecKStack.slice(k_index).col(v), kpoints.row(k_index));
@@ -841,7 +837,6 @@ void Exciton::BShamiltonian(const arma::imat& basis){
             arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
             D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             X = 0;
-
         }
         else if (mode == "reciprocalspace"){
             arma::rowvec k = kpoints.row(k_index);
