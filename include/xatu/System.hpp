@@ -10,6 +10,10 @@
 
 namespace xatu {
 
+/**
+ * The System class contains all information regarding the system where we want to compute
+ * the exciton spectrum. It is defined as a sub-class of Crystal.
+*/
 class System : public Crystal{
     
     //// Attributes
@@ -40,6 +44,7 @@ class System : public Crystal{
     //// Methods
     public:
         /* Constructor and destructor */
+
         System();
         System(const System&);
         System(const SystemConfiguration&);  
@@ -47,12 +52,14 @@ class System : public Crystal{
         void setFilling(int);
 
         /* Bloch Hamiltonian */
+
         arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false) const;
         arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false) const;
         void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&, bool triangular = false) const;
         void solveBands(std::string, bool triangular = false) const;
 
         /* Expected value of spin components */
+        
         double expectedSpinZValue(const arma::cx_vec&);
         double expectedSpinYValue(const arma::cx_vec&);
         double expectedSpinXValue(const arma::cx_vec&);        
@@ -61,6 +68,7 @@ class System : public Crystal{
 
     private:
         void orthogonalize(const arma::rowvec&, arma::cx_mat&, bool) const;
+        void orthogonalize_hamiltonian(const arma::rowvec&, arma::cx_mat&, bool) const;
 };
 
 }
