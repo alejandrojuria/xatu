@@ -3,13 +3,26 @@
 
 namespace xatu {
 
-
+/**
+ * Computes the kinetic energy of the specified exciton.
+ * @details The kinetic energy is defined as the part of the exciton energy that is coming from
+ * the bands. It is computed using the diagonal part of the BSE matrix without the interactions, HK.
+ * @param stateindex Index of exciton.
+ * @return Kinetic energy of the exciton.
+ */
 double Result::kineticEnergy(int stateindex){
     arma::cx_vec coefs = eigvec.col(stateindex);
     std::complex<double> energy = arma::cdot(coefs, exciton.HK*coefs);
     return energy.real();
 }
 
+/**
+ * Computes the potential energy of the specified exciton.
+ * @details The potential energy is the part of the exciton energy that comes from the
+ * electrostatic interaction. It is calculated from V = E - K.
+ * @param stateindex Index of exciton.
+ * @return Potential energy of the exciton.
+ */
 double Result::potentialEnergy(int stateindex){
     arma::cx_vec coefs = eigvec.col(stateindex);
     arma::cx_mat HV = exciton.HBS - exciton.HK;
@@ -17,6 +30,15 @@ double Result::potentialEnergy(int stateindex){
     return energy.real();
 }
 
+/**
+ * Computes the binding energy of the specified exciton. Requires specifying the gap
+ * of the system.
+ * @details The binding energy of an exciton is defined as the difference between the excitation energy 
+ * of the exciton and the gap, i.e. EB = E - G
+ * @param stateindex Index of the exciton.
+ * @param gap Gap of the system
+ * @return Binding energy of the exciton.
+ */
 double Result::bindingEnergy(int stateindex, double gap){
     double energy;
     if (gap == -1){
@@ -30,9 +52,12 @@ double Result::bindingEnergy(int stateindex, double gap){
     return energy;
 }
 
-// Routine to compute the gap from the bands based on the position of the centre
-// of the exciton and the bands used. Beware: The gap is computed using only the 
-// bands that are used in the exciton formation.
+/**
+ * Routine to compute the gap from the bands based on the position of the centre
+ * of the exciton and the bands used. Beware: The gap is computed using only the 
+ * bands that are used in the exciton formation.
+ * @return Gap of the system.
+ */
 double Result::determineGap(){
     int stateindex = 0; // Ground state
     int kIndex = findExcitonPeak(stateindex);
@@ -44,8 +69,14 @@ double Result::determineGap(){
     return gap;
 }
 
-// Routine to find the k index where the exciton has the maximum amplitude, which
-// usually corresponds with the band gap location
+/**
+ * Routine to find the k index where the exciton has the maximum amplitude, which
+ * usually corresponds with the band gap location.
+ * @details This routine might fail in the multiband case since it does not use the
+ * reciprocal wavefunction to determine the kpoint.
+ * @param stateindex Index of exciton.
+ * @return Index of kpoint where the exciton peaks.
+ */ 
 int Result::findExcitonPeak(int stateindex){
     int index = eigvec.col(stateindex).index_max();
     int bandCombinations = exciton.valenceBands.n_elem*exciton.conductionBands.n_elem;
@@ -53,8 +84,12 @@ int Result::findExcitonPeak(int stateindex){
     return index;
 }
 
-/* Routine to compute the expected Sz spin value of the electron
-and hole that form a given exciton. */
+/** 
+ * Routine to compute the expected Sz spin value of the electron
+ * and hole that form a given exciton.
+ * @param stateindex Index of the exciton.
+ * @return Vector with the spin of the hole, of the electron and the total spin of the exciton.
+ */
 arma::cx_vec Result::spinX(int stateindex){
 
     arma::cx_vec coefs = eigvec.col(stateindex);
@@ -136,6 +171,13 @@ arma::cx_vec Result::spinX(int stateindex){
     return results;
 }
 
+/**
+ * Method to diagonalize the C3 rotation operator in a exciton degenerate subspace.
+ * @details This method is intended to be used with systems with C3 rotational symmetry;
+ * note that its current implementation is not correct (lacking additional phases).
+ * @param states Vector storing the indices of the states of the degenerate subspace.
+ * @return Eigenvectors of C3 in the degenerate exciton basis.
+ */
 arma::cx_mat Result::diagonalizeC3(const arma::vec& states){
     arma::mat C3 = exciton.C3ExcitonBasisRep();
     arma::cx_mat degenerateSubspaceC3 = arma::zeros<arma::cx_mat>(states.n_elem, states.n_elem);
@@ -160,6 +202,11 @@ arma::cx_mat Result::diagonalizeC3(const arma::vec& states){
     return eigvecC3;
 }
 
+/** TODO: DELETE
+ * Method to symmetrize exciton states of a degenerate subspace according to C3 
+ * rotational symmetry. Beware: this method most likely returns incorrect results.
+ * @param state
+ */
 arma::cx_mat Result::symmetrizeStates(const arma::cx_vec& state, const arma::cx_vec& degState){
     arma::mat C3 = exciton.C3ExcitonBasisRep();
     double alpha, phase;
@@ -190,6 +237,15 @@ arma::cx_mat Result::symmetrizeStates(const arma::cx_vec& state, const arma::cx_
     return states;
 }
 
+
+/**
+ * Method to write to file the exciton reciprocal amplitude (squared k-wavefunction).
+ * @details The squared reciprocal wavefunction at each kpoint is given by the sum of the square of the
+ * electron-hole ampltiudes for different pairs of bands at one same k.
+ * @param statecoefs State corresponding to array of electron-hole pair coefficients, not
+ * necessarily an exciton eigenstate.
+ * @param textfile Pointer to file to write the reciprocal amplitude.
+ */
 void Result::writeReciprocalAmplitude(const arma::cx_vec& statecoefs, FILE* textfile){
     fprintf(textfile, "kx\tky\tkz\tProb.\n");
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
@@ -206,14 +262,25 @@ void Result::writeReciprocalAmplitude(const arma::cx_vec& statecoefs, FILE* text
     fprintf(textfile, "#\n");
 }
 
+/**
+ * Method to write the reciprocal amplitude of one exciton eigenstate.
+ * @details Overload of the method; uses the previous one (more general), to write the
+ * reciprocal amplitude for an eigenstate.
+ * @param stateindex Index of exciton.
+ * @param textfile Pointer to file to write.
+ */
 void Result::writeReciprocalAmplitude(int stateindex, FILE* textfile){
     arma::cx_vec statecoefs = eigvec.col(stateindex);
     writeReciprocalAmplitude(statecoefs, textfile);
 };
 
-/* Method to write the phase and module of each exciton coefficient. Note that this
-routine is only intended to be used with excitons formed only with one electron-hole combination
-for each k. */
+/**
+ * Method to write the phase and module of each exciton coefficient. 
+ * Intended to be used with excitons formed only with one electron-hole pair for each k. 
+ * @details Throws an error if used with excitons formed by multiple bands.
+ * @param statecoefs Coefficients of state (not necessarily an exciton eigenstate).
+ * @param textfile Pointer to file.
+ */
 void Result::writePhase(const arma::cx_vec& statecoefs, FILE* textfile){
     if(exciton.bandList.n_elem != 2){
         throw std::logic_error("writePhase requires only one valence and conduction bands");
@@ -231,11 +298,25 @@ void Result::writePhase(const arma::cx_vec& statecoefs, FILE* textfile){
     fprintf(textfile, "#\n");
 }
 
+/**
+ * Method to write to a file the phase of an exciton eigenstate.
+ * @details Overload of the general method; uses it to write the phase of the eigenstate
+ * and as such will throw an error if used with excitons formed by more than one pair of bands.
+ * @param stateindex Index of exciton.
+ * @param textfile Pointer of file.
+ */
 void Result::writePhase(int stateindex, FILE* textfile){
     arma::cx_vec coefs = eigvec.col(stateindex);
     writePhase(coefs, textfile);
 }
 
+/**
+ * Method to write the reciprocal amplitude of a given state on a extended Brillouin zone.
+ * @details This method determines the minimum box that bounds the reciprocal unit cell, and
+ * then writes the reciprocal amplitude on each point of the box using the periodicity of the BZ.
+ * @param statecoefs Coefficients of state.
+ * @param textfile Pointer to file. 
+ */
 void Result::writeExtendedReciprocalAmplitude(const arma::cx_vec& statecoefs, FILE* textfile){
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
     double boxLimit = boundingBoxBZ();
@@ -264,11 +345,26 @@ void Result::writeExtendedReciprocalAmplitude(const arma::cx_vec& statecoefs, FI
     fprintf(textfile, "#\n");
 }
 
+/**
+ * Writes the extended reciprocal amplitude of a state, given its index, to a text file, 
+ * using k-points within a bounding box of the Brillouin zone.
+ * @param stateindex Index of the state in the eigenvectors matrix
+ * @param textfile Pointer to a file where the extended reciprocal amplitude will be written
+ * @return void
+ */
 void Result::writeExtendedReciprocalAmplitude(int stateindex, FILE* textfile){
     arma::cx_vec statecoefs = eigvec.col(stateindex);
     writeExtendedReciprocalAmplitude(statecoefs, textfile);
 }
 
+/**
+ * Writes the extended phase of a given state to a text file, using k-points within a bounding box of the Brillouin zone.
+ * Note that this method does not work with excitons formed by more than one pair of bands.
+ * @param statecoefs Vector representing the coefficients of a given state (not necessarily an exciton eigenstate).
+ * @param textfile Pointer to a file where the phases will be written
+ * @throws std::logic_error if the number of valence and conduction bands is different from one (i.e. one pair of bands)
+ * @return void
+ */
 void Result::writeExtendedPhase(const arma::cx_vec& statecoefs, FILE* textfile){
     if(exciton.bandList.n_elem != 2){
         throw std::logic_error("writeExtendedPhase requires only one valence and conduction bands");
@@ -298,11 +394,30 @@ void Result::writeExtendedPhase(const arma::cx_vec& statecoefs, FILE* textfile){
     fprintf(textfile, "#\n");
 }
 
+/**
+ * Writes the phase of an exciton eigenstate over an extended BZ. Works only
+ * with excitons formed with one pair of bands.
+ * @details Overload of the method based on the most general one for any state.
+ * @param stateindex Index of the state.
+ * @param textfile Pointer to file.
+ * @throws std::logic_error if the exciton have more than one pair of bands.
+ * @return void
+ */
 void Result::writeExtendedPhase(int stateindex, FILE* textfile){
     arma::cx_vec statecoefs = eigvec.col(stateindex);
     writeExtendedPhase(statecoefs, textfile);
 }
 
+/**
+ * Writes the probability density of finding the electron at a given position, having
+ * fixed the position of the hole.
+ * @param statecoefs State whose probability density we want to determine.
+ * @param holeIndex Index of atom of the motif where we fix the hole.
+ * @param holeCell Unit cell where we fix the hole.
+ * @param textfile File to write the amplitudes.
+ * @param ncells Number of unit cells where we compute the amplitudes.
+ * @return void
+ */
 void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeIndex,
                                      const arma::rowvec& holeCell, FILE* textfile, int ncells){
 
@@ -338,6 +453,17 @@ void Result::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeInd
     fprintf(textfile, "#\n");                              
 }
 
+/**
+ * Method to write the probability density of finding the electron of an exciton eigenstate,
+ * having fixed the position of the hole.
+ * @details Overload of the method for general states.
+ * @param stateindex Index of exciton.
+ * @param holeIndex Index of atom where we put the hole.
+ * @param holeCell Unit cell where the hole is fixed.
+ * @param textfile File to write the probability density.
+ * @param ncells Number of unit cells where we compute the probability density.
+ * @return void 
+ */
 void Result::writeRealspaceAmplitude(int stateindex, int holeIndex, 
                                      const arma::rowvec& holeCell, FILE* textfile, int ncells){
 
@@ -345,8 +471,12 @@ void Result::writeRealspaceAmplitude(int stateindex, int holeIndex,
     writeRealspaceAmplitude(statecoefs, holeIndex, holeCell, textfile, ncells);
 }
 
-/* Method to write the eigenvalues into a file. Requires pointer to file, and has optional
-argument n to specify the number of eigenvalues to write (ascending order). */
+/** 
+ * Method to write the eigenvalues in ascending order into a file. 
+ * @param textfile Pointer to file
+ * @param n Number of eigenvalues to write. If not specified, all eigenvalues are written.
+ * @return void 
+ */
 void Result::writeEigenvalues(FILE* textfile, int n){
 
     if(n > exciton.excitonbasisdim || n < 0){
@@ -361,8 +491,12 @@ void Result::writeEigenvalues(FILE* textfile, int n){
     fprintf(textfile, "\n");
 }
 
-/* Method to write eigenstates into a file. Has optional argument n to specify the number of states
-to write (in ascending energy order) */
+/**
+ * Method to write eigenstates in ascending order into a file. 
+ * @param textfile Pointer to file.
+ * @param n Optional argument to specify number of states to write to a file. 
+ * @return void
+ */
 void Result::writeStates(FILE* textfile, int n){
     if(n > exciton.excitonbasisdim || n < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
@@ -388,6 +522,13 @@ void Result::writeStates(FILE* textfile, int n){
     }
 }
 
+/**
+ * Method to compute and write the absorption spectra to a file.
+ * @details This method computes both the single particle absorption, and the absorption
+ * from the exciton spectrum. All the required parameters must be specified in a separate text file
+ * named kubo_w.in
+ * @return void 
+ */
 void Result::writeAbsorptionSpectrum(){
 
     int nR = exciton.unitCellList.n_rows;
@@ -435,6 +576,13 @@ void Result::writeAbsorptionSpectrum(){
              rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr());
 }
 
+/**
+ * Method to compute the Fourier transform of the exciton envelope function A(k).
+ * @param stateindex Index of exciton eigenstate.
+ * @param electron_position Position of the electron where we evaluate the Fourier transform.
+ * @param hole_position Position of the hole.
+ * @return Fourier transform of the amplitude, evaluated at Re - Rh. 
+ */
 double Result::fourierTransformExciton(int stateindex, const arma::rowvec& electron_position, 
                                        const arma::rowvec& hole_position){
 
@@ -467,8 +615,11 @@ double Result::fourierTransformExciton(int stateindex, const arma::rowvec& elect
     return result;
 }
 
-// Routine to determine the size of a box that contains the reciprocal unit cell as given
-// by the BZ mesh. Intended to use with full BZ meshes. Returns half the side of the box.
+/**
+ * Routine to determine the size of a box that contains the reciprocal unit cell as given
+ * by the BZ mesh. Intended to use with full BZ meshes. 
+ * @return Half the side of the box.
+ */ 
 double Result::boundingBoxBZ(){
     double max_x = arma::max(exciton.kpoints.col(0));
     double max_y = arma::max(exciton.kpoints.col(1));
@@ -477,6 +628,16 @@ double Result::boundingBoxBZ(){
     return value;
 }
 
+/**
+ * Method to compute the real-space amplitude of an exciton state (not necessarily an eigenstate).
+ * @details Used by writeRealSpaceAmplitude to write the probability density over several unit cells.
+ * @param BSEcoefs State whose real-space amplitude we want to obtain.
+ * @param electronIndex Index of the atom where we put the electron.
+ * @param holeIndex Index of atom where we put the hole.
+ * @param eCell Unit cell of the electron.
+ * @param hCell Unit cell of the hole.
+ * @return Real-space amplitude evaluated at those electron and hole positions.
+ */
 double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronIndex, int holeIndex,
                              const arma::rowvec& eCell, const arma::rowvec& hCell){
 
@@ -525,6 +686,14 @@ double Result::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronI
     return totalAmplitude;
 };
 
+/**
+ * Method to add exponentials to some vector of coefficients.
+ * @details Used in realSpaceWavefunction to compute the real-space exciton amplitudes.
+ * Basically multiplies each coefficient by an exponential with phase ikR.
+ * @param coefs Vector of electron-hole pair coefficients.
+ * @param cell Unit cell used in the exponential.
+ * @return Coefficients with the added exponential.
+ */
 arma::cx_vec Result::addExponential(arma::cx_vec& coefs, const arma::rowvec& cell){
 
     arma::vec product = exciton.kpoints * cell.t();
@@ -539,8 +708,16 @@ arma::cx_vec Result::addExponential(arma::cx_vec& coefs, const arma::rowvec& cel
 }
 
 
-// This routine requires having ALL eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.
-// Meaning bool storeAllVectors must be set to TRUE when initializing the exciton object.
+/** 
+ * Routine to compute the density matrix for the excitons.
+ * @details This routine requires having ALL eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.
+ * Meaning bool storeAllVectors must be set to TRUE when initializing the exciton object. Note: deprecated, not used.
+ * @param exciton Exciton object.
+ * @param BSEcoefs Exciton state.
+ * @param eIndex Index of atom of electron.
+ * @param hIndex Index of atom of hole.
+ * @return Density matrix matrix element.
+ */
 std::complex<double> Result::densityMatrix(Exciton& exciton, const arma::cx_vec& BSEcoefs, 
                                     int eIndex, int hIndex){
 
@@ -587,8 +764,17 @@ std::complex<double> Result::densityMatrix(Exciton& exciton, const arma::cx_vec&
     return rho;
 };
 
-// This routine requires having ALL eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.
-// Meaning bool storeAllVectors must be set to TRUE when initializing the exciton object.
+/** 
+ * Density matrix with k (?)
+ * @details This routine requires having all eigenvectors from the Bloch Hamiltonian, otherwise it is not possible to compute.
+ * Meaning bool storeAllVectors must be set to TRUE when initializing the exciton object. Note: Deprecated, not used.
+ * @param kIndex Index of kpoint used.
+ * @param exciton Exciton object.
+ * @param BSEcoefs State to be used.
+ * @param eIndex Index of atom of the electron.
+ * @param hIndex Index of hole.
+ * @return Matrix elements of density matrix evaluated at k.
+ */
 std::complex<double> Result::densityMatrixK(int kIndex, Exciton& exciton, const arma::cx_vec& BSEcoefs, 
                                     int eIndex, int hIndex){
 
