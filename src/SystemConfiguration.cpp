@@ -3,8 +3,19 @@
 
 namespace xatu {
 
+/**
+ * Default constructor.
+ * @details Note that it can be called, but it will throw an error upon execution
+ * of ConfigurationBase default construtor.
+ */
 SystemConfiguration::SystemConfiguration(){};
 
+/**
+ * File constructor. 
+ * @details SystemConfiguration should always be initialized with this constructor.
+ * Upon call, the configuration file is fully parsed.
+ * @param filename Name of file containing the information about the system of interest.
+ */
 SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBase(filename){
     expectedArguments = {"dimension", "bravaislattice", "motif", "norbitals", "filling", "bravaisvectors", "hamiltonian"};
     parseContent();
@@ -12,6 +23,12 @@ SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBa
     checkContentCoherence();
 }
 
+/**
+ * Method to parse the content from the configuration file.
+ * @details First, all the argument and the semi-structured contents are extracted.
+ * From this, the content of each argument is parsed according to its expected shape,
+ * and is finally stored in the configuration struct.
+ */
 void SystemConfiguration::parseContent(){
     extractArguments();
     extractRawContent();
@@ -65,6 +82,12 @@ void SystemConfiguration::parseContent(){
     }
 }
 
+/**
+ * Method to parse several three-dimensional vectors.
+ * @details This method is intented to be used with the Bravais vectors. 
+ * @param vectors Array with the strings encoding the vectors to be parsed.
+ * @return Matrix with the parsed vectors as rows.
+ */
 arma::mat SystemConfiguration::parseVectors(std::vector<std::string>& vectors){
     arma::mat bravaisLattice = arma::zeros(vectors.size(), 3);
     for (int i = 0; i < vectors.size(); i++){
@@ -79,6 +102,13 @@ arma::mat SystemConfiguration::parseVectors(std::vector<std::string>& vectors){
     return bravaisLattice;
 }
 
+/**
+ * Method to parse the motif of the system.
+ * @details This method expects to parse four-dimensional arrays corresponding to the
+ * atomic coordinates plus the chemical species.
+ * @param content Array storing the string with the motif information.
+ * @return Motif matrix. 
+ */
 arma::mat SystemConfiguration::parseMotif(std::vector<std::string>& content){
     arma::mat motif = arma::zeros(content.size(), 4);
     double x, y, z, species;
@@ -99,6 +129,12 @@ arma::mat SystemConfiguration::parseMotif(std::vector<std::string>& content){
     return motif;
 }
 
+/**
+ * Method to parse the orbitals.
+ * @details Based upon parseLine template method.
+ * @param content Array with the string to be parsed.
+ * @return Vector with the orbitals per chemical species. 
+ */
 arma::urowvec SystemConfiguration::parseOrbitals(std::vector<std::string>& content) {
     if (content.size() != 1) {
         throw std::invalid_argument("Error: Orbital information must be one line only");
@@ -112,6 +148,13 @@ arma::urowvec SystemConfiguration::parseOrbitals(std::vector<std::string>& conte
     return orbitals;
 }
 
+/**
+ * Method to parse matrices in the configuration file.
+ * @details This method can be used for both the Fock and the overlap matrices.
+ * It expects dense or complete matrices, which can also be real or complex. 
+ * @param content Array with the matrices to be parsed.
+ * @return Cube storing the matrices.
+ */
 arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& content) {
     std::vector<arma::cx_mat> matrixVector;
     double re, im;
@@ -183,6 +226,11 @@ arma::cx_cube SystemConfiguration::parseMatrices(std::vector<std::string>& conte
     return matrices;
 }
 
+/**
+ * Method to check whether the parsed contents of the configuration file make sense.
+ * @details This method makes basic checks such as making sure that the dimensionality of
+ * the system if consistent, or that the number of Fock matrices matches that of Bravais vectors provided. 
+ */
 void SystemConfiguration::checkContentCoherence() {
     if (systemInfo.ndim != systemInfo.bravaisLattice.n_rows) {
         throw std::invalid_argument("Error: Dimensions must match number of Bravais basis");
@@ -209,7 +257,10 @@ void SystemConfiguration::checkContentCoherence() {
     }
 }
 
-
+/**
+ * Auxiliary method to print the contents of the configuration struct.
+ * @details Useful for debugging. 
+ */
 void SystemConfiguration::printConfiguration(std::ostream& stream) const {
 
     stream << "Dimension: " << systemInfo.ndim << "\n" << std::endl;
@@ -238,6 +289,9 @@ void SystemConfiguration::printConfiguration(std::ostream& stream) const {
     }
 }
 
+/**
+ * Overload of the stream operator to print the contents of the configuration struct. 
+ */
 std::ostream& operator<<(std::ostream& stream, const SystemConfiguration& config){
     config.printConfiguration(stream);
 }
