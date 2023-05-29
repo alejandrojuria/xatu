@@ -4,17 +4,32 @@
 
 namespace xatu {
 
+/**
+ * Default constructor.
+ * @details Throws an error if called. Class must be constructed providing a filename with the configuration. 
+ */
 ExcitonConfiguration::ExcitonConfiguration(){
     throw std::invalid_argument("Error: ExcitonConfiguration must be invoked with one argument (filename)");
 };
 
+/**
+ * File constructor. 
+ * @details ExcitonConfiguration must be initialized always with this constructor.
+ * Upon call, the exciton configuration file is fully parsed and the information extracted.
+ * @param filename Name of file with the exciton configuration.
+ */
 ExcitonConfiguration::ExcitonConfiguration(std::string filename) : ConfigurationBase(filename){
-    this->expectedArguments = {"ncells", "bands", "dielectric"};
+    this->expectedArguments = {"ncells", "dielectric"};
     parseContent();
     checkArguments();
     checkContentCoherence();
 }
 
+/**
+ * Method to parse the exciton configuration from its file.
+ * @details This method extracts all information from the configuration file and
+ * stores it with the adequate format in the information struct. 
+ */
 void ExcitonConfiguration::parseContent(){
     extractArguments();
     extractRawContent();
@@ -32,13 +47,16 @@ void ExcitonConfiguration::parseContent(){
             throw std::logic_error("Expected only one line per field");
         }
 
-        if(arg == "ncells"){
+        if(arg == "label"){
+            excitonInfo.label = standarizeLine(content[0]);
+        }
+        else if(arg == "ncells"){
             excitonInfo.ncell = parseScalar<int>(content[0]);
         }
         else if(arg == "submesh"){
-            excitonInfo.nbands = parseScalar<int>(content[0]);
+            excitonInfo.submeshFactor = parseScalar<int>(content[0]);
         }
-        else if(arg == "shiftmesh"){
+        else if(arg == "shift"){
             std::vector<double> shift = parseLine<double>(content[0]);
             excitonInfo.shift = arma::rowvec(shift);
         }
@@ -67,18 +85,24 @@ void ExcitonConfiguration::parseContent(){
         else if(arg == "exchange"){
             excitonInfo.exchange = true;
         }
+        else if(arg == "scissor"){
+            excitonInfo.scissor = parseScalar<double>(content[0]);
+        }
         else{    
             std::cout << "Unexpected argument: " << arg << ", skipping block..." << std::endl;
         }
     }
 };
 
-
+/**
+ * Method to check whether the information extracted from the configuration file is
+ * consistent and well-defined. 
+ */
 void ExcitonConfiguration::checkContentCoherence(){
     if(excitonInfo.Q.n_elem != 3){
         throw std::logic_error("Q must be a 3d vector");
     };
-    if(excitonInfo.ncell < 0){
+    if(excitonInfo.ncell <= 0){
         throw std::logic_error("ncell must be a positive number");
     };
     if(excitonInfo.bands.empty() && excitonInfo.nbands == 0){
@@ -87,6 +111,9 @@ void ExcitonConfiguration::checkContentCoherence(){
     if(excitonInfo.eps.empty()){
         throw std::logic_error("eps must be specified");
     };
+    if(excitonInfo.nbands == 0 && excitonInfo.bands.empty()){
+        throw std::invalid_argument("Must specify 'nbands' or 'bandlist' parameters");
+    }
 };
 
 }
