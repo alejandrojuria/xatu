@@ -79,7 +79,7 @@ rkx=rkx*0.52917721067121d0
 rky=rky*0.52917721067121d0
 rkz=rkz*0.52917721067121d0
 e_ex=e_ex/27.211385d0
-call fill_nRvec(nR,R,Rvec,nRvec)
+!call fill_nRvec(nR,R,Rvec,nRvec)
 !get printing parameters
 call get_kubo_parameters(w0,wrange,nw,eta,type_broad, &
 file_name_sp,file_name_ex)
@@ -128,7 +128,7 @@ skubo_ex_int=0.0d0
 
 
 !getting some SP variables
-call hoppings_observables_TB(norb,nR,nRvec,R,shop,hhop,rhop,sderhop,hderhop)
+call hoppings_observables_TB(norb,nR,Rvec,shop,hhop,rhop,sderhop,hderhop)
 !11/05/2023 JJEP: fill rhop here. Easier to extend to DFT later 
 rhop=0.0d0
 do nn=1,norb
@@ -151,7 +151,7 @@ do ibz=1,npointstotal
   rkzp=rkz(ibz)
           
   !get matrices in the \alpha, \alpha' basis (orbitals,k)    		
-  call get_vme_kernels(rkxp,rkyp,rkzp,nR,nRvec,norb,R,hkernel,skernel,shop, &
+  call get_vme_kernels(rkxp,rkyp,rkzp,nR,Rvec,norb,hkernel,skernel,shop, &
   hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel,pgaugekernel)
   !velocity matrix elements
   call get_eigen_vme(norb,skernel,hkernel,akernel,hderkernel, &
@@ -163,8 +163,8 @@ do ibz=1,npointstotal
     do iex=1,norb_ex_cut
       do ib=1,norb_ex_band
         !get valence/conduction indices      
-	    nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
-	    nc_ip=(nv+1)+int((ib-1)/nv_ex)	
+        nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
+        nc_ip=(nv+1)+int((ib-1)/nv_ex)
         j=(ibz-1)*norb_ex_band+ib
 		
        	
@@ -308,11 +308,11 @@ end
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    	  
-subroutine hoppings_observables_TB(norb,nR,nRvec,R,shop,hhop, &
+subroutine hoppings_observables_TB(norb,nR,Rvec,shop,hhop, &
 rhop,sderhop,hderhop)
 
 implicit real*8 (a-h,o-z)
-dimension R(3,3),nRvec(nR,3),rhop(3,nR,norb,norb)
+dimension Rvec(nR,3),rhop(3,nR,norb,norb)
 dimension shop(norb,norb,nR),hhop(norb,norb,nR)
 dimension sderhop(3,nR,norb,norb),hderhop(3,nR,norb,norb)
 
@@ -324,8 +324,8 @@ sderhop=0.0d0
 do iR=1,nR
   do ialpha=1,norb
   do ialphap=1,ialpha
-    Rx=nRvec(iR,1)*R(1,1)+nRvec(iR,2)*R(2,1)
-    Ry=nRvec(iR,1)*R(1,2)+nRvec(iR,2)*R(2,2)
+    Rx=Rvec(iR,1)
+    Ry=Rvec(iR,2)
     Rz=0.0d0
 
     hderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*hhop(ialpha,ialphap,iR)
@@ -346,13 +346,12 @@ end
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   	        
-subroutine get_vme_kernels(rkx,rky,rkz,nR,nRvec,norb,R, &
+subroutine get_vme_kernels(rkx,rky,rkz,nR,Rvec,norb, &
 hkernel,skernel,shop,hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel, &
 pgaugekernel)
 implicit real*8 (a-h,o-z)
 
-dimension R(3,3)
-dimension nRvec(nR,3)
+dimension Rvec(nR,3)
 
 dimension shop(norb,norb,nR)
 dimension hhop(norb,norb,nR)
@@ -385,8 +384,8 @@ do ialpha=1,norb
 do ialphap=1,ialpha   
 
   do iRp=1,nR
-    Rx=dble(nRvec(iRp,1))*R(1,1)+dble(nRvec(iRp,2))*R(2,1)
-    Ry=dble(nRvec(iRp,1))*R(1,2)+dble(nRvec(iRp,2))*R(2,2)
+    Rx=Rvec(iRp,1)
+    Ry=Rvec(iRp,2)
     Rz=0.0d0
     phase=complex(0.0d0,rkx*Rx+rky*Ry+rkz*Rz)
     factor=exp(phase)     
@@ -561,14 +560,14 @@ do iw=1,nw
 	  !lorentzian
       !delta_nnp=1.0d0/pi*aimag(1.0d0/(wp(iw)-e(nn)+e(nnp)-complex(0.0d0,eta)))
 	  !exponential
-	  delta_nnp=1.0d0/eta*1.0d0/sqrt(2.0d0*pi)*exp(-0.5d0/(eta**2)*(wp(iw)-e(nn)+e(nnp))**2)
+    delta_nnp=1.0d0/eta*1.0d0/sqrt(2.0d0*pi)*exp(-0.5d0/(eta**2)*(wp(iw)-e(nn)+e(nnp))**2)
 	  
           !save oscillator stregths
       do nj=1,3
         do njp=1,3
           skubo=vme(nj,nn,nnp)*vme(njp,nnp,nn)
           sigma_w_sp(nj,njp,iw)=sigma_w_sp(nj,njp,iw)+ &
-    	  pi/(dble(npointstotal)*vcell)*factor1*skubo*delta_nnp	
+          pi/(dble(npointstotal)*vcell)*factor1*skubo*delta_nnp
         end do
       end do
     		  
