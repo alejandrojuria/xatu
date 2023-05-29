@@ -10,6 +10,11 @@ using namespace std::chrono;
 
 namespace xatu {
 
+/**
+ * Bismuth zigzag nanoribbon constructor.
+ * @param N Number of dimers in the unit cells.
+ * @param zeeman_axis String to specify axis to apply magnetic term ('x', 'y' or 'z'). 
+ */
 BiRibbon::BiRibbon(int N, std::string zeeman_axis){
 
 	this->N = N;
@@ -24,10 +29,17 @@ BiRibbon::BiRibbon(int N, std::string zeeman_axis){
 	cout << "Correctly initiallized Ribbon object" << endl;
 };
 
+/**
+ * Bismuth ribbon destructor. 
+ */
 BiRibbon::~BiRibbon(){
 	cout << "Destroying Ribbon object..." << endl;
 };
 
+/**
+ * Routine to initialize the parameters of the model. To be called from the constructor.
+ * @return void 
+ */
 void BiRibbon::initializeConstants(){
 	//// ------------ Global variable initialization ------------
 
@@ -85,13 +97,19 @@ void BiRibbon::initializeConstants(){
 	M = 2 * PI * M / a;
 };
 
-/* Setter to access Zeeman term, which is private */
-void BiRibbon::setZeeman(double Zeeman){
-	this->zeeman = Zeeman;
+/** 
+ * Setter for Zeeman term amplitude.
+ * @param zeeman Zeeman amplitude.
+ * @return void
+ */
+void BiRibbon::setZeeman(double zeeman){
+	this->zeeman = zeeman;
 };
 
-/* Routine to calculate the positions of the atoms inside the unit cell
-Input: int N (cells in the finite direction). Output: mat motiv */
+/** 
+ * Routine to calculate the positions of the atoms inside the unit cell of the ribbon.
+ * @return void
+ */
 void BiRibbon::createMotif(){
 	arma::mat motif = arma::zeros(2*(N + 1), 3);
 	motif.row(0) = arma::rowvec({0,0,0});
@@ -129,8 +147,11 @@ void BiRibbon::createMotif(){
 
 //// Matrix routines for hamiltonian initialization
 
-/* Kronecker product to incorporate spin to a matrix (spinless interactions).
-   Input: 4x4 matrix. Output: 8x8 matrix */
+/** 
+ * Kronecker product to incorporate spin to a matrix by doubling it.
+ * @param matrix Matrix without spin in its basis (polarized).
+ * @return Spinful matrix.
+ */
 mat BiRibbon::matrixWithSpin(const mat& matrix) {
 	mat id2 = arma::eye(2, 2);
 	mat M = arma::zeros(8, 8);
@@ -142,8 +163,12 @@ mat BiRibbon::matrixWithSpin(const mat& matrix) {
 	return M;
 };
 
-/* Create tight-binding matrix for system with one s orbital and three p orbitals, based on Slater-Koster
-   approximation. Input: 3x1 vector. Output: 8x8 matrix */
+/** 
+ * Create tight-binding matrix with the hoppings for system with atoms with one s orbital and three p orbitals, 
+ * based on Slater-Koster approximation. 
+ * @param n Displacemente vector connecting the two atoms involved.
+ * @return Hopping matrix.
+ */
 mat BiRibbon::tightbindingMatrix(const rowvec& n) {
 	
 	double vNorm = arma::norm(n);
@@ -165,8 +190,10 @@ mat BiRibbon::tightbindingMatrix(const rowvec& n) {
 	return matrixWithSpin(M);
 };
 
-/* Initialize tight-binding block matrices and spin-orbit coupling of the hamiltonian for Bi bilayers
-   Void function since we want multiple return (to update previously declared matrices) */
+/**
+ * Initialize tight-binding block matrices and spin-orbit coupling of the hamiltonian for Bi bilayers
+ * @return void
+ */
 void BiRibbon::initializeBlockMatrices() {
 
 	std::complex<double> imagNum(0, 1);
@@ -226,10 +253,10 @@ void BiRibbon::initializeBlockMatrices() {
 	this->Mzeeman = Mzeeman;
 };
 
-/* Create hamiltonian matrix of the semi-infinite tight binding system (Bi ribbon).
-   NB: Requires previous initialization of block matrices !!!
-   Expected input: integer N (size of the system along the finite direction) Output: None (void function); updates
-   previously declared bloch hamiltonian matrices */
+/** Create hamiltonian matrix of the semi-infinite tight binding system (Bi ribbon).
+ * NB: Requires previous initialization of block matrices; updates previously declared bloch hamiltonian matrices.
+ * @return void
+ */
 void BiRibbon::prepareHamiltonian() {
 	if (N < 2) {
 		std::cout << "Invalid value for N (Expected N >= 2)" << std::endl;
@@ -303,8 +330,12 @@ void BiRibbon::prepareHamiltonian() {
 };
 
 
-/* Routine to apply the inversion operator P over a eigenstate */
-cx_mat BiRibbon::inversionOperator(const cx_vec& eigenvector){
+/**
+ * Routine to apply the inversion operator P over a given state.
+ * @param state State over which we want to act.
+ * @return P|state>
+ */
+cx_mat BiRibbon::inversionOperator(const cx_vec& state){
 
 	int dimTB = 2*(N+1)*8;
 	cx_mat P = arma::zeros<cx_mat>(dimTB/8, dimTB/8);
@@ -318,11 +349,15 @@ cx_mat BiRibbon::inversionOperator(const cx_vec& eigenvector){
 	spinOperator.submat(5,2, 7,4) = -arma::eye<cx_mat>(3,3);
 	P = arma::kron(P, spinOperator);
 
-	return P*eigenvector;
+	return P*state;
 };
 
 
-/* Method to modify the onsite energies according to a electric field perpendicular to the periodic direction */
+/**
+ * Method to modify the onsite energies according to a electric field perpendicular to the periodic direction.
+ * @param amplitude Amplitude of applied electric field.
+ * @return void
+ */
 void BiRibbon::applyElectricField(double amplitude){
 
 	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*amplitude;
@@ -331,8 +366,12 @@ void BiRibbon::applyElectricField(double amplitude){
 	}
 };
 
-/* Method to introduce additional onsite energy at the edges to break the edge state degeneracy 
-and identify them. */
+/**
+ * Method to introduce additional onsite energy at the edges to break the edge state degeneracy 
+ * and identify them. 
+ * @param energy Value of onsite edge energies.
+ * @return void
+ */
 void BiRibbon::offsetEdges(double energy){
 
 	// arma::uvec indices = {(unsigned)natoms - 2, (unsigned)natoms - 1};
@@ -343,7 +382,11 @@ void BiRibbon::offsetEdges(double energy){
 	}
 };
 
-/* Method to introduce a substrate that modifies the onsite energies of the atoms of the lower sublattice */
+/**
+ * Method to introduce a substrate that modifies the onsite energies of the atoms of the lower sublattice.
+ * @param energy Value of onsite sublattice energy.
+ * @return void
+ */
 void BiRibbon::addSubstrate(double energy){
 
 	arma::cx_mat onsiteField = arma::eye<arma::cx_mat>(8, 8)*energy;
