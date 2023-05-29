@@ -56,7 +56,6 @@ System::System(const SystemConfiguration& configuration) : Crystal(){
  */
 void System::initializeSystemAttributes(const SystemConfiguration& configuration){
 	
-	systemName			 = configuration.systemInfo.name;
 	orbitals_            = configuration.systemInfo.norbitals;
 	hamiltonianMatrices_ = configuration.systemInfo.hamiltonian;
 	overlapMatrices_     = configuration.systemInfo.overlap;
