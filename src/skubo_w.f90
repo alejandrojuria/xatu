@@ -1,12 +1,12 @@
-!norb,norb_ex,nv_ex,nc_ex,nv!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine skubo_w(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,hhop,shop,npointstotal,rkx, &
 rky,rkz,fk_ex,e_ex)
 implicit real*8 (a-h,o-z)
-   
+
+!out of subroutine arrays 
 dimension Rvec(nR,3)
 dimension nRvec(nR,3)
 dimension R(3,3)
-dimension B(norb,3)
 dimension hhop(norb,norb,nR)
 dimension shop(norb,norb,nR)
 dimension rkx(npointstotal)
@@ -14,35 +14,32 @@ dimension rky(npointstotal)
 dimension rkz(npointstotal)
 dimension fk_ex(norb_ex,norb_ex)
 dimension e_ex(norb_ex)
-   
+dimension B(norb,3)
 dimension rhop(3,nR,norb,norb)
-dimension sderhop(3,nR,norb,norb)
-dimension hderhop(3,nR,norb,norb)
-   
-dimension hkernel(norb,norb)
-dimension skernel(norb,norb)
-dimension hderkernel(3,norb,norb)
-dimension sderkernel(3,norb,norb)
-dimension akernel(3,norb,norb)
-dimension pgaugekernel(3,norb,norb)
-   
-dimension hk_ev(norb,norb)
-dimension e(norb)
-dimension pgauge(3,norb,norb)
-dimension vjseudoa(3,norb,norb) 
-dimension vjseudob(3,norb,norb)
-dimension vme(3,norb,norb)
-      
-allocatable vme_ex(:,:,:)
-   
-allocatable wp(:)
-allocatable wn_sp(:)
-allocatable wn_ex(:)
-allocatable skubo_sp_int(:,:,:)
-allocatable skubo_ex_int(:,:,:)
+
+!sp and exciton variables
+allocatable sderhop(:,:,:,:)
+allocatable hderhop(:,:,:,:)
+allocatable hkernel(:,:)
+allocatable skernel(:,:)
+allocatable hderkernel(:,:,:)
+allocatable sderkernel(:,:,:)
+allocatable akernel(:,:,:)
+allocatable pgaugekernel(:,:,:)  
+allocatable hk_ev(:,:)
+allocatable e(:)
+allocatable pgauge(:,:,:)
+allocatable vjseudoa(:,:,:) 
+allocatable vjseudob(:,:,:)
+allocatable vme(:,:,:)
 allocatable sigma_w_sp(:,:,:)
+
+!exciton arrays
+allocatable vme_ex(:,:,:)  
+allocatable wp(:)
+allocatable skubo_ex_int(:,:,:)
 allocatable sigma_w_ex(:,:,:)
-   
+
 complex*16 hhop
 complex*16 sderhop
 complex*16 hderhop
@@ -58,14 +55,16 @@ complex*16 pgauge
 complex*16 vjseudoa
 complex*16 vjseudob
 complex*16 vme
-   
 complex*16 vme_ex 
-  
+complex*16 jdos_sp_int
+complex*16 osc_sp_int
 complex*16 skubo_sp_int
 complex*16 skubo_ex_int 
 complex*16 sigma_w_sp
 complex*16 sigma_w_ex
-  
+complex*16 jdos_w_sp
+complex*16 osc_w_sp
+
 character(100) type_broad
 character(100) file_name_sp
 character(100) file_name_ex
@@ -73,17 +72,14 @@ pi=acos(-1.0d0)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !Here we work in atomic units
 Rvec=Rvec/0.52917721067121d0
+B=B/0.52917721067121d0 
 R=R/0.52917721067121d0 
-B=B/0.52917721067121d0
 hhop=hhop/27.211385d0
 rkx=rkx*0.52917721067121d0
 rky=rky*0.52917721067121d0
 rkz=rkz*0.52917721067121d0
 e_ex=e_ex/27.211385d0
-  
-!fill nRvec
 call fill_nRvec(nR,R,Rvec,nRvec)
-  
 !get printing parameters
 call get_kubo_parameters(w0,wrange,nw,eta,type_broad, &
 file_name_sp,file_name_ex)
@@ -93,34 +89,63 @@ eta=eta/27.211385d0
 call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1), &
 R(2,2),R(2,3),cx,cy,cz)         
 vcell=sqrt(cx**2+cy**2+cz**2)
-    
-nkubo_sp=norb**2*npointstotal
+ 
+!SP arrays
 allocate (wp(nw))
-allocate (wn_sp(nkubo_sp))
-allocate (skubo_sp_int(3,3,nkubo_sp))
 allocate (sigma_w_sp(3,3,nw))
+allocate (sderhop(3,nR,norb,norb))
+allocate (hderhop(3,nR,norb,norb))
+allocate (hkernel(norb,norb))
+allocate (skernel(norb,norb))
+allocate (hderkernel(3,norb,norb))
+allocate (sderkernel(3,norb,norb))
+allocate (akernel(3,norb,norb))
+allocate (pgaugekernel(3,norb,norb))  
+allocate (hk_ev(norb,norb))
+allocate (e(norb))
+allocate (pgauge(3,norb,norb))
+allocate (vjseudoa(3,norb,norb)) 
+allocate (vjseudob(3,norb,norb))
+allocate (vme(3,norb,norb))
 wp=0.0d0
 wn_sp=0.0d0
-skubo_sp_int=0.0d0
 sigma_w_sp=0.0d0
-    
+do i=1,nw
+  wp(i)=(w0+wrange/dble(nw)*dble(i-1))/27.211385d0
+end do  
+
+!exciton arrays
 norb_ex_band=nv_ex*nc_ex !number of electron-hole pairs per k-point 
-nkubo_ex=norb_ex  !total number of optical transitions 
-allocate (wn_ex(nkubo_ex))
-allocate (vme_ex(3,nkubo_ex,2))
+norb_ex_cut=norb_ex  !total number of optical transitions 
+allocate (vme_ex(3,norb_ex_cut,2))
 allocate (sigma_w_ex(3,3,nw))
-allocate (skubo_ex_int(3,3,nkubo_ex))
-wn_ex=0.0d0
+allocate (skubo_ex_int(3,3,norb_ex_cut))
 vme_ex=0.0d0
 sigma_w_ex=0.0d0
 skubo_ex_int=0.0d0
-      
-  
-kcount=1
-call hoppings_observables_TB(norb,nR,nRvec,R,B,shop,hhop,rhop,sderhop,hderhop)
-write(*,*) 'mapping the BZ...'
+
+
+
+
+!getting some SP variables
+call hoppings_observables_TB(norb,nR,nRvec,R,shop,hhop,rhop,sderhop,hderhop)
+!11/05/2023 JJEP: fill rhop here. Easier to extend to DFT later 
+rhop=0.0d0
+do nn=1,norb
+  do nj=1,3
+    rhop(nj,1,nn,nn)=B(nn,nj)
+  end do
+end do
+
+
+write(*,*) 'Conductivity: mapping the BZ...'
+!Brillouin zone sampling	  
+!!$OMP PARALLEL DO PRIVATE(rkxp,rkyp,rkzp), &
+!!$OMP PRIVATE(hkernel,skernel,sderkernel,hderkernel,akernel), &  
+!!$OMP PRIVATE(hk_ev,e,pgaugekernel,pgauge,vjseudoa,vjseudob,vme), &
+!!$OMP PRIVATE(nj,iex,ib,nv_ip,nc_ip,j)
 do ibz=1,npointstotal
-  write(*,*) 'point:',ibz,npointstotal         
+  !write(*,*) 'point:',ibz,npointstotal         
   rkxp=rkx(ibz)
   rkyp=rky(ibz)
   rkzp=rkz(ibz)
@@ -128,62 +153,57 @@ do ibz=1,npointstotal
   !get matrices in the \alpha, \alpha' basis (orbitals,k)    		
   call get_vme_kernels(rkxp,rkyp,rkzp,nR,nRvec,norb,R,hkernel,skernel,shop, &
   hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel,pgaugekernel)
-
   !velocity matrix elements
-  call get_eigen_vme(norb,hkernel,akernel,hderkernel, &
+  call get_eigen_vme(norb,skernel,hkernel,akernel,hderkernel, &
   pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme) 
-      
+
   !fill V_N
+  !!$OMP critical	
   do nj=1,3
-    do iex=1,norb_ex
-    wn_ex(iex)=e_ex(iex)
+    do iex=1,norb_ex_cut
       do ib=1,norb_ex_band
-        nv_ip=nv-mod(ib,nc_ex) !identify single particle band indices
-        nc_ip=nv+int(ib/nv_ex)+mod(ib,nv_ex)
-  
+        !get valence/conduction indices      
+	    nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
+	    nc_ip=(nv+1)+int((ib-1)/nv_ex)	
         j=(ibz-1)*norb_ex_band+ib
+		
+       	
         vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(j,iex)*vme(nj,nv_ip,nc_ip)
         vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(j,iex)*vme(nj,nc_ip,nv_ip)
+
       end do
     end do
-  end do  
-            
+  end do        
   !get strength for kubo SP
-  call get_kubo_intens(nv,npointstotal,vcell,norb,nkubo_sp,e,kcount,vme,wn_sp,skubo_sp_int)
-end do
+  call get_kubo_intens(nv,npointstotal,vcell,norb,e,vme,nw,wp,sigma_w_sp,eta)
+  !!$OMP end critical
   
+end do
+!!$OMP END PARALLEL DO 
+
 !fill kubo oscillators of EXCITONS
-do nn=1,nkubo_ex
+do nn=1,norb_ex_cut
   !save oscillator stregths
   do nj=1,3
     do njp=1,3
       skubo_ex_int(nj,njp,nn)=pi/(dble(npointstotal)*vcell) &
-      *conjg(vme_ex(nj,nn,1))*vme_ex(njp,nn,1)/wn_ex(nn)   !pick the correct order of operators
+      *conjg(vme_ex(nj,nn,1))*vme_ex(njp,nn,1)/e_ex(nn)   !pick the correct order of operators
     end do
   end do 
 end do
-  
-!broad the delta points of sp and exciton
-write(*,*) 'Broadening points...'
-do ialpha=1,3
-  do ialphap=1,3
-    write(*,*) 'componentent:',ialpha,ialphap
-    call broad_vector(type_broad,nkubo_sp,wn_sp,skubo_sp_int(ialpha,ialphap,:), &
-    w0/27.211385d0,wrange/27.211385d0,nw,wp,sigma_w_sp(ialpha,ialphap,:),eta)
+
+
+!excitons
+do ialpha=1,2
+  do ialphap=1,2
+    call broad_vector(type_broad,norb_ex_cut,e_ex,skubo_ex_int(ialpha,ialphap,:), &
+    nw,wp,sigma_w_ex(ialpha,ialphap,:),eta)
   end do
-end do
-  
-do ialpha=1,3
-  do ialphap=1,3
-    call broad_vector(type_broad,nkubo_ex,wn_ex,skubo_ex_int(ialpha,ialphap,:), &
-    w0/27.211385d0,wrange/27.211385d0,nw,wp,sigma_w_ex(ialpha,ialphap,:),eta)
-  end do
-end do
-  
+end do 
+ 
 !write frequency dependent conductivity	  
 open(50,file=file_name_sp)
 open(60,file=file_name_ex)
-open(70,file='test_real.dat')
 do iw=1,nw
   feps=1.0d0
   !feps=4.0d0*pi*1.0d0/137.035999084d0*100.0d0   !absorbance units
@@ -206,12 +226,10 @@ do iw=1,nw
               realpart(feps*sigma_w_ex(3,1,iw)), &
               realpart(feps*sigma_w_ex(3,2,iw)), &	
               realpart(feps*sigma_w_ex(3,3,iw))
-  write(70,*) wp(iw)*27.211385d0,-feps*sigma_w_ex(1,2,iw) 
 end do
 
 close(50)
 close(60)
-close(70)
 
 return
 end
@@ -233,8 +251,8 @@ end do
 
 kcount=0
 do n3=-nz,nz !run n3 first (better for 2D)
-  do n1=-3,3
-    do n2=-3,3
+  do n1=-30,30
+    do n2=-30,30
       do inR=1,nR
         Rx=n1*R(1,1)+n2*R(2,1)+n3*R(3,1)
         Ry=n1*R(1,2)+n2*R(2,2)+n3*R(3,2)
@@ -290,18 +308,17 @@ end
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    	  
-subroutine hoppings_observables_TB(norb,nR,nRvec,R,B,shop,hhop, &
+subroutine hoppings_observables_TB(norb,nR,nRvec,R,shop,hhop, &
 rhop,sderhop,hderhop)
 
 implicit real*8 (a-h,o-z)
-dimension R(3,3),B(norb,3),nRvec(nR,3),rhop(3,nR,norb,norb)
+dimension R(3,3),nRvec(nR,3),rhop(3,nR,norb,norb)
 dimension shop(norb,norb,nR),hhop(norb,norb,nR)
 dimension sderhop(3,nR,norb,norb),hderhop(3,nR,norb,norb)
 
 complex*16 hhop
 complex*16 hderhop,sderhop
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!         
-rhop=0.0d0
 hderhop=0.0d0
 sderhop=0.0d0
 do iR=1,nR
@@ -323,12 +340,6 @@ do iR=1,nR
   end do
 end do
 
-!point-like interactions
-do nn=1,norb
-  rhop(1,1,nn,nn)=B(nn,1)
-  rhop(2,1,nn,nn)=B(nn,2)
-  rhop(3,1,nn,nn)=B(nn,3)
-end do
 
 return
 end
@@ -422,21 +433,22 @@ return
 end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   	        
-subroutine get_eigen_vme(norb, &
+subroutine get_eigen_vme(norb,skernel, &
 hkernel,akernel,hderkernel,pgaugekernel, &
 hk_ev,e,pgauge,vjseudoa,vjseudob,vme) 
 
 implicit real*8 (a-h,o-z)
 
-dimension hkernel(norb,norb)
+dimension skernel(norb,norb),hkernel(norb,norb)
 dimension hderkernel(3,norb,norb)
 dimension pgaugekernel(3,norb,norb),pgauge(3,norb,norb)
 dimension hk_ev(norb,norb),e(norb)
 dimension akernel(3,norb,norb)
-
+dimension ecomplex(norb)
 dimension vjseudoa(3,norb,norb),vjseudob(3,norb,norb),vme(3,norb,norb)
 
-complex*16 hkernel,akernel,hderkernel
+complex*16 ecomplex
+complex*16 skernel,hkernel,akernel,hderkernel
 complex*16 hk_ev,vjseudoa,vjseudob,vme,pgaugekernel,pgauge
 
 complex*16 amu,amup,aux1,factor
@@ -444,6 +456,8 @@ complex*16 amu,amup,aux1,factor
   
 e=0.0d0
 call diagoz(norb,e,hkernel) 
+!call diagoz_arbg(norb,ecomplex,skernel,hkernel)             
+!call order(norb,ecomplex,e,hkernel) 
 do ii=1,norb
 do jj=1,norb
   hk_ev(ii,jj)=hkernel(ii,jj)
@@ -463,6 +477,7 @@ do j=1,norb
   !write(*,*) 'sum is now:',aux1*factor
   do ii=1,norb
     hk_ev(ii,j)=hk_ev(ii,j)*factor
+	!hk_ev(ii,j)=hk_ev(ii,j)*1.0d0
   end do      
 end do   
 
@@ -512,59 +527,61 @@ return
 end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine get_kubo_intens(nv,npointstotal,vcell,norb,nkubo_sp,e,kcount,vme,wn_sp, &
-skubo_sp_int)
+subroutine get_kubo_intens(nv,npointstotal,vcell,norb,e,vme,nw,wp,sigma_w_sp,eta)
 implicit real*8 (a-h,o-z)
 
 dimension vme(3,norb,norb)
-dimension skubo_sp_int(3,3,nkubo_sp)
-dimension wn_sp(nkubo_sp)
+dimension wp(nw),sigma_w_sp(3,3,nw)
 dimension e(norb)
 
-complex*16 vme,skubo_sp_int,factor1
+complex*16 vme,skubo,sigma_w_sp
 pi=acos(-1.0d0)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!	  
-do nn=1,norb
-!fermi disrtibution
-if (nn.le.nv) then
-  fnn=1.0d0
-else
-  fnn=0.0d0
-end if
-do nnp=1,norb
-  wn_sp(kcount)=e(nn)-e(nnp)
-  !fermi distribution
-  if (nnp.le.nv) then
-    fnnp=1.0d0
-  else
-    fnnp=0.0d0
-  end if                    
-  !DEDICE PREFACTOR WITH OCCUPATION
-  if ((fnn-fnnp).eq.0.0d0) then !UPDATE: energies removed from this factor
-    factor1=0.0d0         
-  else
-    factor1=(fnn-fnnp)/(wn_sp(kcount)) 
-  end if
-      !save oscillator stregths
+do iw=1,nw  
+  do nn=1,norb
+  !fermi disrtibution
+    if (nn.le.nv) then
+      fnn=1.0d0
+    else
+      fnn=0.0d0
+    end if
+    do nnp=1,norb
+      !fermi distribution
+      if (nnp.le.nv) then
+        fnnp=1.0d0
+      else
+        fnnp=0.0d0
+      end if                    
+      !DEDICE PREFACTOR WITH OCCUPATION
+      if (abs(fnn-fnnp).lt.0.1d0) then !UPDATE: energies removed from this factor
+        factor1=0.0d0         
+      else
+        factor1=(fnn-fnnp)/(e(nn)-e(nnp))
+      end if
+	  !lorentzian
+      !delta_nnp=1.0d0/pi*aimag(1.0d0/(wp(iw)-e(nn)+e(nnp)-complex(0.0d0,eta)))
+	  !exponential
+	  delta_nnp=1.0d0/eta*1.0d0/sqrt(2.0d0*pi)*exp(-0.5d0/(eta**2)*(wp(iw)-e(nn)+e(nnp))**2)
+	  
+          !save oscillator stregths
       do nj=1,3
         do njp=1,3
-          skubo_sp_int(nj,njp,kcount)=pi*factor1/(dble(npointstotal)*vcell) &
-          *vme(nj,nn,nnp)*vme(njp,nnp,nn)
+          skubo=vme(nj,nn,nnp)*vme(njp,nnp,nn)
+          sigma_w_sp(nj,njp,iw)=sigma_w_sp(nj,njp,iw)+ &
+    	  pi/(dble(npointstotal)*vcell)*factor1*skubo*delta_nnp	
         end do
       end do
-      !write(*,*) kcount,nn,nnp,factor1,vme(1,nn,nnp),vme(2,nnp,nn)
-      kcount=kcount+1
-      !write(*,*) kcount,skubo_sp_int(1,2,kcount)		  
-end do
-end do
-  
+    		  
+    end do
+  end do
+end do  
 !pause
 
 return
 end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!      
-subroutine broad_vector(type_broad,n,wn,fn,w0,wrange,nw,wp,fw_c,eta)
+subroutine broad_vector(type_broad,n,wn,fn,nw,wp,fw_c,eta)
 
 implicit real*8 (a-h,o-z)
 
@@ -573,14 +590,14 @@ complex*16 fw_c,fn
 character(100) type_broad
 pi=acos(-1.0d0)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-wp=0.0d0
+!wp=0.0d0
 fw_c=0.0d0
 do i=1,n
 fn_real(i)=realpart(fn(i))
 end do
 
 do i=1,nw
-wp(i)=(w0+wrange/dble(nw)*dble(i-1))
+!wp(i)=(w0+wrange/dble(nw)*dble(i-1))
 do inn=1,n
   rbroad=1.0d0
   if (type_broad.eq.'lorentzian') then
@@ -640,4 +657,136 @@ UPLO='U'
 LWORK=2*n
         
 call zheev(JOBZ, UPLO, n, h, n, w, WORK, LWORK, RWORK, INFO)
+return
 end
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!   NAME:         diagoz_arbg
+!   INPUTS:       h matrix to diagonalize
+!                 s overlap matrix
+!                 n dimension of h
+!   OUTPUTS:      w; eigenvalues of h
+!                 h;  gives eigenvectors by columns as output
+!   DESCRIPTION:  this subroutine uses Lapack libraries to diagonalize
+!                 an arbitrary complex matrix generalized problem
+!
+!     Juan Jose Esteve-Paredes                24.04.2017
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+      subroutine diagoz_arbg(n,w,s,h)
+!finding the eigenvalues of a complex matrix using LAPACK
+      implicit real*8 (a-h,o-z)
+!declarations, notice double precision
+      complex*16 h(n,n),s(n,n),w(n),VL(n,n),VR(n,n),WORK(200*n)
+      complex*16 ALPHA(n),BETA(n)      
+      dimension RWORK(8*n),wreal(n)
+      dimension ereal(n)
+      integer INFO
+      
+      complex*16 haux(n,n),saux(n,n),ssuma
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      saux=s
+      haux=h
+      !find the solution using the LAPACK routine ZGGEEV     
+      !e=0.0d0
+      !do i=1,3
+        !write(*,*) (s(i,j),j=1,3)
+      !end do
+      !pause
+      !call zggev('V','V',n,s,n,h,n,ALPHA,BETA,VL,n,VR,n,WORK,200*n, RWORK,INFO)
+      call zhegv( 1, 'V', 'U', n, h, n, s, n, wreal, WORK, 200*n, RWORK, INFO )
+      !do i=1,n
+        !write(*,*) wreal(i),1.0d0/wreal(i)
+      !end do
+      !do i=1,n
+        !w(i)=ALPHA(i)/BETA(i)
+        !write(*,*) ALPHA(i),BETA(i),w(i)
+        !do j=1,n
+          !h(i,j)=VR(i,j)
+        !end do 
+      !end do
+      !pause
+
+
+      !ANOTHER SIMILAR TO THE PREVIOUS ONE
+      !call zgegv( 'N', 'V', n, h, n, s, n, ALPHA, BETA, &
+      !QVL, n, VR, n, WORK, 200*n, RWORK, INFO )
+      !write(*,*) 'Diagonalization=',INFO
+      !write(*,*) INFO
+      do i=1,n
+        !w(i)=ALPHA(i)/BETA(i)
+        w(i)=complex(wreal(i),0.0d0)
+        !write(*,*) ALPHA(i),BETA(i),w(i)
+        !do j=1,n
+          !h(i,j)=VR(i,j)
+        !end do 
+        !write(*,*) wreal(i),h(i,1)
+        !write(*,*) ALPHA(i),BETA(i),w(i)
+      end do
+      !pause
+      do k=1,n
+        ssuma=0.0d0
+        do i=1,n
+          do j=1,n
+            ssuma=ssuma+conjg(h(i,k))*h(j,k)*saux(i,j)
+          end do
+        end do
+        snorma=sqrt(realpart(ssuma)) 
+        h(:,k)=1.0d0/snorma*h(:,k)       
+        !if (k.eq.1) write(*,*) ssuma
+      end do
+      
+      !write(*,*) 'Diagonalization=',INFO
+      if (INFO.ne.0) then
+        write(*,*) 'Bad diagonalization'
+        write(*,*) 'Eigenvalues/ground state coefficients'
+        do i=1,n
+          write(*,*) wreal(i),h(i,1)
+        end do        
+        open(91,file='h_matlab_real.dat')
+        open(92,file='s_matlab_real.dat')
+        open(93,file='h_matlab_imag.dat')
+        open(94,file='s_matlab_imag.dat')
+        do i=1,n
+          write(91,*) (realpart(haux(i,j)), j=1,n)
+          write(92,*) (realpart(saux(i,j)), j=1,n)
+          write(93,*) (aimag(haux(i,j)), j=1,n)
+          write(94,*) (aimag(saux(i,j)), j=1,n)
+        end do 
+        close(91)
+        close(92)
+        close(93)
+        close(94)  
+        pause
+      end if
+      s=saux
+      !do i=1,n
+        !write(*,*) i,h(i,1),w(i)
+      !end do
+      !pause
+    
+      return
+      end
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     !subroutine to order the complez eigenvalues and making them real
+     !it also orders the eigenvectors
+     subroutine order(n,ecomplex,e,hk)
+     implicit real*8 (a-h,o-z)
+     complex*16 ecomplex,hk,hkaux
+     dimension ecomplex(n),e(n),eaux(n),hk(n,n),hkaux(n,n)
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     hkaux=hk
+     do i=1,n
+       eaux(i)=realpart(ecomplex(i))
+     end do
+     
+     do i=1,n
+       imin=minloc(eaux,1)      
+       e(i)=eaux(imin)
+       hk(:,i)=hkaux(:,imin)
+       eaux(imin)=1.0d8
+     end do
+    
+     return
+     end
