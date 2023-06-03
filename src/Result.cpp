@@ -571,9 +571,12 @@ void Result::writeAbsorptionSpectrum(){
     arma::vec rky = exciton.kpoints.col(1);
     arma::vec rkz = exciton.kpoints.col(2);
 
+    arma::mat eigval_sp = exciton.eigvalKStack;
+    arma::cx_cube eigvec_sp = exciton.eigvecKStack;
+
     skubo_w_(&nR, &norb, &norb_ex, &nv, &nc, &filling, 
              Rvec.memptr(), R.memptr(), extendedMotif.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
-             rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr());
+             rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr(), eigval_sp.memptr(), eigvec_sp.memptr());
 }
 
 /**

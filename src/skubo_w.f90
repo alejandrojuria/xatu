@@ -1,11 +1,10 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine skubo_w(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,hhop,shop,npointstotal,rkx, &
-rky,rkz,fk_ex,e_ex)
+rky,rkz,fk_ex,e_ex,eigval_stack,eigvec_stack)
 implicit real*8 (a-h,o-z)
 
 !out of subroutine arrays 
 dimension Rvec(nR,3)
-dimension nRvec(nR,3)
 dimension R(3,3)
 dimension hhop(norb,norb,nR)
 dimension shop(norb,norb,nR)
@@ -16,6 +15,8 @@ dimension fk_ex(norb_ex,norb_ex)
 dimension e_ex(norb_ex)
 dimension B(norb,3)
 dimension rhop(3,nR,norb,norb)
+dimension eigval_stack(nv_ex + nc_ex,npointstotal)
+dimension eigvec_stack(norb,nv_ex + nc_ex,npointstotal)
 
 !sp and exciton variables
 allocatable sderhop(:,:,:,:)
@@ -44,6 +45,7 @@ complex*16 hhop
 complex*16 sderhop
 complex*16 hderhop
 complex*16 fk_ex
+complex*16 eigvec_stack
 complex*16 hkernel
 complex*16 skernel
 complex*16 hderkernel
@@ -68,6 +70,9 @@ complex*16 osc_w_sp
 character(100) type_broad
 character(100) file_name_sp
 character(100) file_name_ex
+
+nbands = nv_ex + nc_ex
+
 pi=acos(-1.0d0)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !Here we work in atomic units
@@ -79,6 +84,8 @@ rkx=rkx*0.52917721067121d0
 rky=rky*0.52917721067121d0
 rkz=rkz*0.52917721067121d0
 e_ex=e_ex/27.211385d0
+eigval_stack=eigval_stack/27.211385d0
+
 !call fill_nRvec(nR,R,Rvec,nRvec)
 !get printing parameters
 call get_kubo_parameters(w0,wrange,nw,eta,type_broad, &
@@ -101,12 +108,12 @@ allocate (hderkernel(3,norb,norb))
 allocate (sderkernel(3,norb,norb))
 allocate (akernel(3,norb,norb))
 allocate (pgaugekernel(3,norb,norb))  
-allocate (hk_ev(norb,norb))
-allocate (e(norb))
-allocate (pgauge(3,norb,norb))
-allocate (vjseudoa(3,norb,norb)) 
-allocate (vjseudob(3,norb,norb))
-allocate (vme(3,norb,norb))
+allocate (hk_ev(norb,nbands))
+allocate (e(nbands))
+allocate (pgauge(3,nbands,nbands))
+allocate (vjseudoa(3,nbands,nbands)) 
+allocate (vjseudob(3,nbands,nbands))
+allocate (vme(3,nbands,nbands))
 wp=0.0d0
 wn_sp=0.0d0
 sigma_w_sp=0.0d0
@@ -123,8 +130,6 @@ allocate (skubo_ex_int(3,3,norb_ex_cut))
 vme_ex=0.0d0
 sigma_w_ex=0.0d0
 skubo_ex_int=0.0d0
-
-
 
 
 !getting some SP variables
@@ -149,33 +154,41 @@ do ibz=1,npointstotal
   rkxp=rkx(ibz)
   rkyp=rky(ibz)
   rkzp=rkz(ibz)
+
+  hk_ev(:, :) = eigvec_stack(:, :, ibz)
+  e(:) = eigval_stack(:, ibz)
           
   !get matrices in the \alpha, \alpha' basis (orbitals,k)    		
   call get_vme_kernels(rkxp,rkyp,rkzp,nR,Rvec,norb,hkernel,skernel,shop, &
   hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel,pgaugekernel)
   !velocity matrix elements
-  call get_eigen_vme(norb,skernel,hkernel,akernel,hderkernel, &
+  call get_eigen_vme(norb,nbands,skernel,hkernel,akernel,hderkernel, &
   pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme) 
 
   !fill V_N
   !!$OMP critical	
   do nj=1,3
     do iex=1,norb_ex_cut
-      do ib=1,norb_ex_band
+      !!! Iterate over band index explicitly (AJU 03-06-23)
+      do ic=1,nc_ex
+      do iv=1,nv_ex
+      
+        j = nc_ex * nv_ex * (ibz - 1) + nv_ex * (ic - 1) + iv
         !get valence/conduction indices      
-        nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
-        nc_ip=(nv+1)+int((ib-1)/nv_ex)
-        j=(ibz-1)*norb_ex_band+ib
+        !nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
+        !nc_ip=(nv+1)+int((ib-1)/nv_ex)
+        !j=(ibz-1)*norb_ex_band+ib
 		
        	
-        vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(j,iex)*vme(nj,nv_ip,nc_ip)
-        vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(j,iex)*vme(nj,nc_ip,nv_ip)
+        vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(j,iex)*vme(nj,iv,ic + nv_ex)
+        vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(j,iex)*vme(nj,ic + nv_ex,iv)
 
       end do
+      end do
     end do
-  end do        
+  end do       
   !get strength for kubo SP
-  call get_kubo_intens(nv,npointstotal,vcell,norb,e,vme,nw,wp,sigma_w_sp,eta)
+  call get_kubo_intens(nv_ex,npointstotal,vcell,nbands,e,vme,nw,wp,sigma_w_sp,eta)
   !!$OMP end critical
   
 end do
@@ -240,6 +253,7 @@ subroutine fill_nRvec(nR,R,Rvec,nRvec)
 implicit real*8 (a-h,o-z)
 dimension R(3,3),Rvec(nR,3),nRvec(nR,3)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! Deprecated; Bravais lattice vectors are passed directly in cartesian coordinates (AJU 03-06-23)
 nRvec=0
 do inR=1,nR
   if (abs(Rvec(inR,3)).gt.0.1d0) then
@@ -432,7 +446,7 @@ return
 end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   	        
-subroutine get_eigen_vme(norb,skernel, &
+subroutine get_eigen_vme(norb,nbands,skernel, &
 hkernel,akernel,hderkernel,pgaugekernel, &
 hk_ev,e,pgauge,vjseudoa,vjseudob,vme) 
 
@@ -440,52 +454,53 @@ implicit real*8 (a-h,o-z)
 
 dimension skernel(norb,norb),hkernel(norb,norb)
 dimension hderkernel(3,norb,norb)
-dimension pgaugekernel(3,norb,norb),pgauge(3,norb,norb)
-dimension hk_ev(norb,norb),e(norb)
+dimension pgaugekernel(3,norb,norb),pgauge(3,nbands,nbands)
+dimension hk_ev(norb,nbands),e(nbands)
 dimension akernel(3,norb,norb)
 dimension ecomplex(norb)
-dimension vjseudoa(3,norb,norb),vjseudob(3,norb,norb),vme(3,norb,norb)
+dimension vjseudoa(3,nbands,nbands),vjseudob(3,nbands,nbands),vme(3,nbands,nbands)
 
 complex*16 ecomplex
 complex*16 skernel,hkernel,akernel,hderkernel
 complex*16 hk_ev,vjseudoa,vjseudob,vme,pgaugekernel,pgauge
 
-complex*16 amu,amup,aux1,factor
+complex*16 amu,amup
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!	  
   
-e=0.0d0
-call diagoz(norb,e,hkernel) 
-!call diagoz_arbg(norb,ecomplex,skernel,hkernel)             
-!call order(norb,ecomplex,e,hkernel) 
-do ii=1,norb
-do jj=1,norb
-  hk_ev(ii,jj)=hkernel(ii,jj)
-end do
-end do
+!!! Remove diagonalization; instead use stored eigvecs and eigvals (AJU 29-05-23)
+! e=0.0d0
+! call diagoz(norb,e,hkernel) 
+! !call diagoz_arbg(norb,ecomplex,skernel,hkernel)             
+! !call order(norb,ecomplex,e,hkernel) 
+! do ii=1,norb
+! do jj=1,norb
+!   hk_ev(ii,jj)=hkernel(ii,jj)
+! end do
+! end do
 
-!phase election
-do j=1,norb
-  aux1=0.0d0
-  do i=1,norb
-    aux1=aux1+hk_ev(i,j)
-  end do
+! !phase election
+! do j=1,norb
+!   aux1=0.0d0
+!   do i=1,norb
+!     aux1=aux1+hk_ev(i,j)
+!   end do
   
-  !argument of the sym
-  arg=atan2(aimag(aux1),realpart(aux1))
-  factor=exp(complex(0.0d0,-arg))
-  !write(*,*) 'sum is now:',aux1*factor
-  do ii=1,norb
-    hk_ev(ii,j)=hk_ev(ii,j)*factor
-	!hk_ev(ii,j)=hk_ev(ii,j)*1.0d0
-  end do      
-end do   
+!   !argument of the sym
+!   arg=atan2(aimag(aux1),realpart(aux1))
+!   factor=exp(complex(0.0d0,-arg))
+!   !write(*,*) 'sum is now:',aux1*factor
+!   do ii=1,norb
+!     hk_ev(ii,j)=hk_ev(ii,j)*factor
+! 	!hk_ev(ii,j)=hk_ev(ii,j)*1.0d0
+!   end do      
+! end do   
 
 !write(*,*) 'computing velocity matrix elements'      
 vme=0.0d0
 vjseudoa=0.0d0
 vjseudob=0.0d0
 pgauge=0.0d0
-do nn=1,norb
+do nn=1,nbands
 do nnp=1,nn        
   !momentums and A and B term
   do ialpha=1,norb
@@ -526,25 +541,25 @@ return
 end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine get_kubo_intens(nv,npointstotal,vcell,norb,e,vme,nw,wp,sigma_w_sp,eta)
+subroutine get_kubo_intens(nv,npointstotal,vcell,nbands,e,vme,nw,wp,sigma_w_sp,eta)
 implicit real*8 (a-h,o-z)
 
-dimension vme(3,norb,norb)
+dimension vme(3,nbands,nbands)
 dimension wp(nw),sigma_w_sp(3,3,nw)
-dimension e(norb)
+dimension e(nbands)
 
 complex*16 vme,skubo,sigma_w_sp
 pi=acos(-1.0d0)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!	  
 do iw=1,nw  
-  do nn=1,norb
+  do nn=1,nbands
   !fermi disrtibution
     if (nn.le.nv) then
       fnn=1.0d0
     else
       fnn=0.0d0
     end if
-    do nnp=1,norb
+    do nnp=1,nbands
       !fermi distribution
       if (nnp.le.nv) then
         fnnp=1.0d0
