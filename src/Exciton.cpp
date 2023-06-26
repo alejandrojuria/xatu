@@ -75,6 +75,7 @@ void Exciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     this->valenceBands_ = arma::ivec(valence);
     this->conductionBands_ = arma::ivec(conduction);
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
+    this->scissor_ = cfg.excitonInfo.scissor;
 }
 
 /**
@@ -374,6 +375,15 @@ void Exciton::setReciprocalVectors(int nReciprocalVectors){
         throw std::invalid_argument("setReciprocalVectors(): given number must be positive");
     }
     this->nReciprocalVectors_ = nReciprocalVectors;
+}
+
+/**
+ * Sets the value of the scissor cut of change the gap of the system.
+ * @param shift Value of scissor cut (in eV). Can be positive or negative.
+ * @return void 
+ */
+void Exciton::setScissor(double shift){
+    this->scissor_ = shift;
 }
 
 
@@ -1042,8 +1052,9 @@ void Exciton::BShamiltonian(const arma::imat& basis){
         }
         
         if (i == j){
-            HBS_(i, j) = (eigvalKQStack.col(kQ_index)(c) - 
-                            eigvalKStack.col(k_index)(v))/2. - (D - X)/2.;
+            HBS_(i, j) = (this->scissor + 
+                          eigvalKQStack.col(kQ_index)(c) - eigvalKStack.col(k_index)(v))/2. 
+                          - (D - X)/2.;
             HK_(i, j) = eigvalKQStack(c, kQ_index) - eigvalKStack(v, k_index);
             
         }

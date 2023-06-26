@@ -26,7 +26,7 @@ class Exciton : public System {
     private:
         // Read-only parameters
         int ncell_, totalCells_, nbands_, nrmbands_, excitonbasisdim_;
-        double eps_m_, eps_s_, r0_;
+        double eps_m_, eps_s_, r0_, scissor_;
         arma::ivec bands_, valenceBands_, conductionBands_;
         arma::uvec bandList_;
         arma::imat basisStates_;
@@ -89,6 +89,8 @@ class Exciton : public System {
         const std::string& mode = mode_;
         // Return number of reciprocal lattice vectors to use in summations (mode="reciprocalspace")
         const int& nReciprocalVectors = nReciprocalVectors_;
+        // Returns scissor cut value
+        const double& scissor = scissor_;
 
         const arma::mat& eigvalKStack = eigvalKStack_;
         const arma::mat& eigvalKQStack = eigvalKQStack_;
@@ -139,6 +141,7 @@ class Exciton : public System {
         void setGauge(std::string);
         void setMode(std::string);
         void setReciprocalVectors(int);
+        void setScissor(double);
 
     private:
         // Methods for BSE matrix initialization
