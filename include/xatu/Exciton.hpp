@@ -37,11 +37,12 @@ class Exciton : public System {
         // Flags
         std::string gauge_ = "lattice";
         std::string mode_  = "realspace";
+        bool exchange = false;
 
         // Internal attributes
         arma::mat eigvalKStack_, eigvalKQStack_;
         arma::cx_cube eigvecKStack_, eigvecKQStack_;
-        arma::cx_mat ftStack;
+        arma::cx_mat ftMotifQ;
         arma::cx_cube ftMotifStack;
         std::complex<double> ftX;
         arma::mat potentialMat;
@@ -149,8 +150,8 @@ class Exciton : public System {
         double potential(double);
         std::complex<double> fourierTransform(arma::rowvec k, const arma::mat&, bool useApproximation = true);
         double analyticFourierTransform(arma::rowvec);
-        double fourierTransformFromCoefs(const arma::vec&, const arma::vec&, const arma::rowvec&, int);
         std::complex<double> motifFourierTransform(int, int, const arma::rowvec&, const arma::mat&);
+        arma::cx_mat motifFTMatrix(const arma::rowvec&, const arma::mat&);
         arma::cx_mat extendMotifFT(const arma::cx_mat&);
         std::complex<double> blochCoherenceFactor(const arma::cx_vec&, const arma::cx_vec&, 
                                                   const arma::rowvec&, const arma::rowvec&,

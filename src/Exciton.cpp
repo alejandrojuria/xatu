@@ -75,6 +75,9 @@ void Exciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     this->valenceBands_ = arma::ivec(valence);
     this->conductionBands_ = arma::ivec(conduction);
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
+
+    // Set flags
+    this->exchange = cfg.excitonInfo.exchange;
     this->scissor_ = cfg.excitonInfo.scissor;
     this->mode_    = cfg.excitonInfo.mode;
     this->nReciprocalVectors_ = cfg.excitonInfo.nReciprocalVectors;
@@ -632,10 +635,10 @@ std::complex<double> Exciton::interactionTermFT(const arma::cx_vec& coefsK,
     for(int i = 0; i < reciprocalVectors.n_rows; i++){
         auto G = reciprocalVectors.row(i);
 
-        Ic = blochCoherenceFactor(coefsK2Q, coefsKQ, k2Q, kQ, G);
-        Iv = blochCoherenceFactor(coefsK2, coefsK, k2, k, G);
+        Ic = blochCoherenceFactor(coefsKQ, coefsK2Q, kQ, k2Q, G);
+        Iv = blochCoherenceFactor(coefsK, coefsK2, k, k2, G);
 
-        term += conj(Ic)*Iv*analyticFourierTransform(k-k2+G);
+        term += Ic*conj(Iv)*analyticFourierTransform(k - k2 + G);
     }
 
     return term;
@@ -985,6 +988,7 @@ void Exciton::initializeHamiltonian(bool triangular){
 
     std::cout << "Initializing basis for BSE... " << std::flush;
     initializeBasis();
+    //useSpinfulBasis();
     generateBandDictionary();
 
     initializeResultsH0(triangular);
@@ -1061,13 +1065,24 @@ void Exciton::BShamiltonian(const arma::imat& basis){
             int effective_k_index = findEquivalentPointBZ(kpoints.row(k2_index) - kpoints.row(k_index), ncell);
             arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
             D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
-            X = 0;
+            if(this->exchange){
+                X = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK, coefsK2Q, this->ftMotifQ);
+            }
+            else{
+                X = 0;
+            }
+            
         }
         else if (mode == "reciprocalspace"){
             arma::rowvec k = kpoints.row(k_index);
             arma::rowvec k2 = kpoints.row(k2_index);
             D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
-            X = 0;
+            if(this->exchange){
+                X = interactionTermFT(coefsK2Q, coefsK2, coefsKQ, coefsK, k2 + Q, k2, k + Q, k, this->nReciprocalVectors);
+            }
+            else{
+                X = 0;
+            }
         }
         
         if (i == j){
