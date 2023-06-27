@@ -854,7 +854,25 @@ void Exciton::generateBandDictionary(){
     this->bandToIndex = bandToIndex;
 };
 
+/**
+ * Method to compute the motif FT matrix at a given k vector.
+ * @param k k vector where we compute the motif FT.
+ * @param cells Matrix of unit cells over which the motif FT is computed.
+ * @return void
+ */
+arma::cx_mat Exciton::motifFTMatrix(const arma::rowvec& k, const arma::mat& cells){
+    // Uses hermiticity of V
+    arma::cx_mat motifFT = arma::zeros<arma::cx_mat>(natoms, natoms);
 
+    for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
+        for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
+            motifFT(fAtomIndex, sAtomIndex) = motifFourierTransform(fAtomIndex, sAtomIndex, k, cells);
+            motifFT(sAtomIndex, fAtomIndex) = conj(motifFT(fAtomIndex, sAtomIndex));
+        }   
+    }
+
+    return motifFT;
+}
 
 /**
  * Method to initialize the motif Fourier transform for all possible motif combination 
@@ -864,15 +882,9 @@ void Exciton::generateBandDictionary(){
  * @return void
  */
 void Exciton::initializeMotifFT(int i, const arma::mat& cells){
-    // Uses hermiticity of V
-    for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
-        for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
-            ftMotifStack(fAtomIndex, sAtomIndex, i) = 
-            motifFourierTransform(fAtomIndex, sAtomIndex, meshBZ_.row(i), cells);
-            ftMotifStack(sAtomIndex, fAtomIndex, i) = conj(ftMotifStack(fAtomIndex, sAtomIndex, i));
-        }   
-    }
+    ftMotifStack.slice(i) = motifFTMatrix(meshBZ_.row(i), cells);
 }
+
 
 /**
  * Main method to compute all the relevant single-particle quantities (bands, eigenstates and fourier transforms),
