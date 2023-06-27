@@ -76,6 +76,8 @@ void Exciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     this->conductionBands_ = arma::ivec(conduction);
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
     this->scissor_ = cfg.excitonInfo.scissor;
+    this->mode_    = cfg.excitonInfo.mode;
+    this->nReciprocalVectors_ = cfg.excitonInfo.nReciprocalVectors;
 }
 
 /**
@@ -654,12 +656,12 @@ std::complex<double> Exciton::blochCoherenceFactor(const arma::cx_vec& coefs1, c
 
     std::complex<double> imag(0, 1);
     arma::cx_vec coefs = arma::conj(coefs1) % coefs2;
-    arma::cx_vec phases(basisdim);
+    arma::cx_vec phases = arma::ones<arma::cx_vec>(basisdim);
     for(int i = 0; i < natoms; i++){
         int species = motif.row(i)(3);
         arma::rowvec atomPosition = motif.row(i).subvec(0, 2);
-        phases.subvec(i*orbitals(species), (i+1)*orbitals(species) - 1) = 
-        exp(imag*arma::dot(k1 - k2 - G, atomPosition));
+        phases.subvec(i*orbitals(species), (i+1)*orbitals(species) - 1) *= 
+        exp(imag*arma::dot(k1 - k2 + G, atomPosition));
     }
 
     std::complex<double> factor = arma::dot(coefs, phases);
@@ -904,6 +906,7 @@ void Exciton::initializeResultsH0(bool triangular){
     this->eigvalKStack_  = arma::mat(nTotalBands, nk);
     this->eigvalKQStack_ = arma::mat(nTotalBands, nk);
     this->ftMotifStack   = arma::cx_cube(natoms, natoms, meshBZ_.n_rows);
+    this->ftMotifQ       = arma::cx_mat(natoms, natoms);
 
     vec auxEigVal(basisdim);
     cx_mat auxEigvec(basisdim, basisdim);
@@ -957,6 +960,10 @@ void Exciton::initializeResultsH0(bool triangular){
             }
         }
         std::cout << "\nDone" << std::endl;
+    }
+
+    if(this->exchange){
+        this->ftMotifQ = motifFTMatrix(this->Q, cells);
     }
 };
 
