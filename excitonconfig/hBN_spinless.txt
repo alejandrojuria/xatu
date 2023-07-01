@@ -1,0 +1,9 @@
+# label
+hBN_N60
+# ncells
+60
+# bands
+1
+# Dielectric
+1 1 10
+#

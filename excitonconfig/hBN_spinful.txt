@@ -1,0 +1,9 @@
+# label
+hbn_spinless
+# ncells
+30
+# bands
+2
+# Dielectric
+1 1 10
+#

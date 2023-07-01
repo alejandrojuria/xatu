@@ -1,0 +1,13 @@
+# label
+mos2_valley
+# ncells
+30
+# submesh
+2
+# shift
+0.6628  -1.1480 0
+# bandList
+-1 0 1 2
+# Dielectric
+1 4 13.55
+#
