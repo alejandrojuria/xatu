@@ -81,9 +81,18 @@ void ExcitonConfiguration::parseContent(){
         }
         else if(arg == "reciprocal"){
             excitonInfo.mode = "reciprocalspace";
+            excitonInfo.nReciprocalVectors = parseScalar<int>(content[0]);
         }
         else if(arg == "exchange"){
-            excitonInfo.exchange = true;
+            std::string str = content[0];
+            str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
+            std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+            if ((str != "true") && (str != "false")){
+                throw std::invalid_argument("Exchange option must be set to 'true' or 'false'.");
+            }
+            if (str == "true"){
+                excitonInfo.exchange = true;
+            }
         }
         else if(arg == "scissor"){
             excitonInfo.scissor = parseScalar<double>(content[0]);
