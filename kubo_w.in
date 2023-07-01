@@ -1,13 +1,13 @@
 #initial frequency (eV)
 1
 #frequency range (eV)
-8
+6
 #number of frequency points (integer)
-300
+400
 #broadening parameter (eV)
-0.05d0
+0.08d0
 #type of broadening (available: 'lorentzian', 'exponential', 'gaussian')
 lorentzian
 #output kubo name files
-shift_GeS_HSE06_sp.dat
-shift_GeS_HSE06_ex.dat
+hBN_sp.dat
+hBN_ex.dat
