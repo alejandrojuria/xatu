@@ -167,7 +167,7 @@ arma::cx_vec Result::spinX(int stateindex){
     electronSpin = arma::cdot(coefs, spinElectron*coefs);
     totalSpin = real((holeSpin + electronSpin));
     
-    arma::cx_vec results = {holeSpin, electronSpin, totalSpin};
+    arma::cx_vec results = {totalSpin, holeSpin, electronSpin};
     return results;
 }
 
@@ -577,6 +577,25 @@ void Result::writeAbsorptionSpectrum(){
     skubo_w_(&nR, &norb, &norb_ex, &nv, &nc, &filling, 
              Rvec.memptr(), R.memptr(), extendedMotif.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
              rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr(), eigval_sp.memptr(), eigvec_sp.memptr());
+}
+
+/**
+ * Writes the total, electron and hole spin of the first n excitons.
+ * @param n Number of excitons to compute and write spin.
+ * @param textfile Textfile where the spins are written.
+ */
+void Result::writeSpin(int n, FILE* textfile){
+
+    if(n > exciton.excitonbasisdim || n < 0){
+        throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
+    }
+
+    int maxState = (n == 0) ? exciton.excitonbasisdim : n;  
+    fprintf(textfile, "n\tSt\tSe\tSh\n");
+    for(unsigned int i = 0; i < maxState; i++){
+        auto spin = spinX(i);
+        fprintf(textfile, "%d\t%11.7lf\t%11.7lf\t%11.7lf\n", i, real(spin(0)), real(spin(1)), real(spin(2)));
+    }
 }
 
 /**
