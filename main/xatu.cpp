@@ -42,7 +42,7 @@ int main(int argc, char* argv[]){
     cmd.add(outputOptions);
     TCLAP::SwitchArg outputArg("o", "output", "Write to file information about the excitons.", cmd, false);
 
-    std::vector<std::string> methods = {"diag", "davidson"};
+    std::vector<std::string> methods = {"diag", "davidson", "sparse"};
     TCLAP::ValuesConstraint<std::string> allowedMethods(methods);
     TCLAP::ValueArg<std::string> methodArg("m", "method", "Method to solve the Bethe-Salpeter equation.", false, "diag", &allowedMethods, cmd);
     TCLAP::ValueArg<std::string> bandsArg("b", "bands", "Computes the bands of the system on the specified kpoints.", false, "kpoints.txt", "Filename", cmd);
@@ -77,6 +77,7 @@ int main(int argc, char* argv[]){
 
     // Init. configurations
     std::unique_ptr<xatu::SystemConfiguration> systemConfig;
+    std::unique_ptr<xatu::CrystalDFTConfiguration> systemDFTConfig; 
     std::unique_ptr<xatu::ExcitonConfiguration> excitonConfig;
 
     if (dftArg.isSet()){
@@ -106,6 +107,8 @@ int main(int argc, char* argv[]){
 
     // -------------------------- Main body ---------------------------
 
+    xatu::printHeader();
+
     cout << "+---------------------------------------------------------------------------+" << endl;
     cout << "|                                  Parameters                               |" << endl;
     cout << "+---------------------------------------------------------------------------+" << endl;
@@ -113,7 +116,6 @@ int main(int argc, char* argv[]){
     xatu::Exciton bulkExciton = xatu::Exciton(*systemConfig, *excitonConfig);
     bulkExciton.setMode(excitonConfig->excitonInfo.mode);
 
-    cout << "\n";
     cout << std::left << std::setw(30) << "System configuration file: " << std::setw(10) << systemfile << endl;
     cout << std::left << std::setw(30) << "Exciton configuration file: " << std::setw(10) << excitonfile << "\n" << endl;
     bulkExciton.printInformation();
@@ -122,7 +124,18 @@ int main(int argc, char* argv[]){
     cout << "|                                Initialization                             |" << endl;
     cout << "+---------------------------------------------------------------------------+" << endl;
 
-    bulkExciton.brillouinZoneMesh(excitonConfig->excitonInfo.ncell);
+    if(excitonConfig->excitonInfo.submeshFactor != 1){
+        bulkExciton.reducedBrillouinZoneMesh(excitonConfig->excitonInfo.ncell, excitonConfig->excitonInfo.submeshFactor);   
+    }
+    else{
+        bulkExciton.brillouinZoneMesh(excitonConfig->excitonInfo.ncell);
+    }
+
+    if(!excitonConfig->excitonInfo.shift.is_empty()){
+        arma::cout << excitonConfig->excitonInfo.shift << arma::endl;
+        bulkExciton.shiftBZ(excitonConfig->excitonInfo.shift);
+    }
+    
     bulkExciton.initializeHamiltonian(triangular);
     bulkExciton.BShamiltonian();
     auto results = bulkExciton.diagonalize(method, nstates);
@@ -131,13 +144,13 @@ int main(int argc, char* argv[]){
     cout << "|                                    Results                                |" << endl;
     cout << "+---------------------------------------------------------------------------+" << endl;
 
-    printEnergies(results, nstates, decimals);
+    xatu::printEnergies(results, nstates, decimals);
 
     cout << "+---------------------------------------------------------------------------+" << endl;
     cout << "|                                    Output                                 |" << endl;
     cout << "+---------------------------------------------------------------------------+" << endl;
 
-    std::string output = systemConfig->systemInfo.name;
+    std::string output = excitonConfig->excitonInfo.label;
 
     // --------------------------- Output ---------------------------
     bool writeEigvals = energyArg.isSet();
@@ -170,7 +183,12 @@ int main(int argc, char* argv[]){
 
         std::cout << "Writing k w.f. to file: " << filename_kwf << std::endl;
         for(int stateindex = 0; stateindex < nstates; stateindex++){
-            results.writeExtendedReciprocalAmplitude(stateindex, textfile_kwf);        
+            if (excitonConfig->excitonInfo.submeshFactor != 1){
+                results.writeReciprocalAmplitude(stateindex, textfile_kwf);
+            }
+            else{
+                results.writeExtendedReciprocalAmplitude(stateindex, textfile_kwf);
+            }
         }
 
         fclose(textfile_kwf);
@@ -202,6 +220,15 @@ int main(int argc, char* argv[]){
         results.writeAbsorptionSpectrum();
 
         fclose(textfile_abs);
+    }
+
+    bool writeSpin = spinArg.isSet();
+    if(writeSpin){
+        std::string filename_spin = output + ".spin";
+        FILE* textfile_spin = fopen(filename_spin.c_str(), "w");
+
+        std::cout << "Writing excitons spin fo file: " << filename_spin << std::endl;
+        results.writeSpin(nstates, textfile_spin);
     }
 
     auto stop = high_resolution_clock::now();
