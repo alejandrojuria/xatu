@@ -1,7 +1,10 @@
 # label
-hBN_N60
+! Name to be used when writing
+hBN_N30
 # ncells
-60
+! Number of unit cells along each direction
+30
+
 # bands
 1
 # Dielectric
