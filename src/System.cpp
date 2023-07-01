@@ -29,8 +29,6 @@ System::System(const System& system) : Crystal(system){
 	filling_			 = system.filling;
 	fermiLevel_			 = filling_ - 1;
 	basisdim_ 			 = system.basisdim;
-
-	std::cout << "Correctly initiallized System object" << std::endl;
 }
 
 /**
@@ -43,8 +41,6 @@ System::System(const SystemConfiguration& configuration) : Crystal(){
 
 	initializeCrystalAttributes(configuration);
 	initializeSystemAttributes(configuration);
-	
-	std::cout << "Correctly initiallized System object" << std::endl;
 };
 
 // --------------------------------- Methods ---------------------------------
@@ -171,7 +167,7 @@ void System::solveBands(std::string kpointsfile, bool triangular) const {
 	double kx, ky, kz;
 	arma::vec eigval;
 	arma::cx_mat eigvec;
-	std::string outputfilename = systemName + ".bands";
+	std::string outputfilename = kpointsfile + ".bands";
 	FILE* bandfile = fopen(outputfilename.c_str(), "w");
 	try{
 		inputfile.open(kpointsfile.c_str());
