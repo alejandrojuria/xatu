@@ -3,7 +3,7 @@
 Xatu is a program and library designed to solve the **Bethe-Salpeter equation** (BSE) of any material. Starting with electronic band structures from either tight-binding or DFT based on local orbitals, the BSE is constructed. Its diagonalization then yields the exciton spectrum, which can then be postprocessed to characterize the excitons and their optical properties.
 
 <p align="center">
-  <img src="hbn_xatu_example.png" width="60%" height="60%">
+  <img src="hbn_xatu_example.png" width="70%" height="70%">
 </p>
 
 ## Installation
