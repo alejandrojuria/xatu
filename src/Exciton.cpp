@@ -116,10 +116,6 @@ Exciton::Exciton(const SystemConfiguration& config, int ncell, const arma::ivec&
     this->valenceBands_ = arma::ivec(valence);
     this->conductionBands_ = arma::ivec(conduction);
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
-
-    if(!bands.empty()){
-        std::cout << "Correctly initialized Exciton object" << std::endl;
-    }
 };
 
 /**
@@ -146,8 +142,6 @@ Exciton::Exciton(const SystemConfiguration& config, int ncell, int nbands, int n
                                                         fermiLevel + nbands + nrmbands);
     this->bands_ = arma::join_cols(valenceBands, conductionBands) - fermiLevel;
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
-
-    std::cout << "Correctly initialized Exciton object" << std::endl;
 };
 
 
@@ -158,7 +152,6 @@ Exciton::Exciton(const SystemConfiguration& config, int ncell, int nbands, int n
  */ 
 Exciton::Exciton(const SystemConfiguration& config, const ExcitonConfiguration& excitonConfig) : System(config){
     initializeExcitonAttributes(excitonConfig);
-    std::cout << "Correctly initialized Exciton object" << std::endl;
 }
 
 Exciton::Exciton(const System& system, int ncell, const arma::ivec& bands, 
@@ -185,10 +178,6 @@ Exciton::Exciton(const System& system, int ncell, const arma::ivec& bands,
     this->valenceBands_ = arma::ivec(valence);
     this->conductionBands_ = arma::ivec(conduction);
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
-
-    if(!bands.empty()){
-        std::cout << "Correctly initialized Exciton object" << std::endl;
-    }
 };
 
 /**
@@ -215,17 +204,13 @@ Exciton::Exciton(const System& system, int ncell, int nbands, int nrmbands,
                                                         fermiLevel + nbands + nrmbands);
     this->bands_ = arma::join_cols(valenceBands, conductionBands) - fermiLevel;
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
-
-    std::cout << "Correctly initialized Exciton object" << std::endl;
 };
 
 /** 
  * Exciton destructor.
  * @details Used mainly for debugging; the message should be removed at some point.
  */
-Exciton::~Exciton(){
-    std::cout << "Deleting exciton object... " << std::endl;
-}
+Exciton::~Exciton(){};
 
 
 /* ------------------------------ Setters ------------------------------ */
@@ -1060,18 +1045,14 @@ void Exciton::BShamiltonian(const arma::imat& basis){
             coefsK2Q = eigvecKQStack.slice(k2Q_index).col(c2);
         }
 
-        std::complex<double> D, X;
+        std::complex<double> D, X = 0.0;
         if (mode == "realspace"){
             int effective_k_index = findEquivalentPointBZ(kpoints.row(k2_index) - kpoints.row(k_index), ncell);
             arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
             D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             if(this->exchange){
                 X = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK, coefsK2Q, this->ftMotifQ);
-            }
-            else{
-                X = 0;
-            }
-            
+            }            
         }
         else if (mode == "reciprocalspace"){
             arma::rowvec k = kpoints.row(k_index);
@@ -1079,9 +1060,6 @@ void Exciton::BShamiltonian(const arma::imat& basis){
             D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
             if(this->exchange){
                 X = interactionTermFT(coefsK2Q, coefsK2, coefsKQ, coefsK, k2 + Q, k2, k + Q, k, this->nReciprocalVectors);
-            }
-            else{
-                X = 0;
             }
         }
         
@@ -1104,7 +1082,7 @@ void Exciton::BShamiltonian(const arma::imat& basis){
 /**
  * Routine to diagonalize the BSE and return a Result object.
  * @param method Method to diagonalize the BSE, either 'diag' (standard diagonalization) 
- * or 'davidson' (iterative diagonalization).
+ * 'davidson' (iterative diagonalization) or 'sparse' (Lanczos).
  * @param nstates Number of states to be stored from the diagonalization.
  * @return Result object storing the exciton energies and states.
  */ 
@@ -1120,6 +1098,13 @@ Result Exciton::diagonalize(std::string method, int nstates){
     else if (method == "davidson"){
         std::cout << "Davidson method... " << std::flush;
         davidson_method(eigval, eigvec, HBS, nstates);
+    }
+    else if (method == "sparse"){
+        std::cout << "Lanczos method..." << std::flush;
+
+        arma::cx_vec cx_eigval;
+        arma::eigs_gen(cx_eigval, eigvec, arma::sp_cx_mat(HBS), nstates, "sr");
+        eigval = arma::sort(real(cx_eigval));
     }
     
     std::cout << "Done" << std::endl;
@@ -1513,9 +1498,24 @@ void Exciton::printInformation(){
     for (int i = 0; i < conductionBands.n_elem; i++){
         cout << conductionBands(i) << "\t";
     }
-    cout << endl;
+    cout << "\n" << endl;
 
-    cout << std::left << std::setw(30) << "Gauge used: " << gauge << "\n" << endl;
+    cout << std::left << std::setw(30) << "Gauge used: " << gauge << endl;
+    cout << std::left << std::setw(30) << "Calculation mode: " << mode << endl;
+    if(mode == "reciprocalspace"){
+        cout << std::left << std::setw(30) << "nG: " << nReciprocalVectors << endl;
+    }
+    if(exchange){
+        cout << std::left << std::setw(30) << "Exchange: " << (exchange ? "True" : "False") << endl;
+    }
+    if(arma::norm(Q) > 1E-7){
+        cout << std::left << std::setw(30) << "Q: "; 
+        for (auto qi : Q){
+            cout << qi << "  ";
+        }
+        cout << endl;
+    }
+    cout << std::left << std::setw(30) << "Scissor cut: " << scissor_ << endl;
 }
 
 }
