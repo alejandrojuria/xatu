@@ -1,5 +1,13 @@
 # Xatu
-## Introduction
+
+<div align=center>
+
+![GitHub release (with filter)](https://img.shields.io/github/v/release/alejandrojuria/xatu)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/alejandrojuria/tightbinder/issues)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+</div>  
+
 Xatu is a program and library designed to solve the **Bethe-Salpeter equation** (BSE) of any material. Starting with electronic band structures from either tight-binding or DFT based on local orbitals, the BSE is constructed. Its diagonalization then yields the exciton spectrum, which can then be postprocessed to characterize the excitons and their optical properties.
 
 <p align="center">
