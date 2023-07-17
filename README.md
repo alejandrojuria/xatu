@@ -5,6 +5,7 @@
 ![GitHub release (with filter)](https://img.shields.io/github/v/release/alejandrojuria/xatu)
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/alejandrojuria/tightbinder/issues)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![arXiv](https://img.shields.io/badge/arXiv-2307.01572-red.svg)](https://arxiv.org/abs/2307.01572)
 
 </div>  
 
@@ -13,6 +14,9 @@ Xatu is a program and library designed to solve the **Bethe-Salpeter equation** 
 <p align="center">
   <img src="hbn_xatu_example.png" width="90%" height="90%">
 </p>
+
+The theory behind the code plus details about the implementation and some usage examples can be found in our preprint [Efficient computation of optical excitations in two-dimensional materials with the Xatu code](https://arxiv.org/abs/2307.01572). If you find 
+our paper or the code useful, please consider citing us.
 
 ## Installation
 Xatu is built upon the Armadillo C++ library for linear algebra, which is also based on the standard libraries por linear algebra, namely BLAS, LAPACK and ARPACK.
