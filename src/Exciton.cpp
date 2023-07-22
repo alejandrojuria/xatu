@@ -1008,18 +1008,18 @@ void Exciton::BShamiltonian(const arma::imat& basis){
     HK_   = arma::zeros<arma::mat>(basisDimBSE, basisDimBSE);
     
     // To be able to parallelize over the triangular matrix, we build
-    int loopLength = basisDimBSE*(basisDimBSE + 1)/2.;
+    long int loopLength = basisDimBSE*(basisDimBSE + 1)/2.;
 
     // https://stackoverflow.com/questions/242711/algorithm-for-index-numbers-of-triangular-matrix-coefficients
     #pragma omp parallel for
-    for(int n = 0; n < loopLength; n++){
+    for(long int n = 0; n < loopLength; n++){
 
         arma::cx_vec coefsK, coefsK2, coefsKQ, coefsK2Q;
 
-        int ii = loopLength - 1 - n;
-        int m  = floor((sqrt(8*ii + 1) - 1)/2);
-        int i = basisDimBSE - 1 - m;
-        int j = basisDimBSE - 1 - ii + m*(m+1)/2;
+        long int ii = loopLength - 1 - n;
+        long int m  = floor((sqrt(8*ii + 1) - 1)/2);
+        long int i = basisDimBSE - 1 - m;
+        long int j = basisDimBSE - 1 - ii + m*(m+1)/2;
     
         double k_index = basisStates(i, 2);
         int v = bandToIndex[basisStates(i, 0)];
