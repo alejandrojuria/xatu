@@ -8,7 +8,8 @@ extern "C" {
     void skubo_w_(int* nR, int* norb, int* norb_ex, int* nv, int* nc, int* filling, 
                   double* Rvec, double* bravaisLattice, double* motif, 
                   std::complex<double>* hhop, double* shop, int* nk, double* rkx, 
-                  double* rky, double* rkz, std::complex<double>* fk_ex, double* e_ex);
+                  double* rky, double* rkz, std::complex<double>* fk_ex, double* e_ex, 
+                  double* eigval_stack, std::complex<double>* eigvec_stack);
 }
 
 namespace xatu {
@@ -16,8 +17,11 @@ namespace xatu {
 class Result{
 
     private:
+        // Exciton object which has been diagonalized.
         Exciton& exciton;
+        // Exciton eigenenergies
         arma::vec m_eigval;
+        // Exciton eigenstates
         arma::cx_mat m_eigvec;
 
     public:
@@ -57,6 +61,7 @@ class Result{
         void writeEigenvalues(FILE*, int n = 0);
         void writeStates(FILE*, int n = 0);
         void writeAbsorptionSpectrum();
+        void writeSpin(int, FILE*);
         
 
         double fourierTransformExciton(int, const arma::rowvec&, const arma::rowvec&);

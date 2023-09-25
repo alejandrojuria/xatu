@@ -26,7 +26,7 @@ class Exciton : public System {
     private:
         // Read-only parameters
         int ncell_, totalCells_, nbands_, nrmbands_, excitonbasisdim_;
-        double eps_m_, eps_s_, r0_;
+        double eps_m_, eps_s_, r0_, scissor_;
         arma::ivec bands_, valenceBands_, conductionBands_;
         arma::uvec bandList_;
         arma::imat basisStates_;
@@ -37,11 +37,12 @@ class Exciton : public System {
         // Flags
         std::string gauge_ = "lattice";
         std::string mode_  = "realspace";
+        bool exchange = false;
 
         // Internal attributes
         arma::mat eigvalKStack_, eigvalKQStack_;
         arma::cx_cube eigvecKStack_, eigvecKQStack_;
-        arma::cx_mat ftStack;
+        arma::cx_mat ftMotifQ;
         arma::cx_cube ftMotifStack;
         std::complex<double> ftX;
         arma::mat potentialMat;
@@ -89,6 +90,8 @@ class Exciton : public System {
         const std::string& mode = mode_;
         // Return number of reciprocal lattice vectors to use in summations (mode="reciprocalspace")
         const int& nReciprocalVectors = nReciprocalVectors_;
+        // Returns scissor cut value
+        const double& scissor = scissor_;
 
         const arma::mat& eigvalKStack = eigvalKStack_;
         const arma::mat& eigvalKQStack = eigvalKQStack_;
@@ -139,6 +142,7 @@ class Exciton : public System {
         void setGauge(std::string);
         void setMode(std::string);
         void setReciprocalVectors(int);
+        void setScissor(double);
 
     private:
         // Methods for BSE matrix initialization
@@ -146,8 +150,8 @@ class Exciton : public System {
         double potential(double);
         std::complex<double> fourierTransform(arma::rowvec k, const arma::mat&, bool useApproximation = true);
         double analyticFourierTransform(arma::rowvec);
-        double fourierTransformFromCoefs(const arma::vec&, const arma::vec&, const arma::rowvec&, int);
         std::complex<double> motifFourierTransform(int, int, const arma::rowvec&, const arma::mat&);
+        arma::cx_mat motifFTMatrix(const arma::rowvec&, const arma::mat&);
         arma::cx_mat extendMotifFT(const arma::cx_mat&);
         std::complex<double> blochCoherenceFactor(const arma::cx_vec&, const arma::cx_vec&, 
                                                   const arma::rowvec&, const arma::rowvec&,

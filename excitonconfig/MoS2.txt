@@ -1,0 +1,11 @@
+# label
+Mos2
+# ncells
+30
+# bandList
+-1 0 1 2
+# Dielectric
+1 4 13.55
+# totalmomentum
+0.0 0.0 0.0
+#

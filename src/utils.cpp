@@ -119,6 +119,7 @@ void writeDensityOfStates(const arma::mat& energies, double delta, FILE* dosfile
 /* Intended to be used within printEnergies, not in an standalone way. Computes degeneracy of each 
 up to a given precision with cost O(n) */
 std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int n, int precision){
+
     if(n < 0){
         throw std::invalid_argument("detectDegeneracies: n must be a positive integer");
     }
@@ -175,5 +176,23 @@ void printEnergies(Result result, int n, int precision){
         it++;
     }
 }
+
+/**
+ * Prints the header of the code with the credits.
+ */
+void printHeader(){
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
+    std::cout << "|                                                                           |" << std::endl;
+    std::cout << "|                                     Xatu                                  |" << std::endl;
+    std::cout << "|                               v1.0 - 01/07/2023                           |" << std::endl;
+    std::cout << "|                    https://github.com/alejandrojuria/xatu                 |" << std::endl;
+    std::cout << "|                                                                           |" << std::endl;
+    std::cout << "|                                  [Authors]                                |" << std::endl;
+    std::cout << "| A. J. Uría-Álvarez, J. J. Esteve-Paredes, M. A. García-Blázquez,          |" << std::endl;
+    std::cout << "| J. J. Palacios                                                            |" << std::endl;
+    std::cout << "| Universidad Autónoma de Madrid, Spain                                     |" << std::endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
+}
+
 
 }

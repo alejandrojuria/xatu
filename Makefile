@@ -1,6 +1,6 @@
 # Compiler & compiler flags
 CC = g++
-CF = gfortran
+FC = gfortran
 CFLAGS = -O2 -Wall -lm
 FFLAGS = -O2 -Wall -Wno-tabs -lm
 
@@ -25,6 +25,9 @@ build:	$(OBJECTS)
 	ar rcs libxatu.a $(OBJECTS)
 	
 xatu: main/xatu.cpp $(OBJECTS) 
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
+
+%: main/%.cpp $(OBJECTS)
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
 # Compilation steps

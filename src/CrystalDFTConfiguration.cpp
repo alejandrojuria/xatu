@@ -7,11 +7,30 @@
 
 namespace xatu {
 
+/**
+ * File constructor for CrystalDFTConfiguration. It extracts the relevant information
+ * from the file and stores it in an adequate format.
+ * @details This class is intended to be used with .outp files from the CRYSTAL code.
+ * Since orbitals in CRYSTAL extend over several unit cells, the Fock matrices that define the
+ * Hamiltonian also cover several unit cells. Therefore, one can specify how many unit cells to take
+ * for the actual exciton calculation. 
+ * @param file Name of the .outp from the CRYSTAL calculation.
+ * @param ncells Number of unit cells to be read from the file.
+ */
 CrystalDFTConfiguration::CrystalDFTConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
     parseContent(ncells);
     mapContent();
 }
 
+/**
+ * Method to extract all the content from the file.
+ * @details Since CRYSTAL calculations are always 3D, there are always three
+ * Bravais vectors even for 2D or 1D calculations. A threshold is defined in this routine
+ * to distinguish the Bravais vectors of the system from the long range copies.
+ * @param ncells Number of unit cells to be parsed.
+ * @param threshold Value below which we identify the actual Bravais vectors (i.e. the dimension).
+ * @return void
+ */
 void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
     // Parse Crystal output file
 
@@ -166,6 +185,11 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
     }    
 }
 
+/**
+ * Method to parse and format the Bravais basis vectors from the file. 
+ * @param threshold Maximum value used to distinguish the actual Bravais vectors of the lattice.
+ * @return void
+ */
 void CrystalDFTConfiguration::parseBravaisLattice(double threshold){
     std::string line;
     std::vector<std::string> vectors;
@@ -177,6 +201,11 @@ void CrystalDFTConfiguration::parseBravaisLattice(double threshold){
     extractDimension(threshold);
 }
 
+/**
+ * Method to obtain the dimension of the system.
+ * @param threshold Value used to discard unphysical Bravais vectors.
+ * @return void 
+ */
 void CrystalDFTConfiguration::extractDimension(double threshold){
     for(unsigned int i = 0; i < bravaisLattice.n_rows; i++){
         double norm = arma::norm(bravaisLattice.row(i));
@@ -188,6 +217,10 @@ void CrystalDFTConfiguration::extractDimension(double threshold){
     ndim = bravaisLattice.n_rows;
 }
 
+/**
+ * Method to extract the motif, the chemical species and the number of shells per species.
+ * @return void 
+ */
 void CrystalDFTConfiguration::parseAtoms(){
     std::string line;
     int index, natom, nshells, nspecies = 0;
@@ -219,15 +252,21 @@ void CrystalDFTConfiguration::parseAtoms(){
 
     // Move motif to origin
     arma::rowvec refAtom = motif.row(0);
-    for (int i = 0; i < motif.n_rows; i++){
-        motif.row(i) -= refAtom;
-    }
+    // for (int i = 0; i < motif.n_rows; i++){
+    //     motif.row(i) -= refAtom;
+    // }
 
     this->motif = motif;
     this->shellsPerSpecies = shellsPerSpecies;
     this->nspecies = nspecies;
 }
 
+/**
+ * Method to extract the details of the basis used in the CRYSTAL calculation.
+ * @details This method extracts all the orbitals per chemical species and
+ * the corresponding coefficients of the gaussian expansion.
+ * @return void 
+ */
 void CrystalDFTConfiguration::parseAtomicBasis(){
     std::string line, chemical_species;
     int norbitals, natom, totalOrbitals = 0, nspecies = 0;
@@ -303,6 +342,10 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
 
 }
 
+/**
+ * Method to parse the Fock and overlap matrices from the input file.
+ * @return void
+ */
 arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
     std::string line;
     arma::cx_mat matrix = arma::zeros<arma::cx_mat>(norbitals, norbitals);
@@ -342,6 +385,10 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
     }
 }
 
+/**
+ * Method to write all the extracted information into a struct.
+ * @return void 
+ */
 void CrystalDFTConfiguration::mapContent(){
     systemInfo.bravaisLattice = bravaisLattice;
     systemInfo.motif          = motif;
@@ -360,10 +407,40 @@ void CrystalDFTConfiguration::mapContent(){
         norbitals(i) = orbitalsPerSpecies[i];
     }
     systemInfo.norbitals      = norbitals;
+
+    // Print contents
+    std::cout << "Dim: " << std::endl;
+    std::cout << systemInfo.ndim << "\n" << std::endl;
+
+    std::cout << "Bravais lattice: " << std::endl;
+    std::cout << bravaisLattice << "\n" << std::endl;
+
+    std::cout << "Motif: " << std::endl;
+    std::cout << motif << "\n" << std::endl;
+
+    std::cout << "Orbitals: " << std::endl;
+    std::cout << norbitals << "\n" << std::endl;
+
+    std::cout << "Filling: " << systemInfo.filling << "\n" << std::endl;
+
+    std::cout << "Hamiltonian: " << std::endl;
+    std::cout << systemInfo.hamiltonian << "\n" << std::endl;
+
+    std::cout << "Unit cells: " << std::endl;
+    std::cout << systemInfo.bravaisVectors << "\n" << std::endl;
+
+    std::cout << "Overlap: " << std::endl;
+    std::cout << systemInfo.overlap << "\n" << std::endl;
 }
     
 }
 
+/**
+ * Auxiliary routine to split a numeric string and get the corresponding length.
+ * @param txt Reference to string to be splitted.
+ * @param strs Reference to vector which will store the splitted string.
+ * @return Length of splitted string.
+ */
 size_t split(const std::string &txt, std::vector<double> &strs)
 {
     std::istringstream iss(txt);

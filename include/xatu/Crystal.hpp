@@ -13,13 +13,15 @@
 
 namespace xatu {
 
+/// @brief The Crystal class is designed to hold all information regarding both
+/// the Bravais lattice and the reciprocal lattice of the system.
 class Crystal {
     
     //// Attributes
     protected:
         int ndim_, natoms_, nk_, ncells_;
         int factor_ = 1;
-        double a_, c_;
+        double a_, c_, unitCellArea_;
         arma::mat bravaisLattice_, motif_, unitCellList_;
         arma::mat reciprocalLattice_, kpoints_, meshBZ_;
         std::map<std::string, int> atomToIndex;
@@ -33,7 +35,10 @@ class Crystal {
         const int& natoms = natoms_;
         // Returns Bravais lattice vectors of system
         const arma::mat& bravaisLattice = bravaisLattice_;
-        // Returns position of atoms in motif
+        // Returns matrix containing the positions of the atoms of the motif
+        // by rows. Each row has the format {x,y,z; species}, where the 
+        // last elements is an index representing the chemical species.
+        // const arma::mat& motif = motif_;
         const arma::mat& motif = motif_;
         // Returns list of Bravais vectors whose atom connect with the unit cell at the origin
         const arma::mat& unitCellList = unitCellList_;
@@ -45,7 +50,10 @@ class Crystal {
         const int& nk = nk_;
         // Lattice parameters
         const double& a = a_;
+        // Lattice parameters
         const double& c = c_;
+        // Unit cell area
+        const double& unitCellArea = unitCellArea_;
         // Number of unit cells connected to the origin
         const int& ncells = ncells_;
 
@@ -86,6 +94,7 @@ class Crystal {
     protected:
         void initializeCrystalAttributes(const SystemConfiguration&);
         void extractLatticeParameters();
+        void computeUnitCellArea();
         void calculateReciprocalLattice();
         bool isInsideWsCell(const arma::rowvec&, const arma::mat&, 
                             const arma::rowvec&);

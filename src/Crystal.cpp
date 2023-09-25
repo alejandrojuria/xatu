@@ -3,7 +3,12 @@
 
 namespace xatu {
 
-/* Copy constructor */
+/**
+ * Copy constructor.
+ * 
+ * Creates a Crystal object using another Crystal object.
+ * @param crystal Crystal to be copied. 
+ */
 Crystal::Crystal(const Crystal& crystal){
 
 	ndim_ 			= crystal.ndim;
@@ -18,8 +23,13 @@ Crystal::Crystal(const Crystal& crystal){
 	extractLatticeParameters();
 }
 
-/* Initialize Crystal attributes from SystemConfiguration object */
+/**
+ * Method to initialize Crystal attributes from SystemConfiguration object.
+ * 
+ * @param configuration SystemConfiguration object. 
+ */
 void Crystal::initializeCrystalAttributes(const SystemConfiguration& configuration){
+
     ndim_           = configuration.systemInfo.ndim;	
     bravaisLattice_ = configuration.systemInfo.bravaisLattice;
     motif_          = configuration.systemInfo.motif;
@@ -32,13 +42,17 @@ void Crystal::initializeCrystalAttributes(const SystemConfiguration& configurati
 
     calculateReciprocalLattice();
     extractLatticeParameters();
+	computeUnitCellArea();
 }
 
-/* Routine to generate the reciprocal lattice basis vectors from the bravais lattice basis. 
-	The algorithm is based on the fact that
-    a_i\dot b_j=2PI\delta_ij, which can be written as a linear system of
-    equations to solve for b_j. Resulting vectors have 3 components independently
-    of the dimension of the vector space they span.*/
+/**
+ *  Routine to generate the reciprocal lattice basis vectors from the bravais lattice basis. 
+ *	@details
+ *  The algorithm is based on the fact that
+ *  a_i\dot b_j=2PI\delta_ij, which can be written as a linear system of
+ *  equations to solve for b_j. Resulting vectors have 3 components independently
+ *  of the dimension of the vector space they span.
+ */
 void Crystal::calculateReciprocalLattice(){
 	reciprocalLattice_ = arma::zeros(ndim, 3);
 	arma::mat coefficient_matrix = bravaisLattice;
@@ -65,11 +79,11 @@ void Crystal::calculateReciprocalLattice(){
 	};
 };
 
-/* Routine to compute a mesh of the first Brillouin zone using the
-        Monkhorst-Pack algorithm. Returns a list of k vectors. 
-		Always returns a mesh centered on the Gamma point, for both n even
-		or odd. 
-		int n: Number of points to generate along one direction. */
+/**
+ * Routine to compute a mesh of the first Brillouin zone using the Monkhorst-Pack algorithm.
+ * @details Always returns a mesh centered at the Gamma point, for both n even or odd. 
+ * @param n Number of points along one of the axis. 
+ */
 void Crystal::brillouinZoneMesh(int n){
 
 	std::cout << "Creating BZ mesh... " << std::flush;
@@ -94,6 +108,11 @@ void Crystal::brillouinZoneMesh(int n){
 	std::cout << "Done. Number of k points in BZ mesh: " << nk << std::endl;
 }
 
+/**
+ * Method to generate a mesh of the Brillouin zone in fractions
+ * of the reciprocal lattice vectors.
+ * @param n Number of points along each axis.
+*/
 arma::mat Crystal::brillouinZoneMeshCrystalCoordinates(int n){
 	int nk = pow(n, ndim);
 	arma::mat kpoints(pow(n, ndim), 3);
@@ -106,8 +125,14 @@ arma::mat Crystal::brillouinZoneMeshCrystalCoordinates(int n){
 	return combinations;
 }
 
-/* Routine to obtain a kpoint mesh which is a subset of the full BZ mesh. 
-If n is even, we substract one so that the mesh is symmetric under inversion */
+/**
+ * Method to generate a kpoint mesh which is a subset of the full BZ mesh. 
+ * @details If n is even, we substract one so that the mesh is symmetric under inversion.
+ * The reduction factor specifies is used to create a mesh of the full BZ of factor*n points,
+ * from which we extract the corresponding mesh for n points centered at Gamma.
+ * @param n Number of points along one axis.
+ * @param factor Reduction factor of the mesh.
+ * */
 void Crystal::reducedBrillouinZoneMesh(int n, int factor){
 
 	// First create mesh of whole BZ
@@ -135,8 +160,10 @@ void Crystal::reducedBrillouinZoneMesh(int n, int factor){
 	std::cout << "Number of k points in submesh: " << nk << std::endl;
 }
 
-
-/* Routine to shift the center of the BZ mesh to a given point */
+/**
+ * Method to shift the center of the BZ mesh to a given point.
+ * @param shift Vector to shift center of BZ mesh. 
+ */
 void Crystal::shiftBZ(const arma::rowvec& shift){
 	arma::cout << "Shifting BZ mesh by vector: " << shift << arma::endl;
 	if(shift.n_elem != 3){
@@ -151,7 +178,6 @@ void Crystal::shiftBZ(const arma::rowvec& shift){
 		kpoints_.row(i) += shift;
 	}
 }
-
 
 
 /* Routine to restrict the kpoint mesh so that it has C3 symmetry. 
@@ -196,9 +222,15 @@ void Crystal::preserveC3(){
 	nk_ = kpoints.n_rows;
 }
 
-
-/* Routine to generate a mesh for the BZ that preserves the C3 
-symmetry of the hexagonal lattice */
+/**
+ * Method to generate a mesh for the BZ that preserves explicitly the C3 
+ * symmetry of the hexagonal lattice.
+ * @details BEWARE: This method does not check whether the subyacent lattice
+ * is actually hexagonal, so if used incorrectly might give incorrect results. 
+ * The method defines a triangular sector, which is then rotated three times
+ * to obtain a complete mesh of the hexagonal BZ.
+ * @param n Number of points in each triangular sector.
+ */
 void Crystal::brillouinZoneC3Mesh(int n){
 
 	int nk = pow(n, ndim);
@@ -248,6 +280,11 @@ void Crystal::brillouinZoneC3Mesh(int n){
     this->nk_ = kpoints.n_rows;
 }
 
+/**
+ * Method to obtain the lattice parameters of 2D lattices.
+ * @details For simplicity, it takes a as the norm of the first Bravais vector
+ * and c as the height of the 2D crystal, taking as reference the hexagonal lattice.
+*/
 void Crystal::extractLatticeParameters(){
 
 	try{
@@ -274,7 +311,31 @@ void Crystal::extractLatticeParameters(){
 	this->c_ = c;
 }
 
-arma::mat Crystal::wignerSeitzSupercell(int Ncell){
+/**
+ * Method to compute the unit cell area of the crystal.
+ * @details Method adapted to compute the relevant quantity depending on the dimensionality
+ * of the problem (1d = length, 2d = area, 3d = volume).
+ * @return void
+ */
+void Crystal::computeUnitCellArea(){
+	if(ndim == 1){
+		this->unitCellArea_ = arma::norm(bravaisLattice.row(0));
+	}
+	else if(ndim == 2){
+		arma::rowvec crossProduct = arma::cross(bravaisLattice.row(0), bravaisLattice.row(1));
+		this->unitCellArea_ = arma::norm(crossProduct);
+	}
+	else if(ndim == 3){
+		arma::rowvec crossProduct = arma::cross(bravaisLattice.row(0), bravaisLattice.row(1));
+		this->unitCellArea_ = arma::dot(crossProduct, bravaisLattice.row(2));
+	}
+}
+
+/**
+ * Method to generate a supercell of the system layed out as a Wigner-Seitz cell.
+ * @param ncell Number of cells along each direction.
+*/
+arma::mat Crystal::wignerSeitzSupercell(int ncell){
 
 	// Generate combinations of [-1,0,1] to determine relevant lattice
 	// vectors
@@ -295,7 +356,7 @@ arma::mat Crystal::wignerSeitzSupercell(int Ncell){
 	arma::mat midpoints(lattice_vectors.size(), 3);
 	int it = 0;
 	for (const auto& vector : lattice_vectors){
-		arma::rowvec large_lattice_vector = vector * Ncell;
+		arma::rowvec large_lattice_vector = vector * ncell;
 		midpoints.row(it) = large_lattice_vector/2;
 		it++;
 	}
@@ -315,7 +376,7 @@ arma::mat Crystal::wignerSeitzSupercell(int Ncell){
 	std::cout << midpoints << std::endl;
 	std::cout << planes << std::endl;
 	// Generate standard supercell
-	arma::mat standard_supercell_coefs = generateCombinations(Ncell, ndim);
+	arma::mat standard_supercell_coefs = generateCombinations(ncell, ndim);
 	arma::mat cells = arma::zeros(standard_supercell_coefs.n_rows, 3);
 	arma::mat combinations = generateCombinations(3, ndim);
 
@@ -328,7 +389,7 @@ arma::mat Crystal::wignerSeitzSupercell(int Ncell){
         for(int n = 0; n < combinations.n_rows; n++){
             arma::rowvec translation = arma::zeros<arma::rowvec>(3);
             for (int m = 0; m < ndim; m++){
-                translation += combinations.row(n)(m) * bravaisLattice.row(m) * Ncell;
+                translation += combinations.row(n)(m) * bravaisLattice.row(m) * ncell;
             }
             std::cout << lattice_vector << std::endl;
             std::cout << translation << std::endl;
@@ -344,6 +405,13 @@ arma::mat Crystal::wignerSeitzSupercell(int Ncell){
 	return cells;
 }
 
+/**
+ * Method to check whether some point is contained within a Wigner-Seitz supercell.
+ * @param point Point coordinates.
+ * @param planes Planes describing Wigner-Seitz supercell.
+ * @param angles Angles of the planes.
+ * @return Boolean describing if the point is contained within the supercell.
+*/
 bool Crystal::isInsideWsCell(const arma::rowvec& point, 
 							   const arma::mat& planes, const arma::rowvec& angles){
 
@@ -362,7 +430,6 @@ bool Crystal::isInsideWsCell(const arma::rowvec& point,
 			checks(i) = 0;
 		}
 	}
-	std::cout<< checks << std::endl;
 	bool is_inside = false;
 	if (arma::all(checks)){
 		is_inside = true;
@@ -371,6 +438,16 @@ bool Crystal::isInsideWsCell(const arma::rowvec& point,
 	return is_inside;
 };
 
+/**
+ * Method to generate a list with combinations of Bravais vectors.
+ * @details Each row of the list stores the integers which correspond
+ * to the coefficients of the linear combinations of Bravais basis vectors.
+ * @param nvalues Number of cells in one direction.
+ * @param ndim Dimension of the system.
+ * @param centered If true, the combinations are centered at the origin cell.
+ * 				   If false, all combinations have positive coefficients.
+ * @returns List of cell combinations.
+*/
 arma::mat Crystal::generateCombinations(int nvalues, int ndim, bool centered){
 	int ncombinations = pow(nvalues, ndim);
 	arma::vec ones = arma::ones(nvalues);
@@ -392,6 +469,11 @@ arma::mat Crystal::generateCombinations(int nvalues, int ndim, bool centered){
 	return combinations;
 }
 
+/**
+ * Method to generate a list of cells in cartesian coordinates.
+ * @param cutoff Number of cells to consider.
+ * @returns List of cells.
+*/
 arma::mat Crystal::supercellCutoff(int cutoff){
 	arma::mat combinations = generateCombinations(cutoff, ndim, true);
 	arma::mat cells = arma::zeros(combinations.n_rows, 3);
@@ -407,6 +489,12 @@ arma::mat Crystal::supercellCutoff(int cutoff){
 	return cells;
 }
 
+/**
+ * Method to generate a list of cells within a sphere of specified radius.
+ * @param ncell List of cells along one axis.
+ * @param radius Cutoff radius of the sphere.
+ * @returns List of cells within the sphere.
+*/
 arma::mat Crystal::truncateSupercell(int ncell, double radius){
 
 	arma::mat combinations = generateCombinations(ncell, ndim, true);
@@ -430,6 +518,12 @@ arma::mat Crystal::truncateSupercell(int ncell, double radius){
 	return cells;
 }
 
+/**
+ * Method to generate a list of reciprocal cells contained within a sphere of specified radius.
+ * @param ncell List of cells in one direction.
+ * @param radius Radius of the cutoff sphere.
+ * @returns List of reciprocal cells in cartesian coordinates.
+*/
 arma::mat Crystal::truncateReciprocalSupercell(int ncell, double radius){
 
 	arma::mat combinations = generateCombinations(ncell, ndim, true);
@@ -453,8 +547,12 @@ arma::mat Crystal::truncateReciprocalSupercell(int ncell, double radius){
 	return cells;
 }
 
-/* Routine to rotate a position by 2pi/3, either on real space
-or on reciprocal space to enforce C3 symmetry */
+/**
+ * Routine to rotate a position by 2pi/3, either on real space
+ * or on reciprocal space to enforce C3 symmetry.
+ * @param position Vector to rotate.
+ * @returns Rotated vector.
+ */
 arma::rowvec Crystal::rotateC3(const arma::rowvec& position){
 	double theta = 2*PI/3;
 	arma::mat C3rotation = {{cos(theta), -sin(theta), 0},
@@ -466,6 +564,12 @@ arma::rowvec Crystal::rotateC3(const arma::rowvec& position){
 	return rotated_position.t();
 };
 
+/**
+ * Auxiliary method to compute the inverse reciprocal matrix.
+ * @details The reciprocal matrix is defined as the R*R.t, where R is the matrix
+ * containing the reciprocal lattice vectors as row. This inverted matrix is required
+ * to map any kpoint back to the original Monkhorst-Pack mesh.
+*/
 void Crystal::calculateInverseReciprocalMatrix(){
 	arma::mat coefs = arma::zeros(ndim, ndim);
 	coefs = reciprocalLattice * reciprocalLattice.t();
@@ -480,9 +584,15 @@ void Crystal::calculateInverseReciprocalMatrix(){
 	this->inverseReciprocalMatrix = inverse;
 }
 
-// Given a kpoint, find its reciprocal coordinates to determine if it is outside
-// of the BZ mesh. If it is, shift it by a reciprocal lattice vector so it falls
-// on a point of the mesh. Intended to be used only with mesh of full BZ.
+/**
+ * Method to determine a kpoint equivalent to another within the BZ mesh.
+ * @details Given a kpoint, this function finds its reciprocal coordinates to determine if 
+ * it is outside of the BZ mesh. If it is, shift it by a reciprocal lattice vector so it falls
+ * on a point of the mesh. Intended to be used only with mesh of full BZ (i.e. Monkhorst-Pack).
+ * @param kpoint kpoint to be mapped back.
+ * @param ncell Number of points used in the original BZ mesh, usually equivalent to the number of cells.
+ * @returns Index (row) of the equivalent kpoint from the BZ mesh matrix.
+ */ 
 int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 	if(inverseReciprocalMatrix.empty()){
 		calculateInverseReciprocalMatrix();
