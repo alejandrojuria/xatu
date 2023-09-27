@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #define SOC_STRING "to_be_defined_for_crystal23"
+#define MAGNETIC_STRING "UNRESTRICTED OPEN SHELL"
 
 namespace xatu {
 
@@ -158,7 +159,22 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             }
         }
 
-        else if(line.find("FOCK MATRIX") != std::string::npos){
+        // Toggle SOC flag if calculation is done with spin-orbit coupling
+        else if(line.find(SOC_STRING) != std::string::npos){
+            this->SOC_FLAG = true;
+        }
+
+        else if(line.find(MAGNETIC_STRING) != std::string::npos){
+            this->MAGNETIC_FLAG = true;
+            arma::cout << "Magnetic system found." << arma::endl;
+        }
+
+        if ((line.find("BETA") != std::string::npos) && (line.find("ELECTRONS") != std::string::npos)){
+            alpha_electrons = false;
+            arma::cout << "Now reading beta electrons." << arma::endl;
+        }
+
+        if(line.find("FOCK MATRIX") != std::string::npos){
             int pos = line.find("FOCK MATRIX - CELL N.");
             int strsize = strlen("FOCK MATRIX - CELL N.");
             line = line.substr(pos + strsize, line.length());
@@ -170,17 +186,26 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
 
             if(cellIndex <= ncells){
                 arma::cx_mat fockMatrix = parseMatrix();
-                this->fockMatrices = arma::join_slices(this->fockMatrices, fockMatrix);
+                if(MAGNETIC_FLAG){
+                    if(alpha_electrons){
+                        this->alphaMatrices = arma::join_slices(this->alphaMatrices, fockMatrix);
+                    }
+                    else{
+                        this->betaMatrices = arma::join_slices(this->betaMatrices, fockMatrix);
+                    }
+                }
+                else if(SOC_FLAG){
+                    // Do something here
+                    continue;
+                }
+                else{
+                    this->fockMatrices = arma::join_slices(this->fockMatrices, fockMatrix);
+                }
                 
                 //arma::cout << "Ncell: " << cellIndex << arma::endl;
                 //arma::cout << "Cell combi:" << x << " " << y << " " << z << arma::endl;
                 //arma::cout << fockMatrix << arma::endl;
             }
-        }
-
-        // Toggle SOC flag if calculation is done with spin-orbit coupling
-        else if(line.find(SOC_STRING) != std::string::npos){
-            this->SOC_FLAG = true;
         }
     }    
 }
@@ -334,7 +359,7 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
             this->gaussianCoefficients[nspecies] = gaussianCoefficients;
         }
         this->orbitalsPerSpecies.push_back(norbitals - totalOrbitals);
-        totalOrbitals += norbitals;
+        totalOrbitals = norbitals;
 
         this->shellTypesPerSpecies[nspecies] = shellTypes;
         nspecies++;
@@ -389,18 +414,14 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
  * Method to write all the extracted information into a struct.
  * @return void 
  */
-void CrystalDFTConfiguration::mapContent(){
+void CrystalDFTConfiguration::mapContent(bool debug){
+
+    systemInfo.ndim           = ndim;
     systemInfo.bravaisLattice = bravaisLattice;
     systemInfo.motif          = motif;
     systemInfo.filling        = totalElectrons/2;
-    if (SOC_FLAG) {
-        systemInfo.filling   *= 2; 
-    }
-
-    systemInfo.hamiltonian    = fockMatrices;
-    systemInfo.overlap        = overlapMatrices;
-    systemInfo.ndim           = ndim;
     systemInfo.bravaisVectors = bravaisVectors;
+    systemInfo.overlap        = overlapMatrices;
 
     arma::urowvec norbitals = arma::zeros<arma::urowvec>(orbitalsPerSpecies.size());
     for (int i = 0; i < orbitalsPerSpecies.size(); i++){
@@ -408,29 +429,56 @@ void CrystalDFTConfiguration::mapContent(){
     }
     systemInfo.norbitals      = norbitals;
 
-    // Print contents
-    std::cout << "Dim: " << std::endl;
-    std::cout << systemInfo.ndim << "\n" << std::endl;
+    if (SOC_FLAG) {
+        systemInfo.filling   *= 2; 
+        systemInfo.norbitals *= 2;
+        // Pending Hamiltonian initialization; for future CRYSTAL releases
+    }
+    else if(MAGNETIC_FLAG){
+        systemInfo.filling   *= 2;
+        systemInfo.norbitals *= 2;
 
-    std::cout << "Bravais lattice: " << std::endl;
-    std::cout << bravaisLattice << "\n" << std::endl;
+        arma::mat spinUpBlock = {{1, 0}, {0, 0}};
+        arma::mat spinDownBlock = {{0, 0}, {0, 1}};
 
-    std::cout << "Motif: " << std::endl;
-    std::cout << motif << "\n" << std::endl;
+        arma::cx_cube newOverlapMatrices;
+        for(unsigned int i = 0; i < alphaMatrices.n_slices; i++){
+            arma::cx_mat totalFockMatrix = arma::kron(alphaMatrices.slice(i), spinUpBlock) + arma::kron(betaMatrices.slice(i), spinDownBlock);
+            this->fockMatrices = arma::join_slices(this->fockMatrices, totalFockMatrix);
 
-    std::cout << "Orbitals: " << std::endl;
-    std::cout << norbitals << "\n" << std::endl;
+            arma::cx_mat totalOverlapMatrix = arma::kron(this->overlapMatrices.slice(i), arma::eye(2, 2));
+            newOverlapMatrices = arma::join_slices(newOverlapMatrices, totalOverlapMatrix);
+        }
+        systemInfo.overlap    = newOverlapMatrices;
+    }
+    systemInfo.hamiltonian    = fockMatrices;
+    
 
-    std::cout << "Filling: " << systemInfo.filling << "\n" << std::endl;
+    if (debug){
+        // Print contents
+        std::cout << "Dim: " << std::endl;
+        std::cout << systemInfo.ndim << "\n" << std::endl;
 
-    std::cout << "Hamiltonian: " << std::endl;
-    std::cout << systemInfo.hamiltonian << "\n" << std::endl;
+        std::cout << "Bravais lattice: " << std::endl;
+        std::cout << bravaisLattice << "\n" << std::endl;
 
-    std::cout << "Unit cells: " << std::endl;
-    std::cout << systemInfo.bravaisVectors << "\n" << std::endl;
+        std::cout << "Motif: " << std::endl;
+        std::cout << motif << "\n" << std::endl;
 
-    std::cout << "Overlap: " << std::endl;
-    std::cout << systemInfo.overlap << "\n" << std::endl;
+        std::cout << "Orbitals: " << std::endl;
+        std::cout << norbitals << "\n" << std::endl;
+
+        std::cout << "Filling: " << systemInfo.filling << "\n" << std::endl;
+
+        std::cout << "Hamiltonian: " << std::endl;
+        std::cout << systemInfo.hamiltonian << "\n" << std::endl;
+
+        std::cout << "Unit cells: " << std::endl;
+        std::cout << systemInfo.bravaisVectors << "\n" << std::endl;
+
+        std::cout << "Overlap: " << std::endl;
+        std::cout << systemInfo.overlap << "\n" << std::endl;
+    }
 }
     
 }

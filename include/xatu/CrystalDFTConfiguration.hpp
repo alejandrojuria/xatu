@@ -13,6 +13,8 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         int ndim, natoms, norbitals, nshells, nspecies;
         int totalElectrons, coreElectrons;
         bool SOC_FLAG = false;
+        bool MAGNETIC_FLAG = false;
+        bool alpha_electrons = true;
         
         arma::mat motif, bravaisLattice;
         
@@ -23,6 +25,7 @@ class CrystalDFTConfiguration : public SystemConfiguration {
 
         arma::mat bravaisVectors;
         arma::cx_cube overlapMatrices, fockMatrices;
+        arma::cx_cube alphaMatrices, betaMatrices;
 
     public:
         CrystalDFTConfiguration(std::string, int ncells = 20);
@@ -38,7 +41,7 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         arma::cx_mat parseMatrix();
         void extractDimension(double);
 
-        void mapContent();
+        void mapContent(bool debug = false);
 };
 
 }
