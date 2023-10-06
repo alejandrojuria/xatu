@@ -8,7 +8,7 @@ FFLAGS = -O2 -Wall -Wno-tabs -lm
 INCLUDE = -I$(PWD)/include
 
 # Libraries
-LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD) -lxatu -larmadillo -lopenblas -llapack -fopenmp -lgfortran
+LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD) -lxatu -larmadillo -lopenblas -llapack -larpack -fopenmp -lgfortran
 
 # Compilation targets
 CC_SRC_FILES := $(wildcard src/*.cpp)

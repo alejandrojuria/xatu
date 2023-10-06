@@ -166,12 +166,10 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
 
         else if(line.find(MAGNETIC_STRING) != std::string::npos){
             this->MAGNETIC_FLAG = true;
-            arma::cout << "Magnetic system found." << arma::endl;
         }
 
         if ((line.find("BETA") != std::string::npos) && (line.find("ELECTRONS") != std::string::npos)){
             alpha_electrons = false;
-            arma::cout << "Now reading beta electrons." << arma::endl;
         }
 
         if(line.find("FOCK MATRIX") != std::string::npos){
@@ -452,7 +450,6 @@ void CrystalDFTConfiguration::mapContent(bool debug){
         systemInfo.overlap    = newOverlapMatrices;
     }
     systemInfo.hamiltonian    = fockMatrices;
-    
 
     if (debug){
         // Print contents
