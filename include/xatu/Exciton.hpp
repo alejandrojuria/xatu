@@ -143,6 +143,7 @@ class Exciton : public System {
         void setMode(std::string);
         void setReciprocalVectors(int);
         void setScissor(double);
+        void setExchange(bool);
 
     private:
         // Methods for BSE matrix initialization

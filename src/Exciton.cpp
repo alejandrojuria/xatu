@@ -376,6 +376,15 @@ void Exciton::setScissor(double shift){
     this->scissor_ = shift;
 }
 
+/**
+ * To toggle on or off the exchange term in the interaction matrix elements.
+ * @param exchange Either true of false
+ * @return void
+*/
+void Exciton::setExchange(bool exchange){
+    this->exchange = exchange;
+}
+
 
 /*---------------------------------------- Potentials ----------------------------------------*/
 
