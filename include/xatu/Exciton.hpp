@@ -188,6 +188,9 @@ class Exciton : public System {
         arma::cx_vec atomicToLatticeGauge(const arma::cx_vec&, const arma::rowvec&);
         arma::cx_mat fixGlobalPhase(arma::cx_mat&);
 
+        // Auxiliary routines for Fermi golden rule
+        arma::rowvec findElectronHolePair(const Exciton&, double, std::string, bool);
+
 
     public:
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);

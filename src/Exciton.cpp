@@ -1300,21 +1300,19 @@ double Exciton::fermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec
     return transitionRate;
 }
 
+
 /**
- * Method to compute the transition to an edge e-h pair with the same energy (up to some error) as the bulk exciton.
+ * Method to identify a k point corresponding to a non-interacting electron-hole pair in the defined system
+ * with the energy specified.
  * @param targetExciton Exciton object representing the general final states in the transition.
- * @param initialState Exciton state from which the transition happens.
  * @param energy Energy of the initial state.
  * @param side Whether the transition takes place to an state with +k or -k.
  * @param increasing Used to specify whether the gap increases or decreases with k.
- * @return Transition rate from the initial exciton state to a non-interacting e-h pair.
- */
-double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec& initialState, double energy, std::string side, bool increasing){
+ * @return k vector of the equivalent electron-hole pair.
+*/
+arma::rowvec Exciton::findElectronHolePair(const Exciton& targetExciton, double energy, std::string side, bool increasing){
 
-    double transitionRate = 0;
-    arma::imat initialBasis = basisStates;
-
-    // First identify k edge e-h pair with same energy as exciton
+// First identify k edge e-h pair with same energy as exciton
     double n = 10; // Submeshing
     arma::rowvec min_k, max_k, kmin, kmax;
     if (side == "right"){
@@ -1416,6 +1414,44 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
         std::cout << "Total e-h pair edge occu.: " << std::sqrt(l_e_edge_occ*l_e_edge_occ + r_e_edge_occ*r_e_edge_occ) + 
                     std::sqrt(l_h_edge_occ*l_h_edge_occ + r_h_edge_occ*r_h_edge_occ) << std::endl;
     }
+
+    return k;
+};
+
+/**
+ * Method to compute the transition to an edge e-h pair with the same energy (up to some error) as the bulk exciton.
+ * @param targetExciton Exciton object representing the general final states in the transition.
+ * @param initialState Exciton state from which the transition happens.
+ * @param energy Energy of the initial state.
+ * @param side Whether the transition takes place to an state with +k or -k.
+ * @param increasing Used to specify whether the gap increases or decreases with k.
+ * @return Transition rate from the initial exciton state to a non-interacting e-h pair.
+ */
+double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec& initialState, double energy, std::string side, bool increasing){
+
+    double transitionRate = 0;
+    arma::imat initialBasis = basisStates;
+
+    arma::rowvec k = findElectronHolePair(targetExciton, energy, side, increasing);
+
+    arma::vec eigval;
+    arma::cx_mat eigvec;
+    arma::cx_vec coefsK, coefsKQ;
+
+    targetExciton.solveBands(k, eigval, eigvec);
+
+    eigvec = fixGlobalPhase(eigvec);
+    eigvec = eigvec.cols(targetExciton.bandList);
+    coefsK = eigvec.col(0);
+
+    if(arma::norm(Q) != 0){
+        arma::rowvec kQ = k + Q;
+        targetExciton.solveBands(kQ, eigval, eigvec);
+
+        eigvec = fixGlobalPhase(eigvec);
+        eigvec = eigvec.cols(targetExciton.bandList);
+    }
+    coefsKQ = eigvec.col(1);
     
     // Now compute motif FT using k of edge pair
     
