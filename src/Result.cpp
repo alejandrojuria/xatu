@@ -88,7 +88,7 @@ int Result::findExcitonPeak(int stateindex){
  * Routine to compute the expected Sz spin value of the electron
  * and hole that form a given exciton.
  * @param stateindex Index of the exciton.
- * @return Vector with the spin of the hole, of the electron and the total spin of the exciton.
+ * @return Vector with the total spin of the exciton, the spin of the hole and that of the electron
  */
 arma::cx_vec Result::spinX(int stateindex){
 
