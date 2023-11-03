@@ -3,7 +3,9 @@
 hBN_N30
 # ncells
 ! Number of unit cells along each direction
-30
+40
+# reciprocal
+5
 # bands
 1
 # Dielectric
