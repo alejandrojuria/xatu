@@ -67,7 +67,7 @@ void BiRibbon::initializeConstants(){
 	this->lambda = 1.5;
 
 	// Zeeman term (infinitesimal, only for spin splitting)
-	this->zeeman = 1E-7;
+	this->zeeman = 1E-8;
 
 	// Infinitesimal on-site energy to split edges
 	this->onsiteEdge = 0.0;

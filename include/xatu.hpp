@@ -10,3 +10,4 @@
 #include "xatu/SystemConfiguration.hpp"
 #include "xatu/utils.hpp"
 #include "xatu/forward_declaration.hpp"
+#include "xatu/interactions.hpp"
