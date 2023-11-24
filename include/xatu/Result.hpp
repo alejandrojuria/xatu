@@ -42,6 +42,8 @@ class Result{
         double bindingEnergy(int, double gap = -1);
         double determineGap();
         arma::cx_vec spinX(int);
+        arma::vec velocity(int);
+        arma::cx_vec velocitySingleParticle(int, int, int);
 
         // Symmetries
         arma::cx_mat diagonalizeC3(const arma::vec&);
