@@ -906,8 +906,8 @@ void Exciton::initializeResultsH0(bool triangular){
     this->ftMotifQ       = arma::cx_mat(natoms, natoms);
 
     vec auxEigVal(basisdim);
-    cx_mat auxEigvec(basisdim, basisdim);
-    cx_mat h;
+    arma::cx_mat auxEigvec(basisdim, basisdim);
+    arma::cx_mat h;
 
     // Progress bar variables
     int step = 1;
@@ -944,17 +944,20 @@ void Exciton::initializeResultsH0(bool triangular){
 
     if(this->mode == "realspace"){
         std::cout << "Computing lattice Fourier transform..." << std::endl;
+        #pragma omp parallel for
         for (unsigned int i = 0; i < meshBZ_.n_rows; i++){
             // BIGGEST BOTTLENECK OF THE CODE
             initializeMotifFT(i, cells);     
 
-		    percent = (100 * (i + 1)) / meshBZ_.n_rows ;
-		    if (percent >= displayNext){
-                cout << "\r" << "[" << std::string(percent / 5, '|') << std::string(100 / 5 - percent / 5, ' ') << "]";
-                cout << percent << "%";
-                std::cout.flush();
-                displayNext += step;
-            }
+                /* AJU 24-11-23: Progress bar does not work properly with parallel for 
+                   Fix it or remove it direcly? */
+                // percent = (100 * (i + 1)) / meshBZ_.n_rows ;
+                // if (percent >= displayNext){
+                //     cout << "\r" << "[" << std::string(percent / 5, '|') << std::string(100 / 5 - percent / 5, ' ') << "]";
+                //     cout << percent << "%";
+                //     std::cout.flush();
+                //     displayNext += step;
+                // }
         }
         std::cout << "\nDone" << std::endl;
     }
