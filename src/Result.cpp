@@ -734,11 +734,15 @@ arma::cx_vec Result::addExponential(arma::cx_vec& coefs, const arma::rowvec& cel
  * @details Computes the expectation value of the velocity operator, 
  * using the eigenvector of the exciton state, assuming an underlying tight-binding basis.
  * @param stateindex Index of exciton eigenstate.
- * @return Velocity vector of the exciton eigenstate.
+ * @return Outputs a matrix where the first column is the center-of-mass velocity of the exciton,
+ * and the second is the relative velocity of the exciton.
  */
-arma::vec Result::velocity(int index){
+arma::mat Result::velocity(int index){
 
-    arma::cx_vec velocity = arma::zeros<arma::cx_vec>(3);
+    arma::cx_mat velocity = arma::zeros<arma::cx_mat>(3, 2);
+
+    arma::cx_vec total_e_velocity = arma::zeros<arma::cx_vec>(3);
+    arma::cx_vec total_h_velocity = arma::zeros<arma::cx_vec>(3);
 
     for (int n = 0; n < exciton.nk; n++){
     for (int j = 0; j < exciton.conductionBands.n_elem; j++){
@@ -749,25 +753,30 @@ arma::vec Result::velocity(int index){
         int eigvecIndex = n*exciton.valenceBands.n_elem * exciton.conductionBands.n_elem + j*exciton.valenceBands.n_elem + i;
 
         std::complex<double> coef = eigvec.col(index)(eigvecIndex);
-        
+
         for (int jp = 0; jp < exciton.conductionBands.n_elem; jp++){
             int cp = exciton.conductionBands(jp);
-            arma::cx_vec velocitySP = velocitySingleParticle(cp, c, n);
+            arma::cx_vec velocitySP = velocitySingleParticle(cp, c, n, "conduction");
 
             int eigvecIndexP = n*exciton.valenceBands.n_elem * exciton.conductionBands.n_elem + jp*exciton.valenceBands.n_elem + i;
-            velocity += velocitySP * coef * std::conj(eigvec.col(index)(eigvecIndexP));
+            total_e_velocity += velocitySP * coef * std::conj(eigvec.col(index)(eigvecIndexP));
         }
 
         for (int ip = 0; ip < exciton.valenceBands.n_elem; ip++){
             int vp = exciton.valenceBands(ip);
-            arma::cx_vec velocitySP = velocitySingleParticle(v, vp, n);
+            arma::cx_vec velocitySP = velocitySingleParticle(v, vp, n, "valence");
 
             int eigvecIndexP = n*exciton.valenceBands.n_elem * exciton.conductionBands.n_elem + j*exciton.valenceBands.n_elem + ip;
-            velocity -= velocitySP * coef * std::conj(eigvec.col(index)(eigvecIndexP));
+            total_h_velocity += velocitySP * coef * std::conj(eigvec.col(index)(eigvecIndexP));
         }
     }}}
 
-    arma::cout << velocity << arma::endl;
+    arma::cout << "Total e velocity: " << total_e_velocity << arma::endl;
+    arma::cout << "Total h velocity: " << total_h_velocity << arma::endl;
+
+    velocity.col(0) = total_e_velocity + total_h_velocity;
+    velocity.col(1) = total_e_velocity - total_h_velocity;
+
     return arma::real(velocity);
 }
 
@@ -778,8 +787,13 @@ arma::vec Result::velocity(int index){
  * @param fIndex First index.
  * @param sIndex Second index.
  * @param kIndex Index of the kpoint.
+ * @param bandType Type of band, either 'valence' or 'conduction'.
  */
-arma::cx_vec Result::velocitySingleParticle(int fIndex, int sIndex, int kIndex){
+arma::cx_vec Result::velocitySingleParticle(int fIndex, int sIndex, int kIndex, std::string bandType){
+
+    if (bandType != "valence" && bandType != "conduction"){
+        throw std::invalid_argument("bandType must be either 'valence' or 'conduction'");
+    }
 
     arma::cx_cube hkDerivative = arma::zeros<arma::cx_cube>(exciton.basisdim, exciton.basisdim, 3);
     arma::cx_cube iHt = arma::zeros<arma::cx_cube>(exciton.basisdim, exciton.basisdim, 3);
@@ -787,12 +801,17 @@ arma::cx_vec Result::velocitySingleParticle(int fIndex, int sIndex, int kIndex){
     arma::rowvec k = exciton.kpoints.row(kIndex);
     std::complex<double> imag(0, 1);
 
+    arma::rowvec Q = arma::zeros<arma::rowvec>(3);
+    if (bandType == "conduction"){
+        Q = exciton.Q;
+    }
+
     // First compute Hk derivative
     for (int j = 0; j < 3; j++){
         for (int i = 0; i < exciton.ncells; i++){
             arma::rowvec cell = exciton.unitCellList.row(i);
             hkDerivative.slice(j) += exciton.hamiltonianMatrices.slice(i) * 
-                                     std::exp(imag*arma::dot(k, cell)) * cell(j) * imag;
+                                     std::exp(imag*arma::dot(k + Q, cell)) * cell(j) * imag;
 	    };
     }
 
@@ -810,28 +829,25 @@ arma::cx_vec Result::velocitySingleParticle(int fIndex, int sIndex, int kIndex){
     for (int j = 0; j < 3; j++){
         motifDifference.slice(j) = arma::kron(extendedMotif.col(j), arma::ones<arma::cx_rowvec>(exciton.basisdim)) -
                                    arma::kron(extendedMotif.col(j).t(), arma::ones<arma::cx_vec>(exciton.basisdim));
-        iHt.slice(j) = imag * exciton.hamiltonian(k) % motifDifference.slice(j);
+        iHt.slice(j) = imag * exciton.hamiltonian(k + Q) % motifDifference.slice(j).t();
     }
 
     // Finally compute velocity matrix elements
     arma::cx_vec velocityMatrixElement = arma::zeros<arma::cx_vec>(3);
+    arma::cx_vec fState, sState;
+    int n = exciton.bandToIndex[fIndex];
+    int m = exciton.bandToIndex[sIndex];
+    
+    if (bandType == "valence"){
+        fState = exciton.eigvecKStack.slice(kIndex).col(n);
+        sState = exciton.eigvecKStack.slice(kIndex).col(m);
+    }
+    else{
+        fState = exciton.eigvecKQStack.slice(kIndex).col(n);
+        sState = exciton.eigvecKQStack.slice(kIndex).col(m);
+    }
     for (int j = 0; j < 3; j++){
-        arma::cx_vec aux;
-        int n = exciton.bandToIndex[fIndex];
-        int m = exciton.bandToIndex[sIndex];
-        if (sIndex < exciton.filling){
-            aux = (hkDerivative.slice(j) + iHt.slice(j)) * exciton.eigvecKStack.slice(kIndex).col(m);
-        }
-        else{
-            aux = (hkDerivative.slice(j) + iHt.slice(j)) * exciton.eigvecKQStack.slice(kIndex).col(m);
-        }
-
-        if (fIndex < exciton.filling){
-            velocityMatrixElement(j) = arma::cdot(exciton.eigvecKStack.slice(kIndex).col(n), aux);
-        }
-        else{
-            velocityMatrixElement(j) = arma::cdot(exciton.eigvecKQStack.slice(kIndex).col(n), aux);
-        }
+        velocityMatrixElement(j) = arma::cdot(fState, (hkDerivative.slice(j) + iHt.slice(j)) * sState);
     }
 
     return velocityMatrixElement;
