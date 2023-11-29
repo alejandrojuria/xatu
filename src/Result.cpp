@@ -744,9 +744,13 @@ arma::mat Result::velocity(int index){
     arma::cx_vec total_e_velocity = arma::zeros<arma::cx_vec>(3);
     arma::cx_vec total_h_velocity = arma::zeros<arma::cx_vec>(3);
 
+    #pragma omp parallel for collapse(3)
     for (int n = 0; n < exciton.nk; n++){
     for (int j = 0; j < exciton.conductionBands.n_elem; j++){
     for (int i = 0; i < exciton.valenceBands.n_elem; i++){
+
+        arma::cx_vec local_e_velocity = arma::zeros<arma::cx_vec>(3);
+        arma::cx_vec local_h_velocity = arma::zeros<arma::cx_vec>(3);
 
         int v = exciton.valenceBands(i);
         int c = exciton.conductionBands(j);
@@ -759,7 +763,7 @@ arma::mat Result::velocity(int index){
             arma::cx_vec velocitySP = velocitySingleParticle(cp, c, n, "conduction");
 
             int eigvecIndexP = n*exciton.valenceBands.n_elem * exciton.conductionBands.n_elem + jp*exciton.valenceBands.n_elem + i;
-            total_e_velocity += velocitySP * coef * std::conj(eigvec.col(index)(eigvecIndexP));
+            local_e_velocity += velocitySP * coef * std::conj(eigvec.col(index)(eigvecIndexP));
         }
 
         for (int ip = 0; ip < exciton.valenceBands.n_elem; ip++){
@@ -767,7 +771,13 @@ arma::mat Result::velocity(int index){
             arma::cx_vec velocitySP = velocitySingleParticle(v, vp, n, "valence");
 
             int eigvecIndexP = n*exciton.valenceBands.n_elem * exciton.conductionBands.n_elem + j*exciton.valenceBands.n_elem + ip;
-            total_h_velocity += velocitySP * coef * std::conj(eigvec.col(index)(eigvecIndexP));
+            local_h_velocity += velocitySP * coef * std::conj(eigvec.col(index)(eigvecIndexP));
+        }
+
+        #pragma omp critical
+        {
+            total_e_velocity += local_e_velocity;
+            total_h_velocity += local_h_velocity;
         }
     }}}
 
@@ -826,10 +836,11 @@ arma::cx_vec Result::velocitySingleParticle(int fIndex, int sIndex, int kIndex, 
         currentIndex += norbitals;
     }
 
+    arma::cx_mat blochHamiltonian = exciton.hamiltonian(k + Q);
     for (int j = 0; j < 3; j++){
         motifDifference.slice(j) = arma::kron(extendedMotif.col(j), arma::ones<arma::cx_rowvec>(exciton.basisdim)) -
                                    arma::kron(extendedMotif.col(j).t(), arma::ones<arma::cx_vec>(exciton.basisdim));
-        iHt.slice(j) = imag * exciton.hamiltonian(k + Q) % motifDifference.slice(j).t();
+        iHt.slice(j) = imag * blochHamiltonian % motifDifference.slice(j).t();
     }
 
     // Finally compute velocity matrix elements
@@ -837,7 +848,7 @@ arma::cx_vec Result::velocitySingleParticle(int fIndex, int sIndex, int kIndex, 
     arma::cx_vec fState, sState;
     int n = exciton.bandToIndex[fIndex];
     int m = exciton.bandToIndex[sIndex];
-    
+
     if (bandType == "valence"){
         fState = exciton.eigvecKStack.slice(kIndex).col(n);
         sState = exciton.eigvecKStack.slice(kIndex).col(m);
