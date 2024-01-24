@@ -5,21 +5,15 @@ CFLAGS = -O2 -Wall -lm
 ROOT_DIR := $(shell dirname $(PWD))
 
 # Include folders
-INCLUDE = -I$(ROOT_DIR)/include
+INCLUDE = -I$(ROOT_DIR)/include -I$(ROOT_DIR)/test
 
 # Libraries
-LIBS = -DARMA_DONT_USE_WRAPPER -L$(ROOT_DIR) -lxatu -larmadillo -lopenblas -llapack -fopenmp
+LIBS = -DARMA_DONT_USE_WRAPPER -L$(ROOT_DIR) -L$(ROOT_DIR)/test -lxatu -larmadillo -lopenblas -llapack -larpack -fopenmp -lgfortran
 
-all: hbn_base hbn_davidson hbn_spin
+dummy_bin_folder := $(shell mkdir -p bin)
 
-hbn_base: hbn_base.cpp
-	$(CC) -o ./$@.x $< $(CFLAGS) $(INCLUDE) $(LIBS)
-
-hbn_davidson: hbn_davidson.cpp
-	$(CC) -o ./$@.x $< $(CFLAGS) $(INCLUDE) $(LIBS)
-
-hbn_spin: hbn_spin.cpp
-	$(CC) -o ./$@.x $< $(CFLAGS) $(INCLUDE) $(LIBS)
+tests: tests.cpp
+	$(CC) -o bin/$@.x $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
 clean:
-	rm -f ./*.x
+	rm -f bin/*.x
