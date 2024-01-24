@@ -29,7 +29,7 @@ class CrystalDFTConfiguration : public SystemConfiguration {
 
     public:
         CrystalDFTConfiguration(std::string, int ncells = 20);
-        virtual ~CrystalDFTConfiguration(){std::cout << "Calling CrystalDFTConfig destructor..." << std::endl;};
+        virtual ~CrystalDFTConfiguration(){};
 
 
         void parseContent(int, double threshold = 100.);
