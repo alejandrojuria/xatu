@@ -27,4 +27,24 @@ std::complex<double> rGreenF(double, double, double);
 double densityOfStates(double, double, const arma::mat&);
 void writeDensityOfStates(const arma::mat&, double, FILE*);
 
+/* Routines for tests */
+template<typename T>
+double array2hash(const T& array){
+    T copyArray(array);
+    for (unsigned int i = 0; i < array.n_rows; i++){
+        for(unsigned int j = 0; j < array.n_cols; j++){
+            copyArray(i, j) *= i*j + j + 1;
+        }   
+    }
+
+    auto realArray = arma::abs(array);
+    double hash    = arma::accu(realArray)/array.n_elem + 
+                     arma::accu(array != 0) + 
+                     arma::accu(arma::real(copyArray)*1.5)/array.n_elem + 
+                     arma::accu(arma::imag(copyArray)*1.5)/array.n_elem;
+                    
+    return hash;
+};
+
+
 }
