@@ -1,10 +1,9 @@
 build/
 bin/
 plot/
-test/*.x
 libxatu.a
 main/
-/test/*
+test/bin
 docs/
 .DS_store
 .vs/
