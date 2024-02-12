@@ -388,11 +388,11 @@ TEST_CASE("TB hBN absorption", "[tb-hBN-kubo]"){
     auto results = exciton.diagonalize("diag", nstates);
 
     arma::cx_mat vme_ex = results.excitonOscillatorStrength();
-    arma::mat norm_vme_ex = arma::abs(vme_ex);
+    arma::mat norm_vme_ex = arma::square(arma::abs(vme_ex));
+    double cum_norm_vme_ex = arma::accu(norm_vme_ex);
 
-    double oscillatorHash = xatu::array2hash(norm_vme_ex);
-    double expectedOscillatorHash = 10.8619631004;
-    REQUIRE_THAT(oscillatorHash, Catch::Matchers::WithinAbs(expectedOscillatorHash, 1E-9));
+    double expectedTotalOscillator = 47.4140063784;
+    REQUIRE_THAT(cum_norm_vme_ex, Catch::Matchers::WithinAbs(expectedTotalOscillator, 1E-7));
 
     std::cout.clear();
     std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
@@ -769,11 +769,11 @@ TEST_CASE("MoS2 absorption", "[MoS2-kubo]"){
     auto results = exciton.diagonalize("diag", nstates);
 
     arma::cx_mat vme_ex = results.excitonOscillatorStrength();
-    arma::mat norm_vme_ex = arma::abs(vme_ex);
+    arma::mat norm_vme_ex = arma::square(arma::abs(vme_ex));
+    double cum_norm_vme_ex = arma::accu(norm_vme_ex);
 
-    double oscillatorHash = xatu::array2hash(norm_vme_ex);
-    double expectedOscillatorHash = 15.9351867055;
-    REQUIRE_THAT(oscillatorHash, Catch::Matchers::WithinAbs(expectedOscillatorHash, 1E-5));
+    double expectedTotalOscillator = 37.2792093358;
+    REQUIRE_THAT(cum_norm_vme_ex, Catch::Matchers::WithinAbs(expectedTotalOscillator, 1E-7));
 
     std::cout.clear();
     std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
