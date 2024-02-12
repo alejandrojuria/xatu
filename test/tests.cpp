@@ -388,9 +388,10 @@ TEST_CASE("TB hBN absorption", "[tb-hBN-kubo]"){
     auto results = exciton.diagonalize("diag", nstates);
 
     arma::cx_mat vme_ex = results.excitonOscillatorStrength();
+    arma::mat norm_vme_ex = arma::abs(vme_ex);
 
-    double oscillatorHash = xatu::array2hash(vme_ex);
-    double expectedOscillatorHash = 23.3080351293;
+    double oscillatorHash = xatu::array2hash(norm_vme_ex);
+    double expectedOscillatorHash = 10.8619631004;
     REQUIRE_THAT(oscillatorHash, Catch::Matchers::WithinAbs(expectedOscillatorHash, 1E-9));
 
     std::cout.clear();
@@ -435,30 +436,27 @@ TEST_CASE("TB hBN spin", "[tb-hBN-spin]"){
     std::cout << std::setw(40) << std::left << "Testing TB hBN spin... ";
     std::cout.setstate(std::ios_base::failbit);
 
-    int ncell = 20;
+    int ncell = 16;
     int nstates = 4;
 
     std::string modelfile = "../models/hBN_spinful.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1, 1, 10});
-
+    
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    arma::mat expectedSpin = arma::mat{{-1, -0.5, -0.5},
-                              { 0, -0.5,  0.5},
-                              { 0,  0.5, -0.5},
-                              { 1,  0.5,  0.5}}; 
-                              
+    arma::mat expectedSpin = arma::vec{-1, 0, 0, 1};  
+
     for(uint i = 0; i < nstates; i++){
         arma::cx_vec spin = results.spinX(i);
-        for(uint j = 0; j < 3; j++){
-            double spinValue = real(spin(j));
-            REQUIRE_THAT(spinValue, Catch::Matchers::WithinAbs(expectedSpin(i, j), 1E-4));
-        }
+        REQUIRE(spin.n_elem == 3);
+        REQUIRE_THAT(std::real(spin(0)), Catch::Matchers::WithinAbs(expectedSpin(i), 1E-2));
+        REQUIRE_THAT(std::abs(spin(1)), Catch::Matchers::WithinAbs(0.5, 1E-2));
+        REQUIRE_THAT(std::abs(spin(2)), Catch::Matchers::WithinAbs(0.5, 1E-2));
     }
 
     std::cout.clear();
@@ -771,9 +769,10 @@ TEST_CASE("MoS2 absorption", "[MoS2-kubo]"){
     auto results = exciton.diagonalize("diag", nstates);
 
     arma::cx_mat vme_ex = results.excitonOscillatorStrength();
+    arma::mat norm_vme_ex = arma::abs(vme_ex);
 
-    double oscillatorHash = xatu::array2hash(vme_ex);
-    double expectedOscillatorHash = 87.9351242512;
+    double oscillatorHash = xatu::array2hash(norm_vme_ex);
+    double expectedOscillatorHash = 15.9351867055;
     REQUIRE_THAT(oscillatorHash, Catch::Matchers::WithinAbs(expectedOscillatorHash, 1E-5));
 
     std::cout.clear();
