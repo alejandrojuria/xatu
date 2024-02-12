@@ -38,10 +38,11 @@ double array2hash(const T& array){
     }
 
     auto realArray = arma::abs(array);
-    double hash    = arma::accu(realArray)/array.n_elem + 
-                     arma::accu(array != 0) + 
-                     arma::accu(arma::real(copyArray)*1.5)/array.n_elem + 
-                     arma::accu(arma::imag(copyArray)*1.5)/array.n_elem;
+    double hash    = (arma::accu(realArray)+ 
+                      arma::accu(array != 0) + 
+                      arma::accu(arma::real(copyArray)*1.5) + 
+                      arma::accu(arma::imag(copyArray)*1.5) + 
+                      arma::accu(arma::imag(copyArray) % arma::real(copyArray)))/array.n_elem;
                     
     return hash;
 };
