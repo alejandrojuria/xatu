@@ -17,6 +17,9 @@
 
 
 TEST_CASE("Modelfile parsing", "[model_parsing]"){
+
+    std::cout << std::setw(40) << std::left << "Testing model file parsing... ";
+    std::cout.setstate(std::ios_base::failbit);
     
     std::string modelfile = "../models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
@@ -25,10 +28,10 @@ TEST_CASE("Modelfile parsing", "[model_parsing]"){
     int expectedDim = 2;
     arma::urowvec expectedOrbitals = {1, 1};
 
-    arma::vec expectedBravaisLatticeHash = {5.88755, 3.38755};
-    arma::vec expectedMotifHash = {0, 5.40211};
-    arma::vec expectedBravaisVectorsHash = {0, 1.22249, 3.72249, 3.38755, 5.88755};
-    arma::vec expectedHamiltionianHash = {1.65625, -0.15, -0.15, 0.7125, 0.7125};
+    arma::vec expectedBravaisLatticeHash = {4.55422, 2.05422};
+    arma::vec expectedMotifHash = {0, 3.90211};
+    arma::vec expectedBravaisVectorsHash = {0, -0.110843, 2.38916, 2.05422, 4.55422};
+    arma::vec expectedHamiltionianHash = {-1.34375, -0.9, -0.9, -0.0375, -0.0375};
     
     REQUIRE(config.systemInfo.ndim == expectedDim);
     REQUIRE(config.systemInfo.filling == expectedFilling);
@@ -51,10 +54,17 @@ TEST_CASE("Modelfile parsing", "[model_parsing]"){
     for(uint i = 0; i < config.systemInfo.hamiltonian.n_slices; i++){
         double hash = xatu::array2hash(config.systemInfo.hamiltonian.slice(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedHamiltionianHash(i), 1E-4));
-    }        
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
 }
 
 TEST_CASE("CRYSTAL file parsing", "[CRYSTAL_parsing]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing CRYSTAL file parsing... ";
+    std::cout.setstate(std::ios_base::failbit);
 
     std::string modelfile = "../models/DFT/hBN_base_HSE06.outp";
     xatu::CrystalDFTConfiguration config = xatu::CrystalDFTConfiguration(modelfile);
@@ -64,20 +74,20 @@ TEST_CASE("CRYSTAL file parsing", "[CRYSTAL_parsing]"){
     arma::urowvec expectedOrbitals = {33, 36};
     uint expectedFockMatricesNumber = 20;
 
-    arma::vec expectedBravaisLatticeHash = {3.3931, 5.18333};
-    arma::vec expectedMotifHash = {0.818875, 5.09563};
-    arma::vec expectedBravaisVectorsHash = {0, 1.21938, 5.9031, 3.72938, 3.3931, 0.163333, 
-                                            5.18333, 0.275427, 4.62287, 0.382713, 10.0864,
-                                            7.91271, 2.55643, 0.43876, 9.8062, 5.45876,
-                                            4.7862, -0.673333, 9.366674, 0.494807};
-    arma::vec expectedHamiltionianHash = {2468.69, 2108.44, 2104.88, 1793.87,
-                                            2254.54, 2258.97, 1792.2, 1009.11, 1325.13,
-                                            1325.32, 1009.1, 928.996, 1636.76, 856.064,
-                                            856.041, 734.011, 1172, 1172.08, 734.016, 404.001};
-    arma::vec expectedOverlapHash = {897.123, 952.327, 1197.62, 1042.23, 1303.16,
-                                        1246.87, 980.796, 445.932, 623.911, 767.765,
-                                        589.939, 543.999, 924.147, 508.966, 508.98,
-                                        437.995, 687.007, 660.933, 413.993, 243};
+    arma::vec expectedBravaisLatticeHash = {2.05977, 4.51667};
+    arma::vec expectedMotifHash = {0.068875, 2.84563};
+    arma::vec expectedBravaisVectorsHash = {0, -0.113953, 4.56977, 2.39605, 2.05977,
+                                            -0.503333, 4.51667, -0.39124, 3.9562, -0.95062,
+                                            8.7531, 6.57938, 1.2231, -0.894573, 8.47287,
+                                            4.12543, 3.45287, -1.34, 8.7, -0.838527};
+    arma::vec expectedHamiltionianHash = {61.2007, 2.87756, -0.679479, 0.246344, -0.981652,
+                                          0.447539, -1.41873, 0.32476, 0.408354, 0.596467,
+                                          0.309267, 0.191303, 0.107262, 0.244018, 0.220732,
+                                          0.165454, 0.248117, 0.32759, 0.169674, 0.0856007};
+    arma::vec expectedOverlapHash = {46.302, -1.47274, -0.128825, 0.444089, 1.43755,
+                                    -0.87285, 1.00188, 0.0256365, 0.0421825, -0.0733795,
+                                    0.0628083, 0.113745, 0.340853, 0.0733232, 0.0869901,
+                                    0.0867042, 0.151335, 0.0713888, 0.0795013, 0.0507182};
     
     REQUIRE(config.systemInfo.ndim == expectedDim);
     REQUIRE(config.systemInfo.filling == expectedFilling);
@@ -107,9 +117,16 @@ TEST_CASE("CRYSTAL file parsing", "[CRYSTAL_parsing]"){
         double hash = xatu::array2hash(config.systemInfo.overlap.slice(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedOverlapHash(i), 1E-2));
     }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
 }
 
 TEST_CASE("Exciton file parsing", "[excitonfile_parsing]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing exciton file parsing... ";
+    std::cout.setstate(std::ios_base::failbit);
 
     std::string excitonconfig = "../excitonconfig/hBN_spinless.txt";
     xatu::ExcitonConfiguration config = xatu::ExcitonConfiguration(excitonconfig);
@@ -125,26 +142,641 @@ TEST_CASE("Exciton file parsing", "[excitonfile_parsing]"){
         REQUIRE(config.excitonInfo.eps(i) == expectedDielectric(i));
     }
     REQUIRE(xatu::array2hash(config.excitonInfo.Q) == 0);
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
 }
     
+TEST_CASE("TB hBN energies (full diagonalization)", "[tb-hBN-fulldiag]"){
 
-    // xatu::Exciton bulkExciton = xatu::Exciton(config, ncell, nbands, nrmbands, parameters);
-    // bulkExciton.setMode("realspace");
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN energies (fulldiag)... ";
+    std::cout.setstate(std::ios_base::failbit);
 
-    // bulkExciton.brillouinZoneMesh(ncell);
+    int ncell = 20;
+    int nstates = 3;
 
+    std::string modelfile = "../models/hBN.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
 
-    // bulkExciton.initializeHamiltonian();
-    // bulkExciton.BShamiltonian();
-    // auto results = bulkExciton.diagonalize("diag", nstates);
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
 
-    // auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
     
-    // std::vector<std::vector<double>> expectedEnergies = {{5.335687, 2}, {6.073800, 1}, {6.164057, 2}, {6.172253, 1}, {6.351066, 2}};
-    // for(int i = 0; i < energies.size(); i++){
-    //     REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-5));
-    //     REQUIRE(energies[i][1] == expectedEnergies[i][1]);
-    // }
+    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
+                                                         {6.074062, 1}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
 
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("TB hBN energies (davidson)", "[tb-hBN-davidson]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN energies (Davidson)... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 3;
+
+    std::string modelfile = "../models/hBN.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("davidson", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
     
+    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
+                                                         {6.074062, 1}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("TB hBN energies (Lanczos)", "[hBN-lanczos]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN energies (Lanczos)... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 3;
+
+    std::string modelfile = "../models/hBN.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("sparse", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
+                                                         {6.074062, 1}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("TB hBN energies (reciprocal)", "[tb-hBN-reciprocal]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN energies (reciprocal)... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 3;
+
+    std::string modelfile = "../models/hBN.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    exciton.setMode("reciprocalspace");
+    exciton.setReciprocalVectors(5);
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{6.234291, 1}, 
+                                                         {6.236636, 1},
+                                                         {6.731819, 1}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("TB hBN reciprocal w.f.", "[tb-hBN-kwf]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN reciprocal w.f... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 2;
+
+    std::string modelfile = "../models/hBN.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.kpoints.n_rows);
+    for (int n = 0; n < nstates; n++){
+        arma::cx_vec statecoefs = results.eigvec.col(n);
+        for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        double coef = 0;
+        for(int nband = 0; nband < nbandsCombinations; nband++){
+            coef += abs(statecoefs(nbandsCombinations*i + nband))*
+                    abs(statecoefs(nbandsCombinations*i + nband));
+        };
+        coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
+        kwf(i) += coef;
+        };
+    }
+
+    double kwfHash = xatu::array2hash(kwf);
+    double expectedKwfHash = 1.086145105;
+    REQUIRE_THAT(kwfHash, Catch::Matchers::WithinAbs(expectedKwfHash, 1E-5));
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("TB hBN real-space w.f.", "[tb-hBN-rswf]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN real-space w.f... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 2;
+    int holeIndex = 1;
+    arma::rowvec holeCell = {0, 0, 0};
+
+    std::string modelfile = "../models/hBN.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    arma::rowvec holePosition = exciton.motif.row(holeIndex).subvec(0, 2) + holeCell;
+
+    double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.ncell;
+    arma::mat cellCombinations = exciton.truncateSupercell(exciton.ncell, radius);
+    arma::vec rswf = arma::zeros(cellCombinations.n_rows*exciton.motif.n_rows);
+
+    // Compute probabilities
+    for(int n = 0; n < nstates; n++){
+        int it = 0;
+        arma::cx_vec statecoefs = results.eigvec.col(n);
+        for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
+        arma::rowvec cell = cellCombinations.row(cellIndex);
+        for (unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
+            rswf(it) += results.realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
+            it++;
+        }
+        }
+    }
+
+    double rswfHash = xatu::array2hash(rswf);
+    double expectedRSwfHash = 3.4185866144;
+    REQUIRE_THAT(rswfHash, Catch::Matchers::WithinAbs(expectedRSwfHash, 1E-5));
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("TB hBN absorption", "[tb-hBN-kubo]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN conductivity... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 2;
+
+    std::string modelfile = "../models/hBN.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    arma::cx_mat vme_ex = results.excitonOscillatorStrength();
+
+    double oscillatorHash = xatu::array2hash(vme_ex);
+    double expectedOscillatorHash = 23.3080351293;
+    REQUIRE_THAT(oscillatorHash, Catch::Matchers::WithinAbs(expectedOscillatorHash, 1E-9));
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("TB hBN energies (spinful)", "[tb-hBN-spinful]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN spinful... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 12;
+
+    std::string modelfile = "../models/hBN_spinful.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1, 1, 10});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 8}, 
+                                                         {6.074062, 4}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+    
+TEST_CASE("TB hBN spin", "[tb-hBN-spin]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing TB hBN spin... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 4;
+
+    std::string modelfile = "../models/hBN_spinful.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1, 1, 10});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    arma::mat expectedSpin = arma::mat{{-1, -0.5, -0.5},
+                              { 0, -0.5,  0.5},
+                              { 0,  0.5, -0.5},
+                              { 1,  0.5,  0.5}}; 
+                              
+    for(uint i = 0; i < nstates; i++){
+        arma::cx_vec spin = results.spinX(i);
+        for(uint j = 0; j < 3; j++){
+            double spinValue = real(spin(j));
+            REQUIRE_THAT(spinValue, Catch::Matchers::WithinAbs(expectedSpin(i, j), 1E-4));
+        }
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("DFT hBN", "[dft-hBN]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing DFT hBN... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 20;
+    int nstates = 2;
+    bool triangular = true;
+    int holeIndex = 1;
+    arma::rowvec holeCell = {0, 0, 0};
+
+    std::string modelfile = "../models/DFT/hBN_base_HSE06.outp";
+    xatu::CrystalDFTConfiguration config = xatu::CrystalDFTConfiguration(modelfile, 100);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian(triangular);
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{4.442317, 1}, 
+                                                         {4.442427, 1}};
+                                                         
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    // Check reciprocal w.f.
+    int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.kpoints.n_rows);
+    for (int n = 0; n < nstates; n++){
+        arma::cx_vec statecoefs = results.eigvec.col(n);
+        for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        double coef = 0;
+        for(int nband = 0; nband < nbandsCombinations; nband++){
+            coef += abs(statecoefs(nbandsCombinations*i + nband))*
+                    abs(statecoefs(nbandsCombinations*i + nband));
+        };
+        coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
+        kwf(i) += coef;
+        };
+    }
+
+    double kwfHash = xatu::array2hash(kwf);
+    double expectedKwfHash = 1.0864895707;
+    REQUIRE_THAT(kwfHash, Catch::Matchers::WithinAbs(expectedKwfHash, 1E-5));
+
+    // Check realspace w.f.
+    arma::rowvec holePosition = exciton.motif.row(holeIndex).subvec(0, 2) + holeCell;
+
+    double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.ncell;
+    arma::mat cellCombinations = exciton.truncateSupercell(exciton.ncell, 2);
+    arma::vec rswf = arma::zeros(cellCombinations.n_rows*exciton.motif.n_rows);
+
+    // Compute probabilities
+    for(int n = 0; n < nstates; n++){
+        int it = 0;
+        arma::cx_vec statecoefs = results.eigvec.col(n);
+        for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
+        arma::rowvec cell = cellCombinations.row(cellIndex);
+        for (unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
+            rswf(it) += results.realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
+            it++;
+        }
+        }
+    }
+
+    double rswfHash = xatu::array2hash(rswf);
+    double expectedRSwfHash = 83.2242560463;
+    REQUIRE_THAT(rswfHash, Catch::Matchers::WithinAbs(expectedRSwfHash, 1E-5));
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("MoS2 energies", "[MoS2-energies]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing MoS2 energies... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 12;
+    int nstates = 2;
+
+    std::string modelfile = "../models/MoS2.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{1.768783, 2}, 
+                                                         {1.780562, 2}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("MoS2 reciprocal w.f.", "[MoS2-kwf]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing MoS2 reciprocal w.f... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 12;
+    int nstates = 2;
+
+    std::string modelfile = "../models/MoS2.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.kpoints.n_rows);
+    for (int n = 0; n < nstates; n++){
+        arma::cx_vec statecoefs = results.eigvec.col(n);
+        for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        double coef = 0;
+        for(int nband = 0; nband < nbandsCombinations; nband++){
+            coef += abs(statecoefs(nbandsCombinations*i + nband))*
+                    abs(statecoefs(nbandsCombinations*i + nband));
+        };
+        coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
+        kwf(i) += coef;
+        };
+    }
+
+    double kwfHash = xatu::array2hash(kwf);
+    double expectedKwfHash = 1.1814790902;
+    REQUIRE_THAT(kwfHash, Catch::Matchers::WithinAbs(expectedKwfHash, 1E-5));
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("MoS2 spin", "[MoS2-spin]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing MoS2 spin... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 12;
+    int nstates = 2;
+
+    std::string modelfile = "../models/MoS2.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    arma::mat expectedSpin = arma::mat{{-1, -0.5, -0.5},
+                                       { 0, -0.5,  0.5},
+                                       { 0,  0.5, -0.5},
+                                       { 1,  0.5,  0.5}}; 
+                              
+    for(uint i = 0; i < nstates; i++){
+        arma::cx_vec spin = results.spinX(i);
+        for(uint j = 0; j < 3; j++){
+            double spinValue = real(spin(j));
+            REQUIRE_THAT(spinValue, Catch::Matchers::WithinAbs(expectedSpin(i, j), 1E-4));
+        }
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("MoS2 exciton bands", "[MoS2-Q]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing MoS2 exciton bands... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 12;
+    int nstates = 2;
+
+    std::string modelfile = "../models/MoS2.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
+                                                         {6.074062, 1}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("MoS2 exchange", "[MoS2-exchange]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing MoS2 with exchange... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 12;
+    int nstates = 2;
+
+    std::string modelfile = "../models/MoS2.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
+                                                         {6.074062, 1}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("MoS2 reduced BZ", "[MoS2-reducedBZ]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing MoS2 with reduced BZ... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 12;
+    int nstates = 2;
+
+    std::string modelfile = "../models/MoS2.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
+                                                         {6.074062, 1}};
+    for(uint i = 0; i < energies.size(); i++){
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE(energies[i][1] == expectedEnergies[i][1]);
+    }
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
+TEST_CASE("MoS2 absorption", "[MoS2-kubo]"){
+
+    std::cout.clear();
+    std::cout << std::setw(40) << std::left << "Testing MoS2 conductivity... ";
+    std::cout.setstate(std::ios_base::failbit);
+
+    int ncell = 12;
+    int nstates = 2;
+
+    std::string modelfile = "../models/MoS2.model";    
+    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+
+    arma::cx_mat vme_ex = results.excitonOscillatorStrength();
+
+    double oscillatorHash = xatu::array2hash(vme_ex);
+    double expectedOscillatorHash = 87.9351242512;
+    REQUIRE_THAT(oscillatorHash, Catch::Matchers::WithinAbs(expectedOscillatorHash, 1E-5));
+
+    std::cout.clear();
+    std::cout << std::setw(40) << "\033[1;32m Success \033[0m" << std::endl;
+}
+
