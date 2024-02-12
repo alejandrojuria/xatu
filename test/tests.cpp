@@ -128,7 +128,7 @@ TEST_CASE("Exciton file parsing", "[excitonfile_parsing]"){
     std::cout << std::setw(40) << std::left << "Testing exciton file parsing... ";
     std::cout.setstate(std::ios_base::failbit);
 
-    std::string excitonconfig = "../excitonconfig/hBN_spinless.txt";
+    std::string excitonconfig = "./data/hBN_spinless.txt";
     xatu::ExcitonConfiguration config = xatu::ExcitonConfiguration(excitonconfig);
 
     std::string expectedName = "hBN_N30";
