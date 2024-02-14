@@ -38,7 +38,7 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
     std::string line;
     while(std::getline(m_file, line)){
         // Bravais lattice
-        if (line.find("DIRECT LATTICE VECTOR COMPONENTS") != std::string::npos){
+        if (line.find("DIRECT LATTICE VECTOR COMPONENTS (ANGSTROM)") != std::string::npos){
             parseBravaisLattice(threshold);
             
             // arma::cout << "Bravais lattice: " << arma::endl;
