@@ -25,21 +25,22 @@ CrystalDFTConfiguration::CrystalDFTConfiguration(std::string file, int ncells) :
 
 /**
  * Method to extract all the content from the file.
- * @details Since CRYSTAL calculations are always 3D, there are always three
- * Bravais vectors even for 2D or 1D calculations. A threshold is defined in this routine
- * to distinguish the Bravais vectors of the system from the long range copies.
+ * @details The lattice dimensionality is determined according to CRYSTAL's criterion for the 
+ * direct lattice vectors: in 2D, R3 == [0 0 500]; and in 1D, in addition R2 = [0 0 500]. The 
+ * hypothetical case of R3 and/or R2 == [0 0 0] is also assumed to lower the dimensionality.
  * @param ncells Number of unit cells to be parsed.
- * @param threshold Value below which we identify the actual Bravais vectors (i.e. the dimension).
  * @return void
  */
-void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
+void CrystalDFTConfiguration::parseContent(int ncells){
     // Parse Crystal output file
 
+    int countr = 0;
     std::string line;
     while(std::getline(m_file, line)){
         // Bravais lattice
         if (line.find("DIRECT LATTICE VECTOR COMPONENTS (ANGSTROM)") != std::string::npos){
-            parseBravaisLattice(threshold);
+            parseBravaisLattice();
+            countr++;
             
             // arma::cout << "Bravais lattice: " << arma::endl;
             // arma::cout << bravaisLattice << arma::endl;
@@ -206,14 +207,17 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             }
         }
     }    
+    if (countr==0){
+    int ndim = 0;
+    throw std::logic_error("Finite systems are not yet implemented");
+    } 
 }
 
 /**
  * Method to parse and format the Bravais basis vectors from the file. 
- * @param threshold Maximum value used to distinguish the actual Bravais vectors of the lattice.
  * @return void
  */
-void CrystalDFTConfiguration::parseBravaisLattice(double threshold){
+void CrystalDFTConfiguration::parseBravaisLattice(){
     std::string line;
     std::vector<std::string> vectors;
     for(int i = 0; i < 3; i++){
@@ -221,22 +225,24 @@ void CrystalDFTConfiguration::parseBravaisLattice(double threshold){
         vectors.push_back(line);     
     }
     this->bravaisLattice = parseVectors(vectors);
-    extractDimension(threshold);
+    extractDimension();
 }
 
 /**
- * Method to obtain the dimension of the system.
- * @param threshold Value used to discard unphysical Bravais vectors.
+ * Method to obtain the dimension (1D,2D,3D) of the system.
  * @return void 
  */
-void CrystalDFTConfiguration::extractDimension(double threshold){
-    for(unsigned int i = 0; i < bravaisLattice.n_rows; i++){
-        double norm = arma::norm(bravaisLattice.row(i));
-        if (norm > threshold){
-            bravaisLattice.shed_row(i);
+void CrystalDFTConfiguration::extractDimension(){
+    arma::rowvec R2 = {0.0, 500.0, 0.0}, R3 = {0.0, 0.0, 500.0}, 
+                 R0 = arma::rowvec(3, arma::fill::zeros);;
+    if ( approx_equal(bravaisLattice.row(2),R3,"absdiff",0.1) || 
+         approx_equal(bravaisLattice.row(2),R0,"absdiff",0.1) ){
+        bravaisLattice.shed_row(2);
+        if ( approx_equal(bravaisLattice.row(1),R2,"absdiff",0.1) || 
+             approx_equal(bravaisLattice.row(1),R0,"absdiff",0.1) ){
+            bravaisLattice.shed_row(1); 
         }
     }
-
     ndim = bravaisLattice.n_rows;
 }
 
