@@ -151,9 +151,9 @@ arma::cx_vec Result::spinX(int stateindex){
             int cIndex = exciton.bandToIndex[exciton.conductionBands(i)];
             for(int j = 0; j < ncbands; j++){
                 int cIndex2 = exciton.bandToIndex[exciton.conductionBands(j)];
-                eigvec = exciton.eigvecKQStack.slice(k).col(cIndex);
-                spinEigvec = eigvec % spinVector;
                 eigvec = exciton.eigvecKQStack.slice(k).col(cIndex2);
+                spinEigvec = eigvec % spinVector;
+                eigvec = exciton.eigvecKQStack.slice(k).col(cIndex);
                 spinElectronReduced(i,j) = arma::cdot(eigvec, spinEigvec);
             }
         }
