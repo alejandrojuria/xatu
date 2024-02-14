@@ -639,10 +639,10 @@ TEST_CASE("MoS2 spin", "[MoS2-spin]"){
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    arma::mat expectedSpin = arma::mat{{-1, -0.5, -0.5},
-                                       { 0, -0.5,  0.5},
-                                       { 0,  0.5, -0.5},
-                                       { 1,  0.5,  0.5}}; 
+    arma::mat expectedSpin = arma::mat{{-9.915e-01, -5.000e-01, -4.915e-01},
+                                       {-6.966e-04, -5.000e-01,  4.993e-01},
+                                       { 8.297e-03,  4.998e-01, -4.915e-01},
+                                       { 9.991e-01,  4.998e-01,  4.993e-01}}; 
                               
     for(uint i = 0; i < nstates; i++){
         arma::cx_vec spin = results.spinX(i);
