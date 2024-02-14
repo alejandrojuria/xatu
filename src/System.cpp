@@ -300,4 +300,29 @@ double System::expectedSpinXValue(const arma::cx_vec& eigvec){
 
 };
 
+/**
+ * Method to add a Zeeman term to the Hamiltonian. 
+ * @details This method assumes that the Hamiltonian incorporates spin in 
+ * the following way: |i1,up>,|i1,down>,...,|in,up>,|in,down>, where i runs over orbitals.
+ * @param amplitude Strength of the Zeeman term.
+ * @returns void
+*/
+void System::addZeeman(double amplitude){
+
+	arma::cx_vec zeeman_values = {amplitude, -amplitude};
+	arma::cx_mat zeeman_matrix = arma::diagmat<arma::cx_mat>(arma::kron(arma::ones<arma::cx_vec>(basisdim/2), zeeman_values));
+
+	// Identify hamiltonian slice for R=0
+	int idx;
+	for (unsigned int i = 0; i < unitCellList.n_rows; i++){
+		if (arma::norm(unitCellList.row(i)) < 1E-5){
+			arma::cout << unitCellList.row(i) << arma::endl;
+			idx = i;
+			break;
+		}
+	}
+
+	hamiltonianMatrices_.slice(idx) += zeeman_matrix;
+}
+
 }

@@ -19,20 +19,9 @@ dimension eigval_stack(nv_ex + nc_ex,npointstotal)
 dimension eigvec_stack(norb,nv_ex + nc_ex,npointstotal)
 
 !sp and exciton variables
-allocatable sderhop(:,:,:,:)
-allocatable hderhop(:,:,:,:)
-allocatable hkernel(:,:)
-allocatable skernel(:,:)
-allocatable hderkernel(:,:,:)
-allocatable sderkernel(:,:,:)
-allocatable akernel(:,:,:)
-allocatable pgaugekernel(:,:,:)  
 allocatable hk_ev(:,:)
 allocatable e(:)
-allocatable pgauge(:,:,:)
-allocatable vjseudoa(:,:,:) 
-allocatable vjseudob(:,:,:)
-allocatable vme(:,:,:)
+allocatable vme(:,:,:,:)
 allocatable sigma_w_sp(:,:,:)
 
 !exciton arrays
@@ -41,39 +30,26 @@ allocatable wp(:)
 allocatable skubo_ex_int(:,:,:)
 allocatable sigma_w_ex(:,:,:)
 
+
 complex*16 hhop
-complex*16 sderhop
-complex*16 hderhop
 complex*16 fk_ex
 complex*16 eigvec_stack
-complex*16 hkernel
-complex*16 skernel
-complex*16 hderkernel
-complex*16 sderkernel
-complex*16 akernel
-complex*16 pgaugekernel
 complex*16 hk_ev
-complex*16 pgauge
-complex*16 vjseudoa
-complex*16 vjseudob
 complex*16 vme
 complex*16 vme_ex 
-complex*16 jdos_sp_int
-complex*16 osc_sp_int
-complex*16 skubo_sp_int
 complex*16 skubo_ex_int 
 complex*16 sigma_w_sp
 complex*16 sigma_w_ex
-complex*16 jdos_w_sp
-complex*16 osc_w_sp
 
 character(100) type_broad
 character(100) file_name_sp
 character(100) file_name_ex
 
-nbands = nv_ex + nc_ex
 
 pi=acos(-1.0d0)
+
+nbands = nv_ex + nc_ex
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !Here we work in atomic units
 Rvec=Rvec/0.52917721067121d0
@@ -86,34 +62,22 @@ rkz=rkz*0.52917721067121d0
 e_ex=e_ex/27.211385d0
 eigval_stack=eigval_stack/27.211385d0
 
+call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1), &
+R(2,2),R(2,3),cx,cy,cz)         
+vcell=sqrt(cx**2+cy**2+cz**2)
+
 !call fill_nRvec(nR,R,Rvec,nRvec)
 !get printing parameters
 call get_kubo_parameters(w0,wrange,nw,eta,type_broad, &
 file_name_sp,file_name_ex)
 eta=eta/27.211385d0
-  
-!get unit cell volume
-call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1), &
-R(2,2),R(2,3),cx,cy,cz)         
-vcell=sqrt(cx**2+cy**2+cz**2)
  
 !SP arrays
 allocate (wp(nw))
 allocate (sigma_w_sp(3,3,nw))
-allocate (sderhop(3,nR,norb,norb))
-allocate (hderhop(3,nR,norb,norb))
-allocate (hkernel(norb,norb))
-allocate (skernel(norb,norb))
-allocate (hderkernel(3,norb,norb))
-allocate (sderkernel(3,norb,norb))
-allocate (akernel(3,norb,norb))
-allocate (pgaugekernel(3,norb,norb))  
 allocate (hk_ev(norb,nbands))
 allocate (e(nbands))
-allocate (pgauge(3,nbands,nbands))
-allocate (vjseudoa(3,nbands,nbands)) 
-allocate (vjseudob(3,nbands,nbands))
-allocate (vme(3,nbands,nbands))
+allocate (vme(npointstotal,3,nbands,nbands))
 wp=0.0d0
 wn_sp=0.0d0
 sigma_w_sp=0.0d0
@@ -131,68 +95,19 @@ vme_ex=0.0d0
 sigma_w_ex=0.0d0
 skubo_ex_int=0.0d0
 
-
-!getting some SP variables
-call hoppings_observables_TB(norb,nR,Rvec,shop,hhop,rhop,sderhop,hderhop)
-!11/05/2023 JJEP: fill rhop here. Easier to extend to DFT later 
-rhop=0.0d0
-do nn=1,norb
-  do nj=1,3
-    rhop(nj,1,nn,nn)=B(nn,nj)
-  end do
-end do
+call exciton_oscillator_strength(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,hhop,shop,npointstotal,rkx, &
+                                 rky,rkz,fk_ex,e_ex,eigval_stack,eigvec_stack,vme,vme_ex,.false.)
 
 
-write(*,*) 'Conductivity: mapping the BZ...'
-!Brillouin zone sampling	  
-!!$OMP PARALLEL DO PRIVATE(rkxp,rkyp,rkzp), &
-!!$OMP PRIVATE(hkernel,skernel,sderkernel,hderkernel,akernel), &  
-!!$OMP PRIVATE(hk_ev,e,pgaugekernel,pgauge,vjseudoa,vjseudob,vme), &
-!!$OMP PRIVATE(nj,iex,ib,nv_ip,nc_ip,j)
+! Obtain SP Kubo
 do ibz=1,npointstotal
-  !write(*,*) 'point:',ibz,npointstotal         
-  rkxp=rkx(ibz)
-  rkyp=rky(ibz)
-  rkzp=rkz(ibz)
-
-  hk_ev(:, :) = eigvec_stack(:, :, ibz)
   e(:) = eigval_stack(:, ibz)
           
-  !get matrices in the \alpha, \alpha' basis (orbitals,k)    		
-  call get_vme_kernels(rkxp,rkyp,rkzp,nR,Rvec,norb,hkernel,skernel,shop, &
-  hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel,pgaugekernel)
-  !velocity matrix elements
-  call get_eigen_vme(norb,nbands,skernel,hkernel,akernel,hderkernel, &
-  pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme) 
-
-  !fill V_N
-  !!$OMP critical	
-  do nj=1,3
-    do iex=1,norb_ex_cut
-      !!! Iterate over band index explicitly (AJU 03-06-23)
-      do ic=1,nc_ex
-      do iv=1,nv_ex
-      
-        j = nc_ex * nv_ex * (ibz - 1) + nv_ex * (ic - 1) + iv
-        !get valence/conduction indices      
-        !nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
-        !nc_ip=(nv+1)+int((ib-1)/nv_ex)
-        !j=(ibz-1)*norb_ex_band+ib
-		
-       	
-        vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(j,iex)*vme(nj,iv,ic + nv_ex)
-        vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(j,iex)*vme(nj,ic + nv_ex,iv)
-
-      end do
-      end do
-    end do
-  end do       
   !get strength for kubo SP
-  call get_kubo_intens(nv_ex,npointstotal,vcell,nbands,e,vme,nw,wp,sigma_w_sp,eta)
-  !!$OMP end critical
+  call get_kubo_intens(nv_ex,npointstotal,vcell,nbands,e,vme(ibz, :, :, :),nw,wp,sigma_w_sp,eta)
   
 end do
-!!$OMP END PARALLEL DO 
+
 
 !fill kubo oscillators of EXCITONS
 do nn=1,norb_ex_cut
@@ -241,10 +156,177 @@ do iw=1,nw
               realpart(feps*sigma_w_ex(3,3,iw))
 end do
 
+!write exciton oscillator strengths
+norb_ex_cut=nv_ex*nc_ex*npointstotal
+write(60,*) '' ! Empty line
+do iex=1,norb_ex_cut
+  write(60,*) e_ex(iex)*27.211385d0,realpart(vme_ex(1,iex,1)), imagpart(vme_ex(1,iex,1)), &
+              realpart(vme_ex(2,iex,1)), imagpart(vme_ex(2,iex,1)), &
+              realpart(vme_ex(3,iex,1)), imagpart(vme_ex(2,iex,1))
+end do
+
 close(50)
 close(60)
 
 return
+end
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine exciton_oscillator_strength(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,hhop,shop,npointstotal,rkx, &
+  rky,rkz,fk_ex,e_ex,eigval_stack,eigvec_stack,vme,vme_ex,convert_to_au)
+  implicit real*8 (a-h,o-z)
+  
+  !out of subroutine arrays 
+  dimension Rvec(nR,3)
+  dimension R(3,3)
+  dimension hhop(norb,norb,nR)
+  dimension shop(norb,norb,nR)
+  dimension rkx(npointstotal)
+  dimension rky(npointstotal)
+  dimension rkz(npointstotal)
+  dimension fk_ex(norb_ex,norb_ex)
+  dimension e_ex(norb_ex)
+  dimension B(norb,3)
+  dimension rhop(3,nR,norb,norb)
+  dimension eigval_stack(nv_ex + nc_ex,npointstotal)
+  dimension eigvec_stack(norb,nv_ex + nc_ex,npointstotal)
+  dimension vme_ex(3,norb_ex,2)
+  dimension vme(npointstotal,3,nv_ex + nc_ex,nv_ex + nc_ex)
+  
+  !sp and exciton variables
+  allocatable sderhop(:,:,:,:)
+  allocatable hderhop(:,:,:,:)
+  allocatable hkernel(:,:)
+  allocatable skernel(:,:)
+  allocatable hderkernel(:,:,:)
+  allocatable sderkernel(:,:,:)
+  allocatable akernel(:,:,:)
+  allocatable pgaugekernel(:,:,:)  
+  allocatable hk_ev(:,:)
+  allocatable e(:)
+  allocatable pgauge(:,:,:)
+  allocatable vjseudoa(:,:,:) 
+  allocatable vjseudob(:,:,:)  
+  
+  complex*16 hhop
+  complex*16 sderhop
+  complex*16 hderhop
+  complex*16 fk_ex
+  complex*16 eigvec_stack
+  complex*16 hkernel
+  complex*16 skernel
+  complex*16 hderkernel
+  complex*16 sderkernel
+  complex*16 akernel
+  complex*16 pgaugekernel
+  complex*16 hk_ev
+  complex*16 pgauge
+  complex*16 vjseudoa
+  complex*16 vjseudob
+  complex*16 vme
+  complex*16 vme_ex 
+
+  logical convert_to_au
+
+
+  if (convert_to_au) then
+    Rvec=Rvec/0.52917721067121d0
+    B=B/0.52917721067121d0 
+    R=R/0.52917721067121d0 
+    hhop=hhop/27.211385d0
+    rkx=rkx*0.52917721067121d0
+    rky=rky*0.52917721067121d0
+    rkz=rkz*0.52917721067121d0
+    e_ex=e_ex/27.211385d0
+    eigval_stack=eigval_stack/27.211385d0
+  end if
+
+  nbands = nv_ex + nc_ex
+  
+  pi=acos(-1.0d0)
+      
+  !get unit cell volume
+  call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1), &
+  R(2,2),R(2,3),cx,cy,cz)         
+  vcell=sqrt(cx**2+cy**2+cz**2)
+   
+  !SP arrays
+  allocate (sderhop(3,nR,norb,norb))
+  allocate (hderhop(3,nR,norb,norb))
+  allocate (hkernel(norb,norb))
+  allocate (skernel(norb,norb))
+  allocate (hderkernel(3,norb,norb))
+  allocate (sderkernel(3,norb,norb))
+  allocate (akernel(3,norb,norb))
+  allocate (pgaugekernel(3,norb,norb))  
+  allocate (hk_ev(norb,nbands))
+  allocate (e(nbands))
+  allocate (pgauge(3,nbands,nbands))
+  allocate (vjseudoa(3,nbands,nbands)) 
+  allocate (vjseudob(3,nbands,nbands))
+  
+  !exciton arrays
+  norb_ex_band=nv_ex*nc_ex !number of electron-hole pairs per k-point 
+  norb_ex_cut=norb_ex  !total number of optical transitions 
+
+  vme_ex=0.0d0
+  
+  !getting some SP variables
+  call hoppings_observables_TB(norb,nR,Rvec,shop,hhop,rhop,sderhop,hderhop)
+  !11/05/2023 JJEP: fill rhop here. Easier to extend to DFT later 
+  rhop=0.0d0
+  do nn=1,norb
+    do nj=1,3
+      rhop(nj,1,nn,nn)=B(nn,nj)
+    end do
+  end do
+  
+  !Brillouin zone sampling	  
+  !!$OMP PARALLEL DO PRIVATE(rkxp,rkyp,rkzp), &
+  !!$OMP PRIVATE(hkernel,skernel,sderkernel,hderkernel,akernel), &  
+  !!$OMP PRIVATE(hk_ev,e,pgaugekernel,pgauge,vjseudoa,vjseudob,vme), &
+  !!$OMP PRIVATE(nj,iex,ib,nv_ip,nc_ip,j)
+  do ibz=1,npointstotal
+    !write(*,*) 'point:',ibz,npointstotal         
+    rkxp=rkx(ibz)
+    rkyp=rky(ibz)
+    rkzp=rkz(ibz)
+  
+    hk_ev(:, :) = eigvec_stack(:, :, ibz)
+    e(:) = eigval_stack(:, ibz)
+            
+    !get matrices in the \alpha, \alpha' basis (orbitals,k)    		
+    call get_vme_kernels(rkxp,rkyp,rkzp,nR,Rvec,norb,hkernel,skernel,shop, &
+    hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel,pgaugekernel)
+    !velocity matrix elements
+    call get_eigen_vme(norb,nbands,skernel,hkernel,akernel,hderkernel, &
+    pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme(ibz, :, :, :)) 
+
+    !fill V_N
+    !!$OMP critical	
+    do nj=1,3
+      do iex=1,norb_ex_cut
+        !!! Iterate over band index explicitly (AJU 03-06-23)
+        do ic=1,nc_ex
+        do iv=1,nv_ex
+        
+          j = nc_ex * nv_ex * (ibz - 1) + nv_ex * (ic - 1) + iv
+          !get valence/conduction indices      
+          !nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
+          !nc_ip=(nv+1)+int((ib-1)/nv_ex)
+          !j=(ibz-1)*norb_ex_band+ib
+      
+          vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(j,iex)*vme(ibz, nj,iv,ic + nv_ex)
+          vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(j,iex)*vme(ibz, nj,ic + nv_ex,iv)
+  
+        end do
+        end do
+      end do
+    end do       
+    
+  end do
+  
+  return
 end
   
   

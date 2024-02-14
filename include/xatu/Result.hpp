@@ -10,6 +10,13 @@ extern "C" {
                   std::complex<double>* hhop, double* shop, int* nk, double* rkx, 
                   double* rky, double* rkz, std::complex<double>* fk_ex, double* e_ex, 
                   double* eigval_stack, std::complex<double>* eigvec_stack);
+
+    void exciton_oscillator_strength_(int* nR, int* norb, int* norb_ex, int* nv, int* nc, int* filling, 
+                  double* Rvec, double* bravaisLattice, double* motif, 
+                  std::complex<double>* hhop, double* shop, int* nk, double* rkx, 
+                  double* rky, double* rkz, std::complex<double>* fk_ex, double* e_ex, 
+                  double* eigval_stack, std::complex<double>* eigvec_stack, std::complex<double>* vme,
+                  std::complex<double>* vme_ex, bool* convert_to_au);
 }
 
 namespace xatu {
@@ -44,6 +51,7 @@ class Result{
         arma::cx_vec spinX(int);
         arma::mat velocity(int);
         arma::cx_vec velocitySingleParticle(int, int, int, std::string);
+        arma::cx_mat excitonOscillatorStrength();
 
         // Symmetries
         arma::cx_mat diagonalizeC3(const arma::vec&);
