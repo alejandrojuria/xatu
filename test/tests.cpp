@@ -624,14 +624,17 @@ TEST_CASE("MoS2 spin", "[MoS2-spin]"){
     std::cout.setstate(std::ios_base::failbit);
 
     int ncell = 12;
-    int nstates = 2;
+    int nstates = 4;
+    int factor = 2;
 
     std::string modelfile = "../models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
 
-    exciton.brillouinZoneMesh(ncell);
+    exciton.reducedBrillouinZoneMesh(ncell, factor);
+    exciton.shiftBZ({0.6628, -1.1480, 0});
+
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
@@ -724,22 +727,27 @@ TEST_CASE("MoS2 reduced BZ", "[MoS2-reducedBZ]"){
     std::cout.setstate(std::ios_base::failbit);
 
     int ncell = 12;
-    int nstates = 2;
+    int nstates = 4;
+    int factor = 2;
 
     std::string modelfile = "../models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
 
-    exciton.brillouinZoneMesh(ncell);
+    exciton.reducedBrillouinZoneMesh(ncell, factor);
+    exciton.shiftBZ({0.6628, -1.1480, 0});
+
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
     auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
     
-    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
-                                                         {6.074062, 1}};
+    std::vector<std::vector<double>> expectedEnergies = {{1.795378, 1}, 
+                                                         {1.809810, 1},
+                                                         {1.935880, 1},
+                                                         {1.950567, 1}};
     for(uint i = 0; i < energies.size(); i++){
         REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
         REQUIRE(energies[i][1] == expectedEnergies[i][1]);
