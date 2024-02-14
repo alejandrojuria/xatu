@@ -667,20 +667,32 @@ TEST_CASE("MoS2 exciton bands", "[MoS2-Q]"){
 
     std::string modelfile = "../models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
-
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
-
-    exciton.brillouinZoneMesh(ncell);
-    exciton.initializeHamiltonian();
-    exciton.BShamiltonian();
-    auto results = exciton.diagonalize("diag", nstates);
-
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
     
-    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
-                                                         {6.074062, 1}};
+    arma::vec Q_values = {-0.1, -0.05, 0.0, 0.05, 0.1};
+    arma::rowvec Q = {0., 0., 0.};
+    std::vector<std::vector<double>> energies;
+
+    for (const auto& q : Q_values){
+        Q(1) = q;
+        xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55}, Q);
+
+        exciton.brillouinZoneMesh(ncell);
+        exciton.initializeHamiltonian();
+        exciton.BShamiltonian();
+
+        xatu::Result results = exciton.diagonalize("diag", nstates);
+        auto resultingEnergies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+
+        energies.push_back(resultingEnergies[0]);
+    }
+    
+    std::vector<std::vector<double>> expectedEnergies = {{1.810464, 2}, 
+                                                         {1.780106, 2},
+                                                         {1.768783, 2},
+                                                         {1.780106, 2},
+                                                         {1.810464, 2}};
     for(uint i = 0; i < energies.size(); i++){
-        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-5));
         REQUIRE(energies[i][1] == expectedEnergies[i][1]);
     }
 
@@ -695,24 +707,27 @@ TEST_CASE("MoS2 exchange", "[MoS2-exchange]"){
     std::cout.setstate(std::ios_base::failbit);
 
     int ncell = 12;
-    int nstates = 2;
+    int nstates = 4;
+    arma::rowvec Q = {0., 0.1, 0.};
 
     std::string modelfile = "../models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
-
+    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55}, Q);
+    exciton.setExchange(true);
+    
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
-    auto results = exciton.diagonalize("diag", nstates);
 
+    xatu::Result results = exciton.diagonalize("diag", nstates);
     auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
     
-    std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
-                                                         {6.074062, 1}};
+    std::vector<std::vector<double>> expectedEnergies = {{1.810464, 2}, 
+                                                         {1.825740, 1},
+                                                         {1.855544, 1}};
     for(uint i = 0; i < energies.size(); i++){
-        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
+        REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-5));
         REQUIRE(energies[i][1] == expectedEnergies[i][1]);
     }
 
