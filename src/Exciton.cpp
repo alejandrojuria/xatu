@@ -58,11 +58,6 @@ void Exciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
 
     initializeExcitonAttributes(ncell, bands, parameters, Q);
 
-    if(cfg.excitonInfo.submeshFactor != 1){
-        this->totalCells_ = pow(ncell * cfg.excitonInfo.submeshFactor, ndim);
-    }
-    this->exchange = cfg.excitonInfo.exchange;
-
     std::vector<arma::s64> valence, conduction;
     for(int i = 0; i < bands.n_elem; i++){
         if (bands(i) <= 0){
@@ -982,6 +977,7 @@ void Exciton::initializeHamiltonian(bool triangular){
     }
 
     this->excitonbasisdim_ = nk*valenceBands.n_elem*conductionBands.n_elem;
+    this->totalCells_ = pow(ncell*factor_, ndim);
 
     std::cout << "Initializing basis for BSE... " << std::flush;
     initializeBasis();
