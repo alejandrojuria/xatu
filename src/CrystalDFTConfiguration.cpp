@@ -233,8 +233,10 @@ void CrystalDFTConfiguration::parseBravaisLattice(){
  * @return void 
  */
 void CrystalDFTConfiguration::extractDimension(){
-    arma::rowvec R2 = {0.0, 500.0, 0.0}, R3 = {0.0, 0.0, 500.0}, 
-                 R0 = arma::rowvec(3, arma::fill::zeros);;
+    arma::rowvec R0 = arma::zeros<arma::rowvec>(3);
+    arma::rowvec R2 = {0.0, 500.0, 0.0};
+    arma::rowvec R3 = {0.0, 0.0, 500.0}; 
+                 
     if ( approx_equal(bravaisLattice.row(2),R3,"absdiff",0.1) || 
          approx_equal(bravaisLattice.row(2),R0,"absdiff",0.1) ){
         bravaisLattice.shed_row(2);
