@@ -58,6 +58,9 @@ class System : public Crystal{
         void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&, bool triangular = false) const;
         void solveBands(std::string, bool triangular = false) const;
 
+        /* Modifiers */
+        void addZeeman(double);
+
         /* Expected value of spin components */
         
         double expectedSpinZValue(const arma::cx_vec&);

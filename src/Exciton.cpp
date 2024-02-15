@@ -1528,7 +1528,6 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
 
     transitionRate = (ncell*a)*2*PI*std::norm(arma::dot(W, initialState))*rho/hbar;
 
-    arma::cout << "Rate: " << transitionRate << arma::endl;
 
     return transitionRate;
 }
