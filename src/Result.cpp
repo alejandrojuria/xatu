@@ -87,12 +87,11 @@ int Result::findExcitonPeak(int stateindex){
 /** 
  * Routine to compute the expected Sz spin value of the electron
  * and hole that form a given exciton.
- * @param stateindex Index of the exciton.
+ * @param coefs Coefficients of the exciton state. Note that the coefficients must be given
+ * in the exact ordering used in the exciton basis. Otherwise, wrong results will be obtained.
  * @return Vector with the total spin of the exciton, the spin of the hole and that of the electron
  */
-arma::cx_vec Result::spinX(int stateindex){
-
-    arma::cx_vec coefs = eigvec.col(stateindex);
+arma::cx_vec Result::spinX(const arma::cx_vec& coefs){
     
     // Initialize Sz for both electron and hole to zero
     arma::cx_double electronSpin = 0;
@@ -157,7 +156,7 @@ arma::cx_vec Result::spinX(int stateindex){
                 spinElectronReduced(i,j) = arma::cdot(eigvec, spinEigvec);
             }
         }
-            
+                
         spinHole.submat(k*npairs, k*npairs, (k+1)*npairs - 1, (k+1)*npairs - 1) = arma::kron(cMatrix, spinHoleReduced);
         spinElectron.submat(k*npairs, k*npairs, (k+1)*npairs - 1, (k+1)*npairs - 1) = arma::kron(spinElectronReduced, vMatrix);
     }
@@ -169,6 +168,19 @@ arma::cx_vec Result::spinX(int stateindex){
     
     arma::cx_vec results = {totalSpin, holeSpin, electronSpin};
     return results;
+}
+
+/** 
+ * Routine to compute the expected Sz spin value of the electron
+ * and hole that form a given exciton.
+ * @param stateIndex Index of the exciton state.
+ * @return Vector with the total spin of the exciton, the spin of the hole and that of the electron
+ */
+arma::cx_vec Result::spinX(int stateIndex){
+    arma::cx_vec coefs = eigvec.col(stateIndex);
+    arma::cx_vec spin = spinX(coefs);
+
+    return spin;
 }
 
 /**
