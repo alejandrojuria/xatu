@@ -280,13 +280,6 @@ void CrystalDFTConfiguration::parseAtoms(){
         atom = {x, y, z, (double)index};
         motif.row(i) = arma::rowvec(atom);
     }
-
-    // Move motif to origin
-    arma::rowvec refAtom = motif.row(0);
-    // for (int i = 0; i < motif.n_rows; i++){
-    //     motif.row(i) -= refAtom;
-    // }
-
     this->motif = motif;
     this->shellsPerSpecies = shellsPerSpecies;
     this->nspecies = nspecies;
