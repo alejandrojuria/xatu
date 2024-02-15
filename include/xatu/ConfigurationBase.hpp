@@ -48,6 +48,19 @@ class ConfigurationBase {
         void restartFileStream();
 
         /**
+         * Template method to parse one line containing only one value of a type T.
+         * @param line String to parse.
+         * @returns Value T.
+         */
+        template<typename T>
+        T parseScalar(std::string& line){
+            T value;
+            std::istringstream iss(line);
+            iss >> value;
+            return value;
+        }
+
+        /**
          * Template method to parse a line made of some values of type T into a vector
          * with those values.
          * @param line String to be parsed into a vector.
@@ -63,19 +76,6 @@ class ConfigurationBase {
             }
             return values;
         };
-
-        /**
-         * Template method to parse one line containing only one value of a type T.
-         * @param line String to parse.
-         * @returns Value T.
-         */
-        template<typename T>
-        T parseScalar(std::string& line){
-            T value;
-            std::istringstream iss(line);
-            iss >> value;
-            return value;
-        }
 
         /**
          * Template method to print a vector of type T to screen.
