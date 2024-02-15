@@ -15,7 +15,7 @@ Xatu (_eXcitons from ATomistic calcUlations_) is a program and library designed 
   <img src="hbn_xatu_example.png" width="90%" height="90%">
 </p>
 
-The theory behind the code plus details about the implementation and some usage examples can be found in our preprint [Efficient computation of optical excitations in two-dimensional materials with the Xatu code](https://arxiv.org/abs/2307.01572). If you find 
+The theory behind the code plus details about the implementation and some usage examples can be found in our paper [Efficient computation of optical excitations in two-dimensional materials with the Xatu code](https://doi.org/10.1016/j.cpc.2023.109001). If you find 
 our paper or the code useful, please consider citing us.
 
 ## Installation
