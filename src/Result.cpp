@@ -127,38 +127,38 @@ arma::cx_vec Result::spinX(const arma::cx_vec& coefs){
     arma::mat bandPairs = arma::zeros(npairs, 2);
     int i = 0;
     for(double v : exciton.valenceBands){
-    for(double c : exciton.conductionBands){
-    bandPairs.row(i) = arma::rowvec{v, c};
-    i++;
-    }
+        for(double c : exciton.conductionBands){
+            bandPairs.row(i) = arma::rowvec{v, c};
+            i++;
+        }
     }
 
     for(unsigned int k = 0; k < exciton.kpoints.n_rows; k++){
-    arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nvbands, nvbands);
-    arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(ncbands, ncbands);
-    for(int i = 0; i < nvbands; i++){
-    int vIndex = exciton.bandToIndex[exciton.valenceBands(i)];
-    for(int j = 0; j < nvbands; j++){
-    int vIndex2 = exciton.bandToIndex[exciton.valenceBands(j)];
-    eigvec = exciton.eigvecKStack.slice(k).col(vIndex);
-    spinEigvec = eigvec % spinVector;
-    eigvec = exciton.eigvecKStack.slice(k).col(vIndex2);
-    spinHoleReduced(i,j) = arma::cdot(eigvec, spinEigvec);
-    }
+        arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nvbands, nvbands);
+        arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(ncbands, ncbands);
+        for(int i = 0; i < nvbands; i++){
+            int vIndex = exciton.bandToIndex[exciton.valenceBands(i)];
+            for(int j = 0; j < nvbands; j++){
+                int vIndex2 = exciton.bandToIndex[exciton.valenceBands(j)];
+                eigvec = exciton.eigvecKStack.slice(k).col(vIndex);
+                spinEigvec = eigvec % spinVector;
+                eigvec = exciton.eigvecKStack.slice(k).col(vIndex2);
+                spinHoleReduced(i,j) = arma::cdot(eigvec, spinEigvec);
+            }
         }
         for(int i = 0; i < ncbands; i++){
-    int cIndex = exciton.bandToIndex[exciton.conductionBands(i)];
-    for(int j = 0; j < ncbands; j++){
-    int cIndex2 = exciton.bandToIndex[exciton.conductionBands(j)];
-    eigvec = exciton.eigvecKQStack.slice(k).col(cIndex2);
-    spinEigvec = eigvec % spinVector;
-    eigvec = exciton.eigvecKQStack.slice(k).col(cIndex);
-    spinElectronReduced(i,j) = arma::cdot(eigvec, spinEigvec);
-    }
+            int cIndex = exciton.bandToIndex[exciton.conductionBands(i)];
+            for(int j = 0; j < ncbands; j++){
+                int cIndex2 = exciton.bandToIndex[exciton.conductionBands(j)];
+                eigvec = exciton.eigvecKQStack.slice(k).col(cIndex2);
+                spinEigvec = eigvec % spinVector;
+                eigvec = exciton.eigvecKQStack.slice(k).col(cIndex);
+                spinElectronReduced(i,j) = arma::cdot(eigvec, spinEigvec);
+            }
         }
-            
-    spinHole.submat(k*npairs, k*npairs, (k+1)*npairs - 1, (k+1)*npairs - 1) = arma::kron(cMatrix, spinHoleReduced);
-    spinElectron.submat(k*npairs, k*npairs, (k+1)*npairs - 1, (k+1)*npairs - 1) = arma::kron(spinElectronReduced, vMatrix);
+                
+        spinHole.submat(k*npairs, k*npairs, (k+1)*npairs - 1, (k+1)*npairs - 1) = arma::kron(cMatrix, spinHoleReduced);
+        spinElectron.submat(k*npairs, k*npairs, (k+1)*npairs - 1, (k+1)*npairs - 1) = arma::kron(spinElectronReduced, vMatrix);
     }
 
     // Perform tensor products with the remaining quantum numbers
@@ -181,6 +181,71 @@ arma::cx_vec Result::spinX(int stateIndex){
     arma::cx_vec spin = spinX(coefs);
 
     return spin;
+}
+
+/**
+ * Method to compute the oscillator strength of the exciton.
+ * @details Computes the oscillator strength of the exciton, which is a measure of the brightness
+ * of the exciton, and it is used to obtain the optical conducitivity.
+ * @return Matrix with all the oscillator strenghts in all three directions for all excitons.
+ */
+arma::cx_mat Result::excitonOscillatorStrength(){
+
+    int nR = exciton.unitCellList.n_rows;
+    int norb = exciton.basisdim;
+    int norb_ex = exciton.excitonbasisdim;
+    int filling = exciton.filling;
+    int nv = exciton.valenceBands.n_elem;
+    int nc = exciton.conductionBands.n_elem;
+
+    arma::mat Rvec = exciton.unitCellList;
+    // Extend bravais lattice to 3x3 matrix
+    arma::mat R = arma::zeros(3, 3);
+    for (int i = 0; i < exciton.bravaisLattice.n_rows; i++){
+        R.row(i) = exciton.bravaisLattice.row(i);
+    }
+
+    // arma::mat B = exciton.motif.cols(0, 2);
+    arma::mat extendedMotif = arma::zeros(exciton.basisdim, 3);
+    int it = 0;
+    for(int i = 0; i < exciton.natoms; i++){
+        arma::rowvec atom = exciton.motif.row(i).subvec(0, 2);
+        int species = exciton.motif.row(i)(3);
+        for(int j = 0; j < exciton.orbitals(species); j++){
+            extendedMotif.row(it) = atom; 
+            it++;
+        }
+    }
+    arma::cx_cube hhop = exciton.hamiltonianMatrices;
+    arma::cube shop(arma::size(hhop));
+    if (exciton.overlapMatrices.empty()){
+        for (int i = 0; i < hhop.n_slices; i++){
+            shop.slice(i) = arma::eye(size(hhop.slice(i)));
+        }
+    }
+    else{
+        shop = arma::real(exciton.overlapMatrices);
+    }
+    int nk = exciton.nk;
+    arma::vec rkx = exciton.kpoints.col(0);
+    arma::vec rky = exciton.kpoints.col(1);
+    arma::vec rkz = exciton.kpoints.col(2);
+
+    arma::mat eigval_sp = exciton.eigvalKStack;
+    arma::cx_cube eigvec_sp = exciton.eigvecKStack;
+
+    arma::cx_cube vme_ex = arma::zeros<arma::cx_cube>(3, norb_ex, 2);
+
+    std::complex<double>* vme = new std::complex<double>[3*nk*(nv + nc)*(nv + nc)];
+    bool convert_to_au = true;
+
+
+    exciton_oscillator_strength_(&nR, &norb, &norb_ex, &nv, &nc, &filling, 
+             Rvec.memptr(), R.memptr(), extendedMotif.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
+             rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr(), eigval_sp.memptr(), eigvec_sp.memptr(),
+             vme, vme_ex.memptr(), &convert_to_au);
+
+    return vme_ex.slice(0);
 }
 
 /**
