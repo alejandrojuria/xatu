@@ -48,6 +48,7 @@ class Result{
         double potentialEnergy(int);
         double bindingEnergy(int, double gap = -1);
         double determineGap();
+        arma::cx_vec spinX(const arma::cx_vec&);
         arma::cx_vec spinX(int);
         arma::mat velocity(int);
         arma::cx_vec velocitySingleParticle(int, int, int, std::string);

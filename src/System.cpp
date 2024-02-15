@@ -269,7 +269,7 @@ double System::expectedSpinZValue(const arma::cx_vec& eigvec){
 
 /**
  * Routine to calculate the expected value of the spin component Sy.
- * NB: Not correctly implemented yet (incorrect basis ordering).
+ * TODO: Not correctly implemented yet (incorrect basis ordering).
  * @param eigvec State.
  * @returns Expectation value of Sy.
  */
@@ -286,7 +286,7 @@ double System::expectedSpinYValue(const arma::cx_vec& eigvec){
 
 /**
  * Routine to calculate the expected value of the spin component Sx.
- * NB: Not correctly implemented yet (incorrect basis ordering).
+ * TODO: Not correctly implemented yet (incorrect basis ordering).
  * @param eigvec State.
  * @returns Expectation value of Sx.
  */
@@ -299,6 +299,67 @@ double System::expectedSpinXValue(const arma::cx_vec& eigvec){
 	operatorSx.submat(5,2, 7,4) = arma::eye<arma::cx_mat>(3,3);
 
 };
+
+/**
+ * Routine to calculate the velocity matrix element between two bands.
+ * @details This routine is intended to work with tight-binding systems only, and will produce
+ * incorrect results otherwise.
+ * TODO: Duplicity with velocitySingleParticle in the Result class, merge both routines.
+ * @param k kpoint where we want to evaluate the velocity.
+ * @param fBand Index of the first (row) band.
+ * @param sBand Index of the second (column) band.
+*/
+arma::cx_vec System::velocity(const arma::rowvec k, int fBand, int sBand) const {
+	arma::cx_mat h = hamiltonian(k);
+	arma::vec eigval;
+	arma::cx_mat eigvec;
+	arma::eig_sym(eigval, eigvec, h);
+
+	arma::cx_vec fBandEigvec = eigvec.col(fBand);
+	arma::cx_vec sBandEigvec = eigvec.col(sBand);
+
+    arma::cx_cube hkDerivative = arma::zeros<arma::cx_cube>(basisdim, basisdim, 3);
+    arma::cx_cube iHt = arma::zeros<arma::cx_cube>(basisdim, basisdim, 3);
+
+    std::complex<double> imag(0, 1);
+
+    // First compute Hk derivative
+    for (int j = 0; j < 3; j++){
+        for (int i = 0; i < ncells; i++){
+            arma::rowvec cell = unitCellList.row(i);
+            hkDerivative.slice(j) += hamiltonianMatrices.slice(i) * 
+                                     std::exp(imag*arma::dot(k, cell)) * cell(j) * imag;
+	    };
+    }
+
+    // Next compute iH(t-t') matrix
+    arma::cx_cube motifDifference = arma::zeros<arma::cx_cube>(basisdim, basisdim, 3);
+    arma::cx_mat extendedMotif = arma::zeros<arma::cx_mat>(basisdim, 3);
+    int currentIndex = 0;
+    for (int i = 0; i < natoms; i++){
+        int norbitals = orbitals(motif.row(i)(3));
+        extendedMotif.rows(currentIndex, currentIndex + norbitals - 1) = arma::kron(motif.row(i).subvec(0, 2),
+                                                                         arma::ones<arma::cx_vec>(norbitals));
+        currentIndex += norbitals;
+    }
+
+    arma::cx_mat blochHamiltonian = hamiltonian(k);
+    for (int j = 0; j < 3; j++){
+        motifDifference.slice(j) = arma::kron(extendedMotif.col(j), arma::ones<arma::cx_rowvec>(basisdim)) -
+                                   arma::kron(extendedMotif.col(j).t(), arma::ones<arma::cx_vec>(basisdim));
+        iHt.slice(j) = imag * blochHamiltonian % motifDifference.slice(j).t();
+    }
+
+    // Finally compute velocity matrix elements
+    arma::cx_vec velocityMatrixElement = arma::zeros<arma::cx_vec>(3);
+	for (int j = 0; j < 3; j++){
+		velocityMatrixElement(j) = arma::cdot(fBandEigvec, (hkDerivative.slice(j) + iHt.slice(j)) * sBandEigvec);
+	}
+
+    return velocityMatrixElement;
+};
+
+
 
 /**
  * Method to add a Zeeman term to the Hamiltonian. 

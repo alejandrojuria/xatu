@@ -587,10 +587,27 @@ std::complex<double> Exciton::exactInteractionTermMFT(const arma::cx_vec& coefsK
                                      const arma::cx_vec& coefsK4,
                                      const arma::cx_mat& motifFT){
     
-    arma::cx_vec firstCoefArray = arma::conj(coefsK1) % coefsK3;
+    arma::cx_vec firstCoefArray =  arma::conj(coefsK1) % coefsK3;
     arma::cx_vec secondCoefArray = arma::conj(coefsK2) % coefsK4;
-    std::complex<double> term = arma::dot(firstCoefArray, extendMotifFT(motifFT) * secondCoefArray);
-        
+    /* Old implementation; one below should be faster */
+    // std::complex<double> term = arma::dot(firstCoefArray, extendMotifFT(motifFT) * secondCoefArray);
+
+    /* Instead of extending the motifFT matrix, reduce the coefs vectors */
+    arma::cx_vec reducedFirstCoefArray = arma::zeros<arma::cx_vec>(natoms);
+    arma::cx_vec reducedSecondCoefArray = arma::zeros<arma::cx_vec>(natoms);
+
+    int iterator = 0;
+    for(unsigned int atom_index = 0; atom_index < this->motif.n_rows; atom_index++){
+        int norbitals = orbitals(motif.row(atom_index)(3));
+
+        reducedFirstCoefArray(atom_index) = arma::sum(firstCoefArray.subvec(iterator, iterator + norbitals - 1));
+        reducedSecondCoefArray(atom_index) = arma::sum(secondCoefArray.subvec(iterator, iterator + norbitals - 1));
+
+        iterator += norbitals;
+    }
+
+    std::complex<double> term = arma::dot(reducedFirstCoefArray, motifFT * reducedSecondCoefArray);
+
     return term;
 };
 
@@ -1351,19 +1368,12 @@ arma::rowvec Exciton::findElectronHolePair(const Exciton& targetExciton, double 
             eigval = eigval(targetExciton.bandList);
             vEnergy = eigval(0);
 
-            eigvec = fixGlobalPhase(eigvec);
-            eigvec = eigvec.cols(targetExciton.bandList);
-            auxCoefsK = eigvec.col(0);
-
             if(arma::norm(Q) != 0){
                 arma::rowvec kQ = k + Q;
                 targetExciton.solveBands(kQ, eigval, eigvec);
 
                 eigval = eigval(targetExciton.bandList);
-                eigvec = fixGlobalPhase(eigvec);
-                eigvec = eigvec.cols(targetExciton.bandList);
             }
-            auxCoefsKQ = eigvec.col(1);
             cEnergy = eigval(1);
 
             gap = cEnergy - vEnergy;
@@ -1371,18 +1381,12 @@ arma::rowvec Exciton::findElectronHolePair(const Exciton& targetExciton, double 
                 currentIndex = i;
                 currentEnergy = gap;
 
-                coefsK = auxCoefsK;
-                coefsKQ = auxCoefsKQ;
-
                 kmin = min_k * (1 - (currentIndex - 1)/n) + max_k * (currentIndex - 1)/n;
                 kmax = min_k * (1 - (currentIndex + 1)/n) + max_k * (currentIndex + 1)/n;
             }
             if (increasing && (gap > energy) && (prevGap <= energy)){
                 currentIndex = i;
                 currentEnergy = gap;
-
-                coefsK = auxCoefsK;
-                coefsKQ = auxCoefsKQ;
 
                 kmin = min_k * (1 - (currentIndex - 1)/n) + max_k * (currentIndex - 1)/n;
                 kmax = min_k * (1 - (currentIndex + 1)/n) + max_k * (currentIndex + 1)/n;
@@ -1403,25 +1407,6 @@ arma::rowvec Exciton::findElectronHolePair(const Exciton& targetExciton, double 
     }
 
     arma::cout << "k: " << k << arma::endl;
-
-    bool computeOccupations = false;
-    if (computeOccupations){
-        //////// Specific for Bi ribbon; must be deleted afterwards.
-        int N = targetExciton.basisdim;
-        double l_e_edge_occ = arma::norm(coefsKQ.subvec(0, 15));
-        double r_e_edge_occ = arma::norm(coefsKQ.subvec(N - 16, N - 1));
-        double l_h_edge_occ = arma::norm(coefsK.subvec(0, 15));
-        double r_h_edge_occ = arma::norm(coefsK.subvec(N - 16, N - 1));
-
-        std::cout << "left e occ.: " << l_e_edge_occ << "\nright e occ: " << r_e_edge_occ << std::endl;
-        std::cout << "Total e occ.: " << std::sqrt(l_e_edge_occ*l_e_edge_occ + r_e_edge_occ*r_e_edge_occ) << arma::endl;
-        std::cout << "--------------------------------------" << std::endl;
-        std::cout << "left h occ.: " << l_h_edge_occ << "\nright h occ: " << r_h_edge_occ << std::endl;
-        std::cout << "Total h occ.: " << std::sqrt(l_h_edge_occ*l_h_edge_occ + r_h_edge_occ*r_h_edge_occ) << arma::endl;
-        std::cout << "--------------------------------------" << std::endl;
-        std::cout << "Total e-h pair edge occu.: " << std::sqrt(l_e_edge_occ*l_e_edge_occ + r_e_edge_occ*r_e_edge_occ) + 
-                    std::sqrt(l_h_edge_occ*l_h_edge_occ + r_h_edge_occ*r_h_edge_occ) << std::endl;
-    }
 
     return k;
 };
@@ -1460,6 +1445,25 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
         eigvec = eigvec.cols(targetExciton.bandList);
     }
     coefsKQ = eigvec.col(1);
+
+    bool computeOccupations = true;
+    if (computeOccupations){
+        //////// Specific for Bi ribbon; must be deleted afterwards.
+        int N = targetExciton.basisdim;
+        double l_e_edge_occ = arma::norm(coefsKQ.subvec(0, 15));
+        double r_e_edge_occ = arma::norm(coefsKQ.subvec(N - 16, N - 1));
+        double l_h_edge_occ = arma::norm(coefsK.subvec(0, 15));
+        double r_h_edge_occ = arma::norm(coefsK.subvec(N - 16, N - 1));
+
+        std::cout << "left e occ.: " << l_e_edge_occ << "\nright e occ: " << r_e_edge_occ << std::endl;
+        std::cout << "Total e occ.: " << std::sqrt(l_e_edge_occ*l_e_edge_occ + r_e_edge_occ*r_e_edge_occ) << arma::endl;
+        std::cout << "--------------------------------------" << std::endl;
+        std::cout << "left h occ.: " << l_h_edge_occ << "\nright h occ: " << r_h_edge_occ << std::endl;
+        std::cout << "Total h occ.: " << std::sqrt(l_h_edge_occ*l_h_edge_occ + r_h_edge_occ*r_h_edge_occ) << arma::endl;
+        std::cout << "--------------------------------------" << std::endl;
+        std::cout << "Total e-h pair edge occu.: " << std::sqrt(l_e_edge_occ*l_e_edge_occ + r_e_edge_occ*r_e_edge_occ) + 
+                    std::sqrt(l_h_edge_occ*l_h_edge_occ + r_h_edge_occ*r_h_edge_occ) << std::endl;
+    }
     
     // Now compute motif FT using k of edge pair
     
@@ -1468,6 +1472,7 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
 
     arma::cx_cube ftMotifStack = arma::cx_cube(natoms, natoms, meshBZ_.n_rows);
     
+    #pragma omp parallel for collapse(2)
     for(int i = 0; i < nk; i++){
         for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
             for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
@@ -1481,7 +1486,7 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
     arma::cx_vec W = arma::zeros<arma::cx_vec>(initialBasis.n_rows);
 
     // -------- Main loop (W initialization) --------
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < initialBasis.n_rows; i++){
 
         arma::cx_vec coefsK2, coefsK2Q;
@@ -1522,6 +1527,7 @@ double Exciton::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx
     double hbar = 6.582119624E-16; // Units are eV*s
 
     transitionRate = (ncell*a)*2*PI*std::norm(arma::dot(W, initialState))*rho/hbar;
+
 
     return transitionRate;
 }
