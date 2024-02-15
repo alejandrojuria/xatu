@@ -77,7 +77,6 @@ int main(int argc, char* argv[]){
 
     // Init. configurations
     std::unique_ptr<xatu::SystemConfiguration> systemConfig;
-    std::unique_ptr<xatu::CrystalDFTConfiguration> systemDFTConfig; 
     std::unique_ptr<xatu::ExcitonConfiguration> excitonConfig;
 
     if (dftArg.isSet()){
@@ -213,13 +212,8 @@ int main(int argc, char* argv[]){
 
     bool writeAbs = absorptionArg.isSet();
     if(writeAbs){
-        std::string filename_abs = output + ".abs";
-        FILE* textfile_abs = fopen(filename_abs.c_str(), "w");
-
         std::cout << "Writing absorption spectrum fo file... " << std::endl;
         results.writeAbsorptionSpectrum();
-
-        fclose(textfile_abs);
     }
 
     bool writeSpin = spinArg.isSet();
