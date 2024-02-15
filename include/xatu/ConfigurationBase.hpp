@@ -42,6 +42,10 @@ class ConfigurationBase {
         void extractRawContent();
         virtual void parseContent() = 0;
         void checkArguments();
+        std::string standarizeLine(std::string&);
+        void printContent();
+        double parseFraction(std::string&);
+        void restartFileStream();
 
         /**
          * Template method to parse a line made of some values of type T into a vector
@@ -59,8 +63,6 @@ class ConfigurationBase {
             }
             return values;
         };
-
-        std::string standarizeLine(std::string&);
 
         /**
          * Template method to parse one line containing only one value of a type T.
@@ -86,11 +88,7 @@ class ConfigurationBase {
             }
             std::cout << std::endl;
         };
-
-        void printContent();
-        double parseFraction(std::string&);
-    
-        void restartFileStream(); 
+ 
 };
 
 }
