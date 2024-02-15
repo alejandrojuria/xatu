@@ -65,7 +65,9 @@ class System : public Crystal{
         
         double expectedSpinZValue(const arma::cx_vec&);
         double expectedSpinYValue(const arma::cx_vec&);
-        double expectedSpinXValue(const arma::cx_vec&);        
+        double expectedSpinXValue(const arma::cx_vec&);      
+
+        arma::cx_vec velocity(const arma::rowvec, int, int) const;  
     
         void initializeSystemAttributes(const SystemConfiguration&);
 
