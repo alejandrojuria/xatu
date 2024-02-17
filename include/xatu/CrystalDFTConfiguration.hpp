@@ -44,6 +44,6 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         void mapContent(bool debug = false);
 };
 
-}
-
 size_t split(const std::string&, std::vector<double>&);
+
+}
