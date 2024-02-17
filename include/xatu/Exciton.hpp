@@ -1,12 +1,10 @@
 #pragma once
-#include <armadillo>
 #include <complex>
 #include <omp.h>
 #include <stdlib.h>
 #include <memory>
 
-#include "System.hpp"
-#include "xatu/SystemConfiguration.hpp"
+#include "xatu/System.hpp"
 #include "xatu/ExcitonConfiguration.hpp"
 #include "xatu/Result.hpp"
 #include "xatu/forward_declaration.hpp"

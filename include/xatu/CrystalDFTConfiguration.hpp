@@ -1,5 +1,4 @@
 #pragma once
-#include <armadillo>
 #include "xatu/SystemConfiguration.hpp"
 
 

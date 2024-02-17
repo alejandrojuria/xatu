@@ -1,6 +1,7 @@
 #pragma once
-#include "xatu/ConfigurationBase.hpp"
 #include <armadillo>
+#include "xatu/ConfigurationBase.hpp"
+
 
 namespace xatu {
 
