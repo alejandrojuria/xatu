@@ -6,7 +6,7 @@ typedef std::vector<std::vector<std::vector<double>>> cube_vector;
 
 namespace xatu {
 
-class CrystalDFTConfiguration : public SystemConfiguration {
+class DFTConfiguration : public SystemConfiguration {
 
     public:
         int ndim, natoms, norbitals, nshells, nspecies;
@@ -27,18 +27,18 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         arma::cx_cube alphaMatrices, betaMatrices;
 
     public:
-        CrystalDFTConfiguration(std::string, int ncells = 20);
-        virtual ~CrystalDFTConfiguration(){};
+        DFTConfiguration(std::string, int ncells = 20);
+        virtual ~DFTConfiguration(){};
 
 
-        void parseContent(int, double threshold = 100.);
+        void parseContent(int);
 
     private:
-        void parseBravaisLattice(double);
+        void parseBravaisLattice();
         void parseAtoms();
         void parseAtomicBasis();
         arma::cx_mat parseMatrix();
-        void extractDimension(double);
+        void extractDimension();
 
         void mapContent(bool debug = false);
 };

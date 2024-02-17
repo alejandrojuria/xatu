@@ -1,5 +1,5 @@
 #pragma once
-#include "xatu/Crystal.hpp"
+#include "xatu/Lattice.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -13,7 +13,7 @@ namespace xatu {
  * The System class contains all information regarding the system where we want to compute
  * the exciton spectrum. It is defined as a sub-class of Crystal.
 */
-class System : public Crystal{
+class System : public Lattice{
     
     //// Attributes
     protected:

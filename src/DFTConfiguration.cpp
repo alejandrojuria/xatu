@@ -1,5 +1,5 @@
 #include <armadillo>
-#include "xatu/CrystalDFTConfiguration.hpp"
+#include "xatu/DFTConfiguration.hpp"
 #include <fstream>
 #include <algorithm>
 
@@ -9,7 +9,7 @@
 namespace xatu {
 
 /**
- * File constructor for CrystalDFTConfiguration. It extracts the relevant information
+ * File constructor for DFTConfiguration. It extracts the relevant information
  * from the file and stores it in an adequate format.
  * @details This class is intended to be used with .outp files from the CRYSTAL code.
  * Since orbitals in CRYSTAL extend over several unit cells, the Fock matrices that define the
@@ -18,7 +18,7 @@ namespace xatu {
  * @param file Name of the .outp from the CRYSTAL calculation.
  * @param ncells Number of unit cells to be read from the file.
  */
-CrystalDFTConfiguration::CrystalDFTConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
+DFTConfiguration::DFTConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
     parseContent(ncells);
     mapContent();
 }
@@ -31,7 +31,7 @@ CrystalDFTConfiguration::CrystalDFTConfiguration(std::string file, int ncells) :
  * @param ncells Number of unit cells to be parsed.
  * @return void
  */
-void CrystalDFTConfiguration::parseContent(int ncells){
+void DFTConfiguration::parseContent(int ncells){
     // Parse Crystal output file
 
     int countr = 0;
@@ -217,7 +217,7 @@ void CrystalDFTConfiguration::parseContent(int ncells){
  * Method to parse and format the Bravais basis vectors from the file. 
  * @return void
  */
-void CrystalDFTConfiguration::parseBravaisLattice(){
+void DFTConfiguration::parseBravaisLattice(){
     std::string line;
     std::vector<std::string> vectors;
     for(int i = 0; i < 3; i++){
@@ -232,7 +232,7 @@ void CrystalDFTConfiguration::parseBravaisLattice(){
  * Method to obtain the dimension (1D,2D,3D) of the system.
  * @return void 
  */
-void CrystalDFTConfiguration::extractDimension(){
+void DFTConfiguration::extractDimension(){
     arma::rowvec R0 = arma::zeros<arma::rowvec>(3);
     arma::rowvec R2 = {0.0, 500.0, 0.0};
     arma::rowvec R3 = {0.0, 0.0, 500.0}; 
@@ -252,7 +252,7 @@ void CrystalDFTConfiguration::extractDimension(){
  * Method to extract the motif, the chemical species and the number of shells per species.
  * @return void 
  */
-void CrystalDFTConfiguration::parseAtoms(){
+void DFTConfiguration::parseAtoms(){
     std::string line;
     int index, natom, nshells, nspecies = 0;
     double x, y, z;
@@ -291,7 +291,7 @@ void CrystalDFTConfiguration::parseAtoms(){
  * the corresponding coefficients of the gaussian expansion.
  * @return void 
  */
-void CrystalDFTConfiguration::parseAtomicBasis(){
+void DFTConfiguration::parseAtomicBasis(){
     std::string line, chemical_species;
     int norbitals, natom, totalOrbitals = 0, nspecies = 0;
     std::string shellType;
@@ -370,7 +370,7 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
  * Method to parse the Fock and overlap matrices from the input file.
  * @return void
  */
-arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
+arma::cx_mat DFTConfiguration::parseMatrix(){
     std::string line;
     arma::cx_mat matrix = arma::zeros<arma::cx_mat>(norbitals, norbitals);
     bool firstNonEmptyLineFound = false;
@@ -413,7 +413,7 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
  * Method to write all the extracted information into a struct.
  * @return void 
  */
-void CrystalDFTConfiguration::mapContent(bool debug){
+void DFTConfiguration::mapContent(bool debug){
 
     systemInfo.ndim           = ndim;
     systemInfo.bravaisLattice = bravaisLattice;
