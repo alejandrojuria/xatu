@@ -1,7 +1,4 @@
-#include <armadillo>
 #include "xatu/DFTConfiguration.hpp"
-#include <fstream>
-#include <algorithm>
 
 #define SOC_STRING "to_be_defined_for_crystal23"
 #define MAGNETIC_STRING "UNRESTRICTED OPEN SHELL"

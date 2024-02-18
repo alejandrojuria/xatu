@@ -3,7 +3,6 @@
 #include <omp.h>
 #include <stdlib.h>
 #include <memory>
-
 #include "xatu/System.hpp"
 #include "xatu/ExcitonConfiguration.hpp"
 #include "xatu/Result.hpp"

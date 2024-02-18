@@ -1,8 +1,6 @@
 #include <complex>
 #include <math.h>
 #include <stdlib.h>
-#include <iostream>
-
 #include "xatu/System.hpp"
 
 namespace xatu {

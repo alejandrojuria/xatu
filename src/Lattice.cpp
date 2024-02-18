@@ -1,5 +1,5 @@
-#include "xatu/Lattice.hpp"
 #include <numeric>
+#include "xatu/Lattice.hpp"
 
 namespace xatu {
 
