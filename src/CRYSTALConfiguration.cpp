@@ -1,4 +1,4 @@
-#include "xatu/DFTConfiguration.hpp"
+#include "xatu/CRYSTALConfiguration.hpp"
 
 #define SOC_STRING "to_be_defined_for_crystal23"
 #define MAGNETIC_STRING "UNRESTRICTED OPEN SHELL"
@@ -6,7 +6,7 @@
 namespace xatu {
 
 /**
- * File constructor for DFTConfiguration. It extracts the relevant information
+ * File constructor for CRYSTALConfiguration. It extracts the relevant information
  * from the file and stores it in an adequate format.
  * @details This class is intended to be used with .outp files from the CRYSTAL code.
  * Since orbitals in CRYSTAL extend over several unit cells, the Fock matrices that define the
@@ -15,7 +15,7 @@ namespace xatu {
  * @param file Name of the .outp from the CRYSTAL calculation.
  * @param ncells Number of unit cells to be read from the file.
  */
-DFTConfiguration::DFTConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
+CRYSTALConfiguration::CRYSTALConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
     parseContent(ncells);
     mapContent();
 }
@@ -28,7 +28,7 @@ DFTConfiguration::DFTConfiguration(std::string file, int ncells) : Configuration
  * @param ncells Number of unit cells to be parsed.
  * @return void
  */
-void DFTConfiguration::parseContent(int ncells){
+void CRYSTALConfiguration::parseContent(int ncells){
     // Parse Crystal output file
 
     int countr = 0;
@@ -205,7 +205,7 @@ void DFTConfiguration::parseContent(int ncells){
         }
     }    
     if (countr==0){
-    int ndim = 0;
+    ndim = 0;
     throw std::logic_error("Finite systems are not yet implemented");
     } 
 }
@@ -214,7 +214,7 @@ void DFTConfiguration::parseContent(int ncells){
  * Method to parse and format the Bravais basis vectors from the file. 
  * @return void
  */
-void DFTConfiguration::parseBravaisLattice(){
+void CRYSTALConfiguration::parseBravaisLattice(){
     std::string line;
     std::vector<std::string> vectors;
     for(int i = 0; i < 3; i++){
@@ -229,7 +229,7 @@ void DFTConfiguration::parseBravaisLattice(){
  * Method to obtain the dimension (1D,2D,3D) of the system.
  * @return void 
  */
-void DFTConfiguration::extractDimension(){
+void CRYSTALConfiguration::extractDimension(){
     arma::rowvec R0 = arma::zeros<arma::rowvec>(3);
     arma::rowvec R2 = {0.0, 500.0, 0.0};
     arma::rowvec R3 = {0.0, 0.0, 500.0}; 
@@ -249,9 +249,9 @@ void DFTConfiguration::extractDimension(){
  * Method to extract the motif, the chemical species and the number of shells per species.
  * @return void 
  */
-void DFTConfiguration::parseAtoms(){
+void CRYSTALConfiguration::parseAtoms(){
     std::string line;
-    int index, natom, nshells, nspecies = 0;
+    int index, atomic_number, nshells, nspecies = 0;
     double x, y, z;
     std::string chemical_species;
     std::vector<int> shellsPerSpecies;
@@ -264,7 +264,7 @@ void DFTConfiguration::parseAtoms(){
     for(int i = 0; i < natoms; i++){
         std::getline(m_file, line);
         std::istringstream iss(line);
-        iss >> index >> natom >> chemical_species >> nshells >> x >> y >> z;
+        iss >> index >> atomic_number >> chemical_species >> nshells >> x >> y >> z;
 
         if(std::find(species.begin(), species.end(), chemical_species) == species.end()){
             species.push_back(chemical_species);
@@ -288,7 +288,7 @@ void DFTConfiguration::parseAtoms(){
  * the corresponding coefficients of the gaussian expansion.
  * @return void 
  */
-void DFTConfiguration::parseAtomicBasis(){
+void CRYSTALConfiguration::parseAtomicBasis(){
     std::string line, chemical_species;
     int norbitals, natom, totalOrbitals = 0, nspecies = 0;
     std::string shellType;
@@ -367,7 +367,7 @@ void DFTConfiguration::parseAtomicBasis(){
  * Method to parse the Fock and overlap matrices from the input file.
  * @return void
  */
-arma::cx_mat DFTConfiguration::parseMatrix(){
+arma::cx_mat CRYSTALConfiguration::parseMatrix(){
     std::string line;
     arma::cx_mat matrix = arma::zeros<arma::cx_mat>(norbitals, norbitals);
     bool firstNonEmptyLineFound = false;
@@ -410,7 +410,7 @@ arma::cx_mat DFTConfiguration::parseMatrix(){
  * Method to write all the extracted information into a struct.
  * @return void 
  */
-void DFTConfiguration::mapContent(bool debug){
+void CRYSTALConfiguration::mapContent(bool debug){
 
     systemInfo.ndim           = ndim;
     systemInfo.bravaisLattice = bravaisLattice;

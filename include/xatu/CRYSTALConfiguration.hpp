@@ -6,7 +6,7 @@ typedef std::vector<std::vector<std::vector<double>>> cube_vector;
 
 namespace xatu {
 
-class DFTConfiguration : public SystemConfiguration {
+class CRYSTALConfiguration : public SystemConfiguration {
 
     public:
         int ndim, natoms, norbitals, nshells, nspecies;
@@ -27,8 +27,8 @@ class DFTConfiguration : public SystemConfiguration {
         arma::cx_cube alphaMatrices, betaMatrices;
 
     public:
-        DFTConfiguration(std::string, int ncells = 20);
-        virtual ~DFTConfiguration(){};
+        CRYSTALConfiguration(std::string, int ncells = 20);
+        virtual ~CRYSTALConfiguration(){};
 
 
         void parseContent(int);
