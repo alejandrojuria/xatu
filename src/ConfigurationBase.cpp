@@ -23,12 +23,12 @@ ConfigurationBase::ConfigurationBase(){
  */
 ConfigurationBase::ConfigurationBase(std::string file) : filename(file){
     if(file.empty()){
-        throw std::invalid_argument("ConfigurationBase: Filename must not be empty");
+        throw std::invalid_argument("ConfigurationBase: file must not be empty");
     }
     
     m_file.open(file.c_str());
     if(!m_file.is_open()){
-        throw std::invalid_argument("ConfigurationBase: File does not exist");
+        throw std::invalid_argument("ConfigurationBase: file does not exist");
     }
 };
 
