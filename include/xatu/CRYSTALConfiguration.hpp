@@ -9,7 +9,7 @@ namespace xatu {
 class CRYSTALConfiguration : public SystemConfiguration {
 
     public:
-        int ndim, natoms, norbitals, nshells, nspecies;
+        int ndim, natoms, norbitals, nsh, nspecies;
         int totalElectrons, coreElectrons;
         bool SOC_FLAG = false;
         bool MAGNETIC_FLAG = false;
@@ -19,7 +19,7 @@ class CRYSTALConfiguration : public SystemConfiguration {
         
         std::vector<int> shellsPerSpecies;
         std::vector<int> orbitalsPerSpecies;
-        std::map<int, std::vector<std::string>> shellTypesPerSpecies;
+//        std::map<int, std::vector<std::string>> shellTypesPerSpecies;
         std::map<int, cube_vector> gaussianCoefficients;
 
         arma::mat bravaisVectors;
@@ -28,7 +28,8 @@ class CRYSTALConfiguration : public SystemConfiguration {
 
     public:
         CRYSTALConfiguration(std::string, int ncells = 20);
-        virtual ~CRYSTALConfiguration(){};
+//        virtual ~CRYSTALConfiguration(){};
+        CRYSTALConfiguration();
 
 
         void parseContent(int);
@@ -39,8 +40,10 @@ class CRYSTALConfiguration : public SystemConfiguration {
         void parseAtomicBasis();
         arma::cx_mat parseMatrix();
         void extractDimension();
-
+    
+    protected:
         void mapContent(bool debug = false);
+        
 };
 
 size_t split(const std::string&, std::vector<double>&);

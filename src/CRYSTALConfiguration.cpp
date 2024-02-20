@@ -12,8 +12,8 @@ namespace xatu {
  * Since orbitals in CRYSTAL extend over several unit cells, the Fock matrices that define the
  * Hamiltonian also cover several unit cells. Therefore, one can specify how many unit cells to take
  * for the actual exciton calculation. 
- * @param file Name of the .outp from the CRYSTAL calculation.
- * @param ncells Number of unit cells to be read from the file.
+ * @param file Name of the .outp from the CRYSTAL SCF calculation.
+ * @param ncells Number of unit cells for which the Hamiltonian and overlap matrices are read from file.
  */
 CRYSTALConfiguration::CRYSTALConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
     parseContent(ncells);
@@ -60,9 +60,9 @@ void CRYSTALConfiguration::parseContent(int ncells){
             int strsize = strlen("NUMBER OF SHELLS");
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
-            iss >> nshells;
+            iss >> nsh;
             
-            // arma::cout << "N. shells: " << nshells << arma::endl;
+            // arma::cout << "N. shells: " << nsh << arma::endl;
         }
 
         // N. orbitals (total)
@@ -113,23 +113,23 @@ void CRYSTALConfiguration::parseContent(int ncells){
 
         // Parse atomic basis info
         else if(line.find("LOCAL ATOMIC FUNCTIONS BASIS SET") != std::string::npos){
-            parseAtomicBasis();
+        parseAtomicBasis();
             
-            //printVector(orbitalsPerSpecies);
-            // for(auto const& [key, cube_vec]: gaussianCoefficients){
-            //     for (int i = 0; i < cube_vec.size(); i++){
-            //         auto coefs = cube_vec[i];
-            //         for (int j = 0; j < coefs.size(); j++){
-            //             printVector(coefs[j]);
-            //         }
-            //     }
-            // }
-            // for(auto const& [key, val]: shellTypesPerSpecies){
-            //     arma::cout << key << arma::endl;
-            //     for(int i = 0; i < val.size(); i++){
-            //         arma::cout << val[i] << arma::endl;
-            //     }
-            // }
+        //     printVector(orbitalsPerSpecies);
+        //     for(auto const& [key, cube_vec]: gaussianCoefficients){
+        //         for (int i = 0; i < cube_vec.size(); i++){
+        //             auto coefs = cube_vec[i];
+        //             for (int j = 0; j < coefs.size(); j++){
+        //                 printVector(coefs[j]);
+        //             }
+        //         }
+        //     }
+        //     for(auto const& [key, val]: shellTypesPerSpecies){
+        //         arma::cout << key << arma::endl;
+        //         for(int i = 0; i < val.size(); i++){
+        //             arma::cout << val[i] << arma::endl;
+        //         }
+        //     }
         }
 
         else if(line.find("OVERLAP MATRIX") != std::string::npos){
@@ -251,7 +251,7 @@ void CRYSTALConfiguration::extractDimension(){
  */
 void CRYSTALConfiguration::parseAtoms(){
     std::string line;
-    int index, atomic_number, nshells, nspecies = 0;
+    int index, atomic_number, nsh, nspecies = 0;
     double x, y, z;
     std::string chemical_species;
     std::vector<int> shellsPerSpecies;
@@ -264,11 +264,11 @@ void CRYSTALConfiguration::parseAtoms(){
     for(int i = 0; i < natoms; i++){
         std::getline(m_file, line);
         std::istringstream iss(line);
-        iss >> index >> atomic_number >> chemical_species >> nshells >> x >> y >> z;
+        iss >> index >> atomic_number >> chemical_species >> nsh >> x >> y >> z;
 
         if(std::find(species.begin(), species.end(), chemical_species) == species.end()){
             species.push_back(chemical_species);
-            shellsPerSpecies.push_back(nshells);
+            shellsPerSpecies.push_back(nsh);
             chemical_species_to_index[chemical_species] = chemical_species_to_index.size();
             nspecies++;
         }
@@ -291,8 +291,8 @@ void CRYSTALConfiguration::parseAtoms(){
 void CRYSTALConfiguration::parseAtomicBasis(){
     std::string line, chemical_species;
     int norbitals, natom, totalOrbitals = 0, nspecies = 0;
-    std::string shellType;
-    std::vector<std::string> shellTypes;
+//    std::string shellType;
+//    std::vector<std::string> shellTypes;
     double exponent, sCoef, pCoef, dCoef;
     std::vector<double> coefs;
     cube_vector gaussianCoefficients;
@@ -318,19 +318,19 @@ void CRYSTALConfiguration::parseAtomicBasis(){
         }
 
         gaussianCoefficients.clear();
-        shellTypes.clear();
+//        shellTypes.clear();
 
         for(int shellIndex = 0; shellIndex < shellsPerSpecies[nspecies]; shellIndex++){
 
             std::getline(m_file, line);
             std::istringstream iss(line);
             
-            iss >> norbitals >> shellType;
-            if(shellType == "-"){
-                iss >> norbitals >> shellType;
-            }
+//            iss >> norbitals >> shellType;
+//            if(shellType == "-"){
+//                iss >> norbitals >> shellType;
+//            }
 
-            shellTypes.push_back(shellType);
+//            shellTypes.push_back(shellType);
 
             std::vector<std::vector<double>> coefList;
             long int previousLine = m_file.tellg(); // Store beginning of next line
@@ -357,7 +357,7 @@ void CRYSTALConfiguration::parseAtomicBasis(){
         this->orbitalsPerSpecies.push_back(norbitals - totalOrbitals);
         totalOrbitals = norbitals;
 
-        this->shellTypesPerSpecies[nspecies] = shellTypes;
+//        this->shellTypesPerSpecies[nspecies] = shellTypes;
         nspecies++;
     }
 
