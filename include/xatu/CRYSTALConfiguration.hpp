@@ -19,7 +19,7 @@ class CRYSTALConfiguration : public SystemConfiguration {
         
         std::vector<int> shellsPerSpecies;
         std::vector<int> orbitalsPerSpecies;
-//        std::map<int, std::vector<std::string>> shellTypesPerSpecies;
+        // std::map<int, std::vector<std::string>> shellTypesPerSpecies;
         std::map<int, cube_vector> gaussianCoefficients;
 
         arma::mat bravaisVectors;
@@ -28,8 +28,7 @@ class CRYSTALConfiguration : public SystemConfiguration {
 
     public:
         CRYSTALConfiguration(std::string, int ncells = 20);
-//        virtual ~CRYSTALConfiguration(){};
-        CRYSTALConfiguration();
+        ~CRYSTALConfiguration(){};
 
 
         void parseContent(int);

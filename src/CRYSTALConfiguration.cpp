@@ -38,9 +38,6 @@ void CRYSTALConfiguration::parseContent(int ncells){
         if (line.find("DIRECT LATTICE VECTOR COMPONENTS (ANGSTROM)") != std::string::npos){
             parseBravaisLattice();
             countr++;
-            
-            // arma::cout << "Bravais lattice: " << arma::endl;
-            // arma::cout << bravaisLattice << arma::endl;
         }
 
         // Motif
@@ -50,8 +47,6 @@ void CRYSTALConfiguration::parseContent(int ncells){
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
             iss >> natoms;
-            
-            // arma::cout << "N. atoms per cell: " << natoms << arma::endl;
         }
 
         // N. shells (total)
@@ -61,8 +56,6 @@ void CRYSTALConfiguration::parseContent(int ncells){
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
             iss >> nsh;
-            
-            // arma::cout << "N. shells: " << nsh << arma::endl;
         }
 
         // N. orbitals (total)
@@ -71,9 +64,7 @@ void CRYSTALConfiguration::parseContent(int ncells){
             int strsize = strlen("NUMBER OF AO");
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
-            iss >> norbitals;
-            
-            // arma::cout << "N. orbitals: " << norbitals << arma::endl;
+            iss >> norbitals;            
         }
 
         // N. electrons
@@ -83,8 +74,6 @@ void CRYSTALConfiguration::parseContent(int ncells){
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
             iss >> totalElectrons;
-
-            //arma::cout << "N. electrons per cell: " << totalElectrons << arma::endl;
         }
 
         // N. core electrons
@@ -94,8 +83,6 @@ void CRYSTALConfiguration::parseContent(int ncells){
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
             iss >> coreElectrons;
-
-            // arma::cout << "N. core electrons per cell: " << coreElectrons << arma::endl;
         }
 
         // 
@@ -104,32 +91,11 @@ void CRYSTALConfiguration::parseContent(int ncells){
                 throw std::logic_error("Must parse first number of atoms");
             }
             parseAtoms();
-
-            // arma::cout << "Motif: " << arma::endl;
-            // arma::cout << motif << arma::endl;
-            // printVector(shellsPerSpecies);
-            // arma::cout << "N. species: " << nspecies << arma::endl;
         }
 
         // Parse atomic basis info
         else if(line.find("LOCAL ATOMIC FUNCTIONS BASIS SET") != std::string::npos){
-        parseAtomicBasis();
-            
-        //     printVector(orbitalsPerSpecies);
-        //     for(auto const& [key, cube_vec]: gaussianCoefficients){
-        //         for (int i = 0; i < cube_vec.size(); i++){
-        //             auto coefs = cube_vec[i];
-        //             for (int j = 0; j < coefs.size(); j++){
-        //                 printVector(coefs[j]);
-        //             }
-        //         }
-        //     }
-        //     for(auto const& [key, val]: shellTypesPerSpecies){
-        //         arma::cout << key << arma::endl;
-        //         for(int i = 0; i < val.size(); i++){
-        //             arma::cout << val[i] << arma::endl;
-        //         }
-        //     }
+            parseAtomicBasis();
         }
 
         else if(line.find("OVERLAP MATRIX") != std::string::npos){
@@ -153,7 +119,6 @@ void CRYSTALConfiguration::parseContent(int ncells){
 
                 arma::cx_mat overlapMatrix = parseMatrix();
                 this->overlapMatrices = arma::join_slices(this->overlapMatrices, overlapMatrix);
-                // arma::cout << overlapMatrix(91, 90) << arma::endl;
             }
         }
 
@@ -197,16 +162,13 @@ void CRYSTALConfiguration::parseContent(int ncells){
                 else{
                     this->fockMatrices = arma::join_slices(this->fockMatrices, fockMatrix);
                 }
-                
-                //arma::cout << "Ncell: " << cellIndex << arma::endl;
-                //arma::cout << "Cell combi:" << x << " " << y << " " << z << arma::endl;
-                //arma::cout << fockMatrix << arma::endl;
             }
         }
     }    
+
     if (countr==0){
-    ndim = 0;
-    throw std::logic_error("Finite systems are not yet implemented");
+        ndim = 0;
+        throw std::logic_error("Finite systems are not yet implemented");
     } 
 }
 
@@ -291,8 +253,8 @@ void CRYSTALConfiguration::parseAtoms(){
 void CRYSTALConfiguration::parseAtomicBasis(){
     std::string line, chemical_species;
     int norbitals, natom, totalOrbitals = 0, nspecies = 0;
-//    std::string shellType;
-//    std::vector<std::string> shellTypes;
+    std::string shellType;
+    // std::vector<std::string> shellTypes;
     double exponent, sCoef, pCoef, dCoef;
     std::vector<double> coefs;
     cube_vector gaussianCoefficients;
@@ -318,19 +280,19 @@ void CRYSTALConfiguration::parseAtomicBasis(){
         }
 
         gaussianCoefficients.clear();
-//        shellTypes.clear();
+        // shellTypes.clear();
 
         for(int shellIndex = 0; shellIndex < shellsPerSpecies[nspecies]; shellIndex++){
 
             std::getline(m_file, line);
             std::istringstream iss(line);
             
-//            iss >> norbitals >> shellType;
-//            if(shellType == "-"){
-//                iss >> norbitals >> shellType;
-//            }
+            iss >> norbitals >> shellType;
+            if(shellType == "-"){
+                iss >> norbitals >> shellType;
+            }
 
-//            shellTypes.push_back(shellType);
+            // shellTypes.push_back(shellType);
 
             std::vector<std::vector<double>> coefList;
             long int previousLine = m_file.tellg(); // Store beginning of next line
@@ -357,7 +319,7 @@ void CRYSTALConfiguration::parseAtomicBasis(){
         this->orbitalsPerSpecies.push_back(norbitals - totalOrbitals);
         totalOrbitals = norbitals;
 
-//        this->shellTypesPerSpecies[nspecies] = shellTypes;
+        // this->shellTypesPerSpecies[nspecies] = shellTypes;
         nspecies++;
     }
 
@@ -475,8 +437,6 @@ void CRYSTALConfiguration::mapContent(bool debug){
         std::cout << systemInfo.overlap << "\n" << std::endl;
     }
 }
-    
-}
 
 /**
  * Auxiliary routine to split a numeric string and get the corresponding length.
@@ -496,3 +456,7 @@ size_t split(const std::string &txt, std::vector<double> &strs)
 
     return size;
 }
+    
+}
+
+
