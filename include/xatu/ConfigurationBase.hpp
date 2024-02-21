@@ -36,6 +36,7 @@ class ConfigurationBase {
     protected:
         ConfigurationBase();
         ConfigurationBase(std::string);
+        virtual ~ConfigurationBase(){};
 
         std::string parseArgument(std::string);
         void extractArguments();

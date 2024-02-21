@@ -39,7 +39,7 @@ class SystemConfiguration : public virtual ConfigurationBase {
         SystemConfiguration();
     public:
         SystemConfiguration(std::string);
-        virtual ~SystemConfiguration() = default;
+        ~SystemConfiguration(){};
 
         void printConfiguration(std::ostream& stream = std::cout) const;
         friend std::ostream& operator<< (std::ostream&, const SystemConfiguration&);

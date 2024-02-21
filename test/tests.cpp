@@ -21,7 +21,7 @@ TEST_CASE("Modelfile parsing", "[model_parsing]"){
     std::cout << std::setw(40) << std::left << "Testing model file parsing... ";
     std::cout.setstate(std::ios_base::failbit);
     
-    std::string modelfile = "../models/hBN.model";    
+    std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     int expectedFilling = 1;
@@ -66,8 +66,8 @@ TEST_CASE("CRYSTAL file parsing", "[CRYSTAL_parsing]"){
     std::cout << std::setw(40) << std::left << "Testing CRYSTAL file parsing... ";
     std::cout.setstate(std::ios_base::failbit);
 
-    std::string modelfile = "../models/DFT/hBN_base_HSE06.outp";
-    xatu::CrystalDFTConfiguration config = xatu::CrystalDFTConfiguration(modelfile);
+    std::string modelfile = "../examples/material_models/DFT/hBN_base_HSE06.outp";
+    xatu::CRYSTALConfiguration config = xatu::CRYSTALConfiguration(modelfile);
 
     int expectedFilling = 6;
     int expectedDim = 2;
@@ -156,7 +156,7 @@ TEST_CASE("TB hBN energies (full diagonalization)", "[tb-hBN-fulldiag]"){
     int ncell = 20;
     int nstates = 3;
 
-    std::string modelfile = "../models/hBN.model";    
+    std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
@@ -188,7 +188,7 @@ TEST_CASE("TB hBN energies (davidson)", "[tb-hBN-davidson]"){
     int ncell = 20;
     int nstates = 3;
 
-    std::string modelfile = "../models/hBN.model";    
+    std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
@@ -220,7 +220,7 @@ TEST_CASE("TB hBN energies (Lanczos)", "[hBN-lanczos]"){
     int ncell = 20;
     int nstates = 3;
 
-    std::string modelfile = "../models/hBN.model";    
+    std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
@@ -252,7 +252,7 @@ TEST_CASE("TB hBN energies (reciprocal)", "[tb-hBN-reciprocal]"){
     int ncell = 20;
     int nstates = 3;
 
-    std::string modelfile = "../models/hBN.model";    
+    std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
@@ -287,7 +287,7 @@ TEST_CASE("TB hBN reciprocal w.f.", "[tb-hBN-kwf]"){
     int ncell = 20;
     int nstates = 2;
 
-    std::string modelfile = "../models/hBN.model";    
+    std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
@@ -331,7 +331,7 @@ TEST_CASE("TB hBN real-space w.f.", "[tb-hBN-rswf]"){
     int holeIndex = 1;
     arma::rowvec holeCell = {0, 0, 0};
 
-    std::string modelfile = "../models/hBN.model";    
+    std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
@@ -377,7 +377,7 @@ TEST_CASE("TB hBN absorption", "[tb-hBN-kubo]"){
     int ncell = 20;
     int nstates = 2;
 
-    std::string modelfile = "../models/hBN.model";    
+    std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
@@ -407,7 +407,7 @@ TEST_CASE("TB hBN energies (spinful)", "[tb-hBN-spinful]"){
     int ncell = 20;
     int nstates = 12;
 
-    std::string modelfile = "../models/hBN_spinful.model";    
+    std::string modelfile = "../examples/material_models/hBN_spinful.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1, 1, 10});
@@ -439,7 +439,7 @@ TEST_CASE("TB hBN spin", "[tb-hBN-spin]"){
     int ncell = 16;
     int nstates = 4;
 
-    std::string modelfile = "../models/hBN_spinful.model";    
+    std::string modelfile = "../examples/material_models/hBN_spinful.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1, 1, 10});
@@ -475,8 +475,8 @@ TEST_CASE("DFT hBN", "[dft-hBN]"){
     int holeIndex = 1;
     arma::rowvec holeCell = {0, 0, 0};
 
-    std::string modelfile = "../models/DFT/hBN_base_HSE06.outp";
-    xatu::CrystalDFTConfiguration config = xatu::CrystalDFTConfiguration(modelfile, 100);
+    std::string modelfile = "../examples/material_models/DFT/hBN_base_HSE06.outp";
+    xatu::CRYSTALConfiguration config = xatu::CRYSTALConfiguration(modelfile, 100);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
 
@@ -552,7 +552,7 @@ TEST_CASE("MoS2 energies", "[MoS2-energies]"){
     int ncell = 12;
     int nstates = 2;
 
-    std::string modelfile = "../models/MoS2.model";    
+    std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
@@ -584,7 +584,7 @@ TEST_CASE("MoS2 reciprocal w.f.", "[MoS2-kwf]"){
     int ncell = 12;
     int nstates = 2;
 
-    std::string modelfile = "../models/MoS2.model";    
+    std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
@@ -627,7 +627,7 @@ TEST_CASE("MoS2 spin", "[MoS2-spin]"){
     int nstates = 4;
     int factor = 2;
 
-    std::string modelfile = "../models/MoS2.model";    
+    std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
@@ -665,7 +665,7 @@ TEST_CASE("MoS2 exciton bands", "[MoS2-Q]"){
     int ncell = 12;
     int nstates = 2;
 
-    std::string modelfile = "../models/MoS2.model";    
+    std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
     
     arma::vec Q_values = {-0.1, -0.05, 0.0, 0.05, 0.1};
@@ -710,7 +710,7 @@ TEST_CASE("MoS2 exchange", "[MoS2-exchange]"){
     int nstates = 4;
     arma::rowvec Q = {0., 0.1, 0.};
 
-    std::string modelfile = "../models/MoS2.model";    
+    std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55}, Q);
@@ -745,7 +745,7 @@ TEST_CASE("MoS2 reduced BZ", "[MoS2-reducedBZ]"){
     int nstates = 4;
     int factor = 2;
 
-    std::string modelfile = "../models/MoS2.model";    
+    std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
@@ -781,7 +781,7 @@ TEST_CASE("MoS2 absorption", "[MoS2-kubo]"){
     int ncell = 12;
     int nstates = 2;
 
-    std::string modelfile = "../models/MoS2.model";    
+    std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
     xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
