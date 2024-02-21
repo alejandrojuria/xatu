@@ -11,7 +11,8 @@ namespace xatu {
  * CRYSTAL code (see CRYSTALConfiguration.cpp for details on the latter). The former must be given in CRYSTAL 
  * format and contain both the basis employed in the self-consistent DFT calculation (under a line with the 
  * string: SCF BASIS) in addition to a larger auxiliary basis employed for fitting the density (under a line 
- * with the string: AUXILIARY BASIS).
+ * with the string: AUXILIARY BASIS). The initial occupancies have no impact. Pseudo-potentials are ignored, 
+ * but it is advisable to be consistent with the PP choices in the self-consistency.
  * @param bases_file Name of the file containing both Gaussian basis sets.
  * @param file Name of the .outp from the CRYSTAL SCF calculation.
  * @param ncells Number of unit cells for which the Hamiltonian and overlap matrices are read from file.
@@ -54,6 +55,10 @@ void GTFConfiguration::parseBases(){
 void GTFConfiguration::parseBasis(bool basis_id){
     cube_vector shells_all_species;
     std::vector<std::vector<int>> L_all_species; 
+    for (int s = 0; s < nspecies; s++){ //initialize the first dimension with empty entries, so that they can be reordered later
+        shells_all_species.push_back({});
+        L_all_species.push_back({});
+    }
     int atomic_number, nshells;
     for (int s = 0; s < nspecies; s++){
         std::vector<std::vector<double>> shells_in_species; //vector assigning the vector of contracted GTF to each shell
@@ -66,6 +71,22 @@ void GTFConfiguration::parseBasis(bool basis_id){
         std::getline(b_file, line1);
         std::istringstream iss(line1);
         iss >> atomic_number >> nshells;
+
+        int itr_order;
+        std::vector<int>::iterator itr = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number);
+        if(itr == atomic_number_ordering.end()){ //reorder the species within the bases file to match the ordering in the .outp
+            std::vector<int>::iterator itr1 = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number + 200);
+            std::vector<int>::iterator itr2 = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number % 200);
+            if(itr1 == atomic_number_ordering.end() && itr2 == atomic_number_ordering.end()){ //check if it was a PP mismatch
+                 throw std::logic_error("The atomic numbers in the basis sets file don't match those of the DFT calculation");
+            } else if(itr1 != atomic_number_ordering.end()){
+                 int itr_order = itr1 - atomic_number_ordering.begin();
+            } else {
+                 int itr_order = itr2 - atomic_number_ordering.begin();
+            }
+        } else {
+            int itr_order = itr - atomic_number_ordering.begin(); 
+        }
 
         if (atomic_number > 200){          //skip pseudo-potential
             std::getline(b_file, line1);
@@ -119,10 +140,10 @@ void GTFConfiguration::parseBasis(bool basis_id){
             }
         }
 
-        L_all_species.push_back(L_in_species);
-        shells_all_species.push_back(shells_in_species);
+        L_all_species[itr_order] = L_in_species;
+        shells_all_species[itr_order] = shells_in_species;
     }
-    if(basis_id == true){
+    if(basis_id){ //basis_id == true => SCF basis; basis_id == false => auxiliary basis
         this->L_all_species_SCF = L_all_species;
         this->shells_all_species_SCF = shells_all_species;
     } else {
