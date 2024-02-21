@@ -17,6 +17,7 @@ class CRYSTALConfiguration : public SystemConfiguration {
         
         arma::mat motif, bravaisLattice;
         
+        std::vector<int> atomic_number_ordering;
         std::vector<int> shellsPerSpecies;
         std::vector<int> orbitalsPerSpecies;
         // std::map<int, std::vector<std::string>> shellTypesPerSpecies;

@@ -216,7 +216,7 @@ void CRYSTALConfiguration::parseAtoms(){
     int index, atomic_number, nsh, nspecies = 0;
     double x, y, z;
     std::string chemical_species;
-    std::vector<int> shellsPerSpecies;
+    std::vector<int> shellsPerSpecies, atomic_number_ordering;
     std::vector<double> atom;
     std::map<std::string, int> chemical_species_to_index;
     std::vector<std::string> species;
@@ -232,6 +232,7 @@ void CRYSTALConfiguration::parseAtoms(){
             species.push_back(chemical_species);
             shellsPerSpecies.push_back(nsh);
             chemical_species_to_index[chemical_species] = chemical_species_to_index.size();
+            atomic_number_ordering.push_back(atomic_number);
             nspecies++;
         }
 
@@ -241,6 +242,7 @@ void CRYSTALConfiguration::parseAtoms(){
     }
     this->motif = motif;
     this->shellsPerSpecies = shellsPerSpecies;
+    this->atomic_number_ordering = atomic_number_ordering;
     this->nspecies = nspecies;
 }
 
