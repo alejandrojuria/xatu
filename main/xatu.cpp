@@ -1,13 +1,6 @@
-#include <iostream>
-#include <fstream>
-#include <armadillo>
-#include <complex>
 #include <math.h>
-#include <stdlib.h>
-#include <string>
 #include <chrono>
 #include <iomanip>
-
 #include <tclap/CmdLine.h>
 #include <xatu.hpp>
 
@@ -80,7 +73,7 @@ int main(int argc, char* argv[]){
     std::unique_ptr<xatu::ExcitonConfiguration> excitonConfig;
 
     if (dftArg.isSet()){
-        systemConfig.reset(new xatu::CrystalDFTConfiguration(systemfile, ncells));
+        systemConfig.reset(new xatu::CRYSTALConfiguration(systemfile, ncells));
     }
     else{
         systemConfig.reset(new xatu::SystemConfiguration(systemfile));
