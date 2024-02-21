@@ -1,5 +1,4 @@
 #pragma once
-#include <armadillo>
 #include "xatu/SystemConfiguration.hpp"
 
 
@@ -7,10 +6,10 @@ typedef std::vector<std::vector<std::vector<double>>> cube_vector;
 
 namespace xatu {
 
-class CrystalDFTConfiguration : public SystemConfiguration {
+class CRYSTALConfiguration : public SystemConfiguration {
 
     public:
-        int ndim, natoms, norbitals, nshells, nspecies;
+        int ndim, natoms, norbitals, nsh, nspecies;
         int totalElectrons, coreElectrons;
         bool SOC_FLAG = false;
         bool MAGNETIC_FLAG = false;
@@ -20,7 +19,7 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         
         std::vector<int> shellsPerSpecies;
         std::vector<int> orbitalsPerSpecies;
-        std::map<int, std::vector<std::string>> shellTypesPerSpecies;
+//        std::map<int, std::vector<std::string>> shellTypesPerSpecies;
         std::map<int, cube_vector> gaussianCoefficients;
 
         arma::mat bravaisVectors;
@@ -28,22 +27,25 @@ class CrystalDFTConfiguration : public SystemConfiguration {
         arma::cx_cube alphaMatrices, betaMatrices;
 
     public:
-        CrystalDFTConfiguration(std::string, int ncells = 20);
-        virtual ~CrystalDFTConfiguration(){};
+        CRYSTALConfiguration(std::string, int ncells = 20);
+//        virtual ~CRYSTALConfiguration(){};
+        CRYSTALConfiguration();
 
 
-        void parseContent(int, double threshold = 100.);
+        void parseContent(int);
 
     private:
-        void parseBravaisLattice(double);
+        void parseBravaisLattice();
         void parseAtoms();
         void parseAtomicBasis();
         arma::cx_mat parseMatrix();
-        void extractDimension(double);
-
+        void extractDimension();
+    
+    protected:
         void mapContent(bool debug = false);
+        
 };
 
-}
-
 size_t split(const std::string&, std::vector<double>&);
+
+}

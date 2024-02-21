@@ -1,20 +1,20 @@
-#include "xatu/Crystal.hpp"
 #include <numeric>
+#include "xatu/Lattice.hpp"
 
 namespace xatu {
 
 /**
  * Copy constructor.
  * 
- * Creates a Crystal object using another Crystal object.
- * @param crystal Crystal to be copied. 
+ * Creates a Lattice object using another Lattice object.
+ * @param lattice Lattice to be copied. 
  */
-Crystal::Crystal(const Crystal& crystal){
+Lattice::Lattice(const Lattice& lattice){
 
-	ndim_ 			= crystal.ndim;
-	bravaisLattice_ = crystal.bravaisLattice;
-	motif_          = crystal.motif;
-	unitCellList_   = crystal.unitCellList;
+	ndim_ 			= lattice.ndim;
+	bravaisLattice_ = lattice.bravaisLattice;
+	motif_          = lattice.motif;
+	unitCellList_   = lattice.unitCellList;
     
     natoms_ = motif.n_rows;
 	ncells_ = unitCellList.n_rows;
@@ -24,11 +24,11 @@ Crystal::Crystal(const Crystal& crystal){
 }
 
 /**
- * Method to initialize Crystal attributes from SystemConfiguration object.
+ * Method to initialize Lattice attributes from SystemConfiguration object.
  * 
  * @param configuration SystemConfiguration object. 
  */
-void Crystal::initializeCrystalAttributes(const SystemConfiguration& configuration){
+void Lattice::initializeLatticeAttributes(const SystemConfiguration& configuration){
 
     ndim_           = configuration.systemInfo.ndim;	
     bravaisLattice_ = configuration.systemInfo.bravaisLattice;
@@ -52,7 +52,7 @@ void Crystal::initializeCrystalAttributes(const SystemConfiguration& configurati
  *  equations to solve for b_j. Resulting vectors have 3 components independently
  *  of the dimension of the vector space they span.
  */
-void Crystal::calculateReciprocalLattice(){
+void Lattice::calculateReciprocalLattice(){
 	reciprocalLattice_ = arma::zeros(ndim, 3);
 	arma::mat coefficient_matrix = bravaisLattice;
 
@@ -83,7 +83,7 @@ void Crystal::calculateReciprocalLattice(){
  * @details For simplicity, it takes a as the norm of the first Bravais vector
  * and c as the height of the 2D crystal, taking as reference the hexagonal lattice.
 */
-void Crystal::extractLatticeParameters(){
+void Lattice::extractLatticeParameters(){
 
 	try{
 		if (motif.is_empty() || bravaisLattice.is_empty()){
@@ -115,7 +115,7 @@ void Crystal::extractLatticeParameters(){
  * of the problem (1d = length, 2d = area, 3d = volume).
  * @return void
  */
-void Crystal::computeUnitCellArea(){
+void Lattice::computeUnitCellArea(){
 	if(ndim == 1){
 		this->unitCellArea_ = arma::norm(bravaisLattice.row(0));
 	}
@@ -136,7 +136,7 @@ void Crystal::computeUnitCellArea(){
  * @details Always returns a mesh centered at the Gamma point, for both n even or odd. 
  * @param n Number of points along one of the axis. 
  */
-void Crystal::brillouinZoneMesh(int n){
+void Lattice::brillouinZoneMesh(int n){
 
 	std::cout << "Creating BZ mesh... " << std::flush;
 
@@ -168,7 +168,7 @@ void Crystal::brillouinZoneMesh(int n){
  * @param n Number of points along one axis.
  * @param factor Reduction factor of the mesh.
  * */
-void Crystal::reducedBrillouinZoneMesh(int n, int factor){
+void Lattice::reducedBrillouinZoneMesh(int n, int factor){
 
 	// First create mesh of whole BZ
 	brillouinZoneMesh(n*factor);
@@ -199,7 +199,7 @@ void Crystal::reducedBrillouinZoneMesh(int n, int factor){
  * Method to shift the center of the BZ mesh to a given point.
  * @param shift Vector to shift center of BZ mesh. 
  */
-void Crystal::shiftBZ(const arma::rowvec& shift){
+void Lattice::shiftBZ(const arma::rowvec& shift){
 	arma::cout << "Shifting BZ mesh by vector: " << shift << arma::endl;
 	if(shift.n_elem != 3){
 		std::cout << "shift vector must be 3d" << std::endl;
@@ -220,7 +220,7 @@ void Crystal::shiftBZ(const arma::rowvec& shift){
  * containing the reciprocal lattice vectors as row. This inverted matrix is required
  * to map any kpoint back to the original Monkhorst-Pack mesh.
 */
-void Crystal::calculateInverseReciprocalMatrix(){
+void Lattice::calculateInverseReciprocalMatrix(){
 	arma::mat coefs = arma::zeros(ndim, ndim);
 	coefs = reciprocalLattice * reciprocalLattice.t();
 	arma::mat inverse;
@@ -243,7 +243,7 @@ void Crystal::calculateInverseReciprocalMatrix(){
  * @param ncell Number of points used in the original BZ mesh, usually equivalent to the number of cells.
  * @returns Index (row) of the equivalent kpoint from the BZ mesh matrix.
  */ 
-int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
+int Lattice::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
 	if(inverseReciprocalMatrix.empty()){
 		calculateInverseReciprocalMatrix();
 	}
@@ -285,7 +285,7 @@ int Crystal::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
  * 				   If false, all combinations have positive coefficients.
  * @returns List of cell combinations.
 */
-arma::mat Crystal::generateCombinations(int nvalues, int ndim, bool centered){
+arma::mat Lattice::generateCombinations(int nvalues, int ndim, bool centered){
 	int ncombinations = pow(nvalues, ndim);
 	arma::vec ones = arma::ones(nvalues);
 	arma::mat combinations(ncombinations, ndim);
@@ -312,7 +312,7 @@ arma::mat Crystal::generateCombinations(int nvalues, int ndim, bool centered){
  * @param radius Cutoff radius of the sphere.
  * @returns List of cells within the sphere.
 */
-arma::mat Crystal::truncateSupercell(int ncell, double radius){
+arma::mat Lattice::truncateSupercell(int ncell, double radius){
 
 	arma::mat combinations = generateCombinations(ncell, ndim, true);
 	std::vector<arma::rowvec> cells_vector;
@@ -341,7 +341,7 @@ arma::mat Crystal::truncateSupercell(int ncell, double radius){
  * @param radius Radius of the cutoff sphere.
  * @returns List of reciprocal cells in cartesian coordinates.
 */
-arma::mat Crystal::truncateReciprocalSupercell(int ncell, double radius){
+arma::mat Lattice::truncateReciprocalSupercell(int ncell, double radius){
 
 	arma::mat combinations = generateCombinations(ncell, ndim, true);
 	std::vector<arma::rowvec> cells_vector;
@@ -372,7 +372,7 @@ arma::mat Crystal::truncateReciprocalSupercell(int ncell, double radius){
  * @param position Vector to rotate.
  * @returns Rotated vector.
  */
-arma::rowvec Crystal::rotateC3(const arma::rowvec& position){
+arma::rowvec Lattice::rotateC3(const arma::rowvec& position){
 	double theta = 2*PI/3;
 	arma::mat C3rotation = {{cos(theta), -sin(theta), 0},
 							{sin(theta),  cos(theta), 0},

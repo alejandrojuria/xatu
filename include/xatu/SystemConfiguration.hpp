@@ -1,7 +1,6 @@
 #pragma once
 #include <armadillo>
 #include "xatu/ConfigurationBase.hpp"
-#include <iostream>
 
 namespace xatu {
 

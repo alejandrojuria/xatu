@@ -1,7 +1,4 @@
-#include <armadillo>
-#include "xatu/CrystalDFTConfiguration.hpp"
-#include <fstream>
-#include <algorithm>
+#include "xatu/CRYSTALConfiguration.hpp"
 
 #define SOC_STRING "to_be_defined_for_crystal23"
 #define MAGNETIC_STRING "UNRESTRICTED OPEN SHELL"
@@ -9,37 +6,38 @@
 namespace xatu {
 
 /**
- * File constructor for CrystalDFTConfiguration. It extracts the relevant information
+ * File constructor for CRYSTALConfiguration. It extracts the relevant information
  * from the file and stores it in an adequate format.
  * @details This class is intended to be used with .outp files from the CRYSTAL code.
  * Since orbitals in CRYSTAL extend over several unit cells, the Fock matrices that define the
  * Hamiltonian also cover several unit cells. Therefore, one can specify how many unit cells to take
  * for the actual exciton calculation. 
- * @param file Name of the .outp from the CRYSTAL calculation.
- * @param ncells Number of unit cells to be read from the file.
+ * @param file Name of the .outp from the CRYSTAL SCF calculation.
+ * @param ncells Number of unit cells for which the Hamiltonian and overlap matrices are read from file.
  */
-CrystalDFTConfiguration::CrystalDFTConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
+CRYSTALConfiguration::CRYSTALConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
     parseContent(ncells);
     mapContent();
 }
 
 /**
  * Method to extract all the content from the file.
- * @details Since CRYSTAL calculations are always 3D, there are always three
- * Bravais vectors even for 2D or 1D calculations. A threshold is defined in this routine
- * to distinguish the Bravais vectors of the system from the long range copies.
+ * @details The lattice dimensionality is determined according to CRYSTAL's criterion for the 
+ * direct lattice vectors: in 2D, R3 == [0 0 500]; and in 1D, in addition R2 = [0 0 500]. The 
+ * hypothetical case of R3 and/or R2 == [0 0 0] is also assumed to lower the dimensionality.
  * @param ncells Number of unit cells to be parsed.
- * @param threshold Value below which we identify the actual Bravais vectors (i.e. the dimension).
  * @return void
  */
-void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
+void CRYSTALConfiguration::parseContent(int ncells){
     // Parse Crystal output file
 
+    int countr = 0;
     std::string line;
     while(std::getline(m_file, line)){
         // Bravais lattice
         if (line.find("DIRECT LATTICE VECTOR COMPONENTS (ANGSTROM)") != std::string::npos){
-            parseBravaisLattice(threshold);
+            parseBravaisLattice();
+            countr++;
             
             // arma::cout << "Bravais lattice: " << arma::endl;
             // arma::cout << bravaisLattice << arma::endl;
@@ -62,9 +60,9 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             int strsize = strlen("NUMBER OF SHELLS");
             line = line.substr(pos + strsize, line.length());
             std::istringstream iss(line);
-            iss >> nshells;
+            iss >> nsh;
             
-            // arma::cout << "N. shells: " << nshells << arma::endl;
+            // arma::cout << "N. shells: " << nsh << arma::endl;
         }
 
         // N. orbitals (total)
@@ -115,23 +113,23 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
 
         // Parse atomic basis info
         else if(line.find("LOCAL ATOMIC FUNCTIONS BASIS SET") != std::string::npos){
-            parseAtomicBasis();
+        parseAtomicBasis();
             
-            //printVector(orbitalsPerSpecies);
-            // for(auto const& [key, cube_vec]: gaussianCoefficients){
-            //     for (int i = 0; i < cube_vec.size(); i++){
-            //         auto coefs = cube_vec[i];
-            //         for (int j = 0; j < coefs.size(); j++){
-            //             printVector(coefs[j]);
-            //         }
-            //     }
-            // }
-            // for(auto const& [key, val]: shellTypesPerSpecies){
-            //     arma::cout << key << arma::endl;
-            //     for(int i = 0; i < val.size(); i++){
-            //         arma::cout << val[i] << arma::endl;
-            //     }
-            // }
+        //     printVector(orbitalsPerSpecies);
+        //     for(auto const& [key, cube_vec]: gaussianCoefficients){
+        //         for (int i = 0; i < cube_vec.size(); i++){
+        //             auto coefs = cube_vec[i];
+        //             for (int j = 0; j < coefs.size(); j++){
+        //                 printVector(coefs[j]);
+        //             }
+        //         }
+        //     }
+        //     for(auto const& [key, val]: shellTypesPerSpecies){
+        //         arma::cout << key << arma::endl;
+        //         for(int i = 0; i < val.size(); i++){
+        //             arma::cout << val[i] << arma::endl;
+        //         }
+        //     }
         }
 
         else if(line.find("OVERLAP MATRIX") != std::string::npos){
@@ -206,14 +204,17 @@ void CrystalDFTConfiguration::parseContent(int ncells, double threshold){
             }
         }
     }    
+    if (countr==0){
+    ndim = 0;
+    throw std::logic_error("Finite systems are not yet implemented");
+    } 
 }
 
 /**
  * Method to parse and format the Bravais basis vectors from the file. 
- * @param threshold Maximum value used to distinguish the actual Bravais vectors of the lattice.
  * @return void
  */
-void CrystalDFTConfiguration::parseBravaisLattice(double threshold){
+void CRYSTALConfiguration::parseBravaisLattice(){
     std::string line;
     std::vector<std::string> vectors;
     for(int i = 0; i < 3; i++){
@@ -221,22 +222,26 @@ void CrystalDFTConfiguration::parseBravaisLattice(double threshold){
         vectors.push_back(line);     
     }
     this->bravaisLattice = parseVectors(vectors);
-    extractDimension(threshold);
+    extractDimension();
 }
 
 /**
- * Method to obtain the dimension of the system.
- * @param threshold Value used to discard unphysical Bravais vectors.
+ * Method to obtain the dimension (1D,2D,3D) of the system.
  * @return void 
  */
-void CrystalDFTConfiguration::extractDimension(double threshold){
-    for(unsigned int i = 0; i < bravaisLattice.n_rows; i++){
-        double norm = arma::norm(bravaisLattice.row(i));
-        if (norm > threshold){
-            bravaisLattice.shed_row(i);
+void CRYSTALConfiguration::extractDimension(){
+    arma::rowvec R0 = arma::zeros<arma::rowvec>(3);
+    arma::rowvec R2 = {0.0, 500.0, 0.0};
+    arma::rowvec R3 = {0.0, 0.0, 500.0}; 
+                 
+    if ( approx_equal(bravaisLattice.row(2),R3,"absdiff",0.1) || 
+         approx_equal(bravaisLattice.row(2),R0,"absdiff",0.1) ){
+        bravaisLattice.shed_row(2);
+        if ( approx_equal(bravaisLattice.row(1),R2,"absdiff",0.1) || 
+             approx_equal(bravaisLattice.row(1),R0,"absdiff",0.1) ){
+            bravaisLattice.shed_row(1); 
         }
     }
-
     ndim = bravaisLattice.n_rows;
 }
 
@@ -244,9 +249,9 @@ void CrystalDFTConfiguration::extractDimension(double threshold){
  * Method to extract the motif, the chemical species and the number of shells per species.
  * @return void 
  */
-void CrystalDFTConfiguration::parseAtoms(){
+void CRYSTALConfiguration::parseAtoms(){
     std::string line;
-    int index, natom, nshells, nspecies = 0;
+    int index, atomic_number, nsh, nspecies = 0;
     double x, y, z;
     std::string chemical_species;
     std::vector<int> shellsPerSpecies;
@@ -259,11 +264,11 @@ void CrystalDFTConfiguration::parseAtoms(){
     for(int i = 0; i < natoms; i++){
         std::getline(m_file, line);
         std::istringstream iss(line);
-        iss >> index >> natom >> chemical_species >> nshells >> x >> y >> z;
+        iss >> index >> atomic_number >> chemical_species >> nsh >> x >> y >> z;
 
         if(std::find(species.begin(), species.end(), chemical_species) == species.end()){
             species.push_back(chemical_species);
-            shellsPerSpecies.push_back(nshells);
+            shellsPerSpecies.push_back(nsh);
             chemical_species_to_index[chemical_species] = chemical_species_to_index.size();
             nspecies++;
         }
@@ -272,13 +277,6 @@ void CrystalDFTConfiguration::parseAtoms(){
         atom = {x, y, z, (double)index};
         motif.row(i) = arma::rowvec(atom);
     }
-
-    // Move motif to origin
-    arma::rowvec refAtom = motif.row(0);
-    // for (int i = 0; i < motif.n_rows; i++){
-    //     motif.row(i) -= refAtom;
-    // }
-
     this->motif = motif;
     this->shellsPerSpecies = shellsPerSpecies;
     this->nspecies = nspecies;
@@ -290,11 +288,11 @@ void CrystalDFTConfiguration::parseAtoms(){
  * the corresponding coefficients of the gaussian expansion.
  * @return void 
  */
-void CrystalDFTConfiguration::parseAtomicBasis(){
+void CRYSTALConfiguration::parseAtomicBasis(){
     std::string line, chemical_species;
     int norbitals, natom, totalOrbitals = 0, nspecies = 0;
-    std::string shellType;
-    std::vector<std::string> shellTypes;
+//    std::string shellType;
+//    std::vector<std::string> shellTypes;
     double exponent, sCoef, pCoef, dCoef;
     std::vector<double> coefs;
     cube_vector gaussianCoefficients;
@@ -320,19 +318,19 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
         }
 
         gaussianCoefficients.clear();
-        shellTypes.clear();
+//        shellTypes.clear();
 
         for(int shellIndex = 0; shellIndex < shellsPerSpecies[nspecies]; shellIndex++){
 
             std::getline(m_file, line);
             std::istringstream iss(line);
             
-            iss >> norbitals >> shellType;
-            if(shellType == "-"){
-                iss >> norbitals >> shellType;
-            }
+//            iss >> norbitals >> shellType;
+//            if(shellType == "-"){
+//                iss >> norbitals >> shellType;
+//            }
 
-            shellTypes.push_back(shellType);
+//            shellTypes.push_back(shellType);
 
             std::vector<std::vector<double>> coefList;
             long int previousLine = m_file.tellg(); // Store beginning of next line
@@ -359,7 +357,7 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
         this->orbitalsPerSpecies.push_back(norbitals - totalOrbitals);
         totalOrbitals = norbitals;
 
-        this->shellTypesPerSpecies[nspecies] = shellTypes;
+//        this->shellTypesPerSpecies[nspecies] = shellTypes;
         nspecies++;
     }
 
@@ -369,7 +367,7 @@ void CrystalDFTConfiguration::parseAtomicBasis(){
  * Method to parse the Fock and overlap matrices from the input file.
  * @return void
  */
-arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
+arma::cx_mat CRYSTALConfiguration::parseMatrix(){
     std::string line;
     arma::cx_mat matrix = arma::zeros<arma::cx_mat>(norbitals, norbitals);
     bool firstNonEmptyLineFound = false;
@@ -412,7 +410,7 @@ arma::cx_mat CrystalDFTConfiguration::parseMatrix(){
  * Method to write all the extracted information into a struct.
  * @return void 
  */
-void CrystalDFTConfiguration::mapContent(bool debug){
+void CRYSTALConfiguration::mapContent(bool debug){
 
     systemInfo.ndim           = ndim;
     systemInfo.bravaisLattice = bravaisLattice;

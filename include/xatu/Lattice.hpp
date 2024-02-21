@@ -13,9 +13,9 @@
 
 namespace xatu {
 
-/// @brief The Crystal class is designed to hold all information regarding both
+/// @brief The Lattice class is designed to hold all information regarding both
 /// the Bravais lattice and the reciprocal lattice of the system.
-class Crystal {
+class Lattice {
     
     //// Attributes
     protected:
@@ -59,10 +59,10 @@ class Crystal {
 
     //// Methods
     protected:
-        Crystal(){}; // Protected so that Crystal can not be initialized (abstract)
+        Lattice(){}; // Protected so that Lattice can not be initialized (abstract)
     public:
-        Crystal(const Crystal&); // Copy constructor
-        ~Crystal(){};
+        Lattice(const Lattice&); // Copy constructor
+        ~Lattice(){};
 
         int getDimension();
         int getNumAtoms();
@@ -92,7 +92,7 @@ class Crystal {
 
 
     protected:
-        void initializeCrystalAttributes(const SystemConfiguration&);
+        void initializeLatticeAttributes(const SystemConfiguration&);
         void extractLatticeParameters();
         void computeUnitCellArea();
         void calculateReciprocalLattice();

@@ -1,8 +1,6 @@
 #include <complex>
 #include <math.h>
 #include <stdlib.h>
-#include <iostream>
-
 #include "xatu/System.hpp"
 
 namespace xatu {
@@ -12,7 +10,7 @@ namespace xatu {
 /**
  * Default constructor.
  */
-System::System() : Crystal(){};
+System::System() : Lattice(){};
 
 /**
  * Copy constructor.
@@ -20,7 +18,7 @@ System::System() : Crystal(){};
  * its attributes to be the same as those of the given System object to copy.
  * @param system System object to copy.
  */ 
-System::System(const System& system) : Crystal(system){
+System::System(const System& system) : Lattice(system){
 
 	systemName			 = system.systemName;
 	orbitals_            = system.orbitals;
@@ -37,9 +35,9 @@ System::System(const System& system) : Crystal(system){
  * to init a System from a configuration file.
  * @param configuration SystemConfiguration object obtained from config. file.
  */
-System::System(const SystemConfiguration& configuration) : Crystal(){
+System::System(const SystemConfiguration& configuration) : Lattice(){
 
-	initializeCrystalAttributes(configuration);
+	initializeLatticeAttributes(configuration);
 	initializeSystemAttributes(configuration);
 };
 

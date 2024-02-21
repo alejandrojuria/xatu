@@ -1,6 +1,6 @@
-#include "xatu/ExcitonConfiguration.hpp"
 #include <fstream>
 #include <iostream>
+#include "xatu/ExcitonConfiguration.hpp"
 
 namespace xatu {
 

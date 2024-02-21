@@ -1,9 +1,5 @@
-#include <armadillo>
-#include <complex>
 #include <math.h>
-#include <stdlib.h>
 #include <iomanip>
-
 #include "xatu/System.hpp"
 #include "xatu/Exciton.hpp"
 #include "xatu/utils.hpp"
