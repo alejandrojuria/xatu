@@ -15,7 +15,7 @@ namespace xatu {
  * @param file Name of the .outp from the CRYSTAL SCF calculation.
  * @param ncells Number of unit cells for which the Hamiltonian and overlap matrices are read from file.
  */
-CRYSTALConfiguration::CRYSTALConfiguration(std::string file, int ncells) : ConfigurationBase(file) {
+CRYSTALConfiguration::CRYSTALConfiguration(std::string file, int ncells) : ConfigurationBase{file} {
     parseContent(ncells);
     mapContent();
 }
@@ -111,7 +111,7 @@ void CRYSTALConfiguration::parseContent(int ncells){
             std::vector<int> coefCombinations = {x, y, z};
 
             if(cellIndex <= ncells){
-                arma::rowvec cell = arma::rowvec(3);
+                arma::rowvec cell = arma::zeros<arma::rowvec>(3);
                 for (int i = 0; i < ndim; i++){
                     cell += bravaisLattice.row(i)*coefCombinations[i];
                 }
