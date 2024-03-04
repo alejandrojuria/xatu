@@ -16,7 +16,7 @@ SystemConfiguration::SystemConfiguration(){};
  * Upon call, the configuration file is fully parsed.
  * @param filename Name of file containing the information about the system of interest.
  */
-SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBase(filename){
+SystemConfiguration::SystemConfiguration(std::string filename) : ConfigurationBase{filename}{
     expectedArguments = {"dimension", "bravaislattice", "motif", "norbitals", "filling", "bravaisvectors", "hamiltonian"};
     parseContent();
     checkArguments();
