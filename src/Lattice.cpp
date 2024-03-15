@@ -155,7 +155,6 @@ void Lattice::brillouinZoneMesh(int n){
 		kpoints.row(i) = kpoint;
 	}
 	kpoints_ = kpoints;
-	meshBZ_ = kpoints;
 	nk_ = kpoints.n_rows;
 	std::cout << "Done. Number of k points in BZ mesh: " << nk << std::endl;
 }

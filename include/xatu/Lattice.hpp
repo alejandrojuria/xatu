@@ -23,7 +23,7 @@ class Lattice {
         int factor_ = 1;
         double a_, c_, unitCellArea_;
         arma::mat bravaisLattice_, motif_, unitCellList_;
-        arma::mat reciprocalLattice_, kpoints_, meshBZ_;
+        arma::mat reciprocalLattice_, kpoints_;
         std::map<std::string, int> atomToIndex;
         arma::mat inverseReciprocalMatrix;
 
@@ -56,6 +56,8 @@ class Lattice {
         const double& unitCellArea = unitCellArea_;
         // Number of unit cells connected to the origin
         const int& ncells = ncells_;
+        // Reduction factor of Brillouin zone mesh
+        const int& factor = factor_;
 
     //// Methods
     protected:
