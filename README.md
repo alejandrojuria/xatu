@@ -23,7 +23,7 @@ Xatu is built upon the Armadillo C++ library for linear algebra, which is also b
 ### Ubuntu 22.04 LTS native and WSL
 Install the required libraries:
 ```
-sudo apt-get install libopenblas-dev liblapack-dev libarpack-dev libarmadillo-dev
+sudo apt-get install libopenblas-dev liblapack-dev libarpack2-dev libarmadillo-dev
 ```
 
 The library (```libxatu.a```) can be automatically built running the following command:
