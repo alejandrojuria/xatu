@@ -28,7 +28,7 @@ class CRYSTALConfiguration : public SystemConfiguration {
         arma::cx_cube alphaMatrices, betaMatrices;
 
     public:
-        CRYSTALConfiguration(std::string, int ncells = 20);
+        CRYSTALConfiguration(std::string, int ncells);
         ~CRYSTALConfiguration(){};
 
 
