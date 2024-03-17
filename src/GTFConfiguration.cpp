@@ -17,9 +17,9 @@ namespace xatu {
  * @param file Name of the .outp from the CRYSTAL SCF calculation.
  * @param ncells Number of unit cells for which the Hamiltonian and overlap matrices are read from file.
  */
-GTFConfiguration::GTFConfiguration(std::string bases_file, std::string file, int ncells) : CRYSTALConfiguration{file, ncells}, ConfigurationBase{file} {
+GTFConfiguration::GTFConfiguration(std::string bases_file, std::string outp_file, int ncells) : ConfigurationBase{outp_file}, CRYSTALConfiguration{outp_file, ncells} {
     
-    this->b_filename = bases_file;
+    this->bases_filename = bases_file;
    
     if(bases_file.empty()){
         throw std::invalid_argument("GTFConfiguration: bases_file must not be empty");
@@ -29,9 +29,9 @@ GTFConfiguration::GTFConfiguration(std::string bases_file, std::string file, int
         throw std::invalid_argument("GTFConfiguration: bases file does not exist");
     }
 
-   arma::mat Rlist = (bravaisVectors.cols(0,ndim-1)).t();
-   this-> Rlist = Rlist;
    parseBases();
+   Rlistsfun(ncells);
+
 }
 
 /**
@@ -113,7 +113,7 @@ void GTFConfiguration::parseBasis(bool basis_id){
         }
 
         for(int i = 0; i < nshells; i++){   //iterate over (unfolded) shells
-            std::vector<double> ContGs_in_Shell, ContGs_in_Shell_SP;  //list(s) of the contracted GTF for a given shell: {alpha_1,d_1,..,alpha_n,d_n}
+            std::vector<double> contGs_in_shell, contGs_in_shell_SP;  //list(s) of the contracted GTF for a given shell: {alpha_1,d_1,..,alpha_n,d_n}
             std::getline(b_file, line1);
             std::istringstream iss(line1);
             iss >> bs0 >> bs1 >> bs2 >> bs3 >> bs4;
@@ -135,11 +135,11 @@ void GTFConfiguration::parseBasis(bool basis_id){
                 contraction = replace_D_2_double(contraction_s);
                 contractionSP = replace_D_2_double(contractionSP_s);
 
-                ContGs_in_Shell.insert(ContGs_in_Shell.end(), {exponent, contraction});
-                ContGs_in_Shell_SP.insert(ContGs_in_Shell_SP.end(), {exponent, contractionSP});
+                contGs_in_shell.insert(contGs_in_shell.end(), {exponent, contraction});
+                contGs_in_shell_SP.insert(contGs_in_shell_SP.end(), {exponent, contractionSP});
                 }
-                shells_in_species.push_back(ContGs_in_Shell);
-                shells_in_species.push_back(ContGs_in_Shell_SP);
+                shells_in_species.push_back(contGs_in_shell);
+                shells_in_species.push_back(contGs_in_shell_SP);
             } 
             else {
                 nG_in_species.push_back(bs2);
@@ -152,9 +152,9 @@ void GTFConfiguration::parseBasis(bool basis_id){
                     exponent = replace_D_2_double(exponent_s);
                     contraction = replace_D_2_double(contraction_s);
 
-                    ContGs_in_Shell.insert(ContGs_in_Shell.end(), {exponent, contraction});
+                    contGs_in_shell.insert(contGs_in_shell.end(), {exponent, contraction});
                 }
-                shells_in_species.push_back(ContGs_in_Shell);
+                shells_in_species.push_back(contGs_in_shell);
             }
         }
         
@@ -195,9 +195,40 @@ void GTFConfiguration::skip_PP(){
  * The string is then converted to double.
  * @return double
  */
-double GTFConfiguration::replace_D_2_double(std::string S){ 
+double GTFConfiguration::replace_D_2_double(std::string& S){ 
     std::replace(S.begin(), S.end(), 'D', 'E');
     return std::stod(S);
 }
+
+/**
+ * Method to build the Rlist and RlistOpposites attributes, relative to the selected Bravais vectors. 
+ * @return void
+ */
+void GTFConfiguration::Rlistsfun(const int ncells){
+
+    arma::mat Rlist = (bravaisVectors.t());
+    std::map<int,int> RlistOpposites;
+    std::vector<int> R_unpaired;
+    for(int RindOpp = 0; RindOpp < ncells; RindOpp++){
+        int countr = 0;
+        for(int Rind = 0; Rind < ncells; Rind++){
+            arma::colvec Rsum = Rlist.col(Rind) + Rlist.col(RindOpp);
+            if( Rsum.is_zero(0.001) ){
+                RlistOpposites[RindOpp] = Rind;
+                countr++;
+            }
+        }
+        if(countr == 0){
+            RlistOpposites[RindOpp] = -1;
+            R_unpaired.push_back(RindOpp);
+            std::cerr << "WARNING! Possible non-hermiticity: Bravais vector number " << (RindOpp+1) <<
+                " has no opposite in the list of vectors. Unimportant for large number of R, otherwise try reducing or increasing it by 1" << std::endl;
+        }
+    }
+    this->Rlist = Rlist;
+    this->RlistOpposites = RlistOpposites;
+    this->R_unpaired = R_unpaired;
+}
+
 
 }

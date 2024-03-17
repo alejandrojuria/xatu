@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include "xatu/CRYSTALConfiguration.hpp"
 
 namespace xatu {
@@ -6,34 +7,45 @@ namespace xatu {
 class GTFConfiguration : public CRYSTALConfiguration {
 
     public:
-        //(ndim x ncells) matrix of Bravais vectors, stored by columns
+        // (3 x ncells) matrix of Bravais vectors, stored by columns.
         arma::mat Rlist;
-        //Vector assigning the vector of shells (itself a vector of contracted GTF) to each atomic species.
-        //One for the DFT basis and one for the auxiliary basis
+        // Map of ncells entries, the n-th (n=0,..,ncells-1) of which is the index of -R_{n} (minus the n-th Bravais vector in Rlist).
+        std::map<int,int> RlistOpposites;
+        // Vector with the indices of the unpaired Bravais vectors, i.e. those with their opposites not present in Rlist.
+        std::vector<int> R_unpaired;
+        // Vector assigning the vector of shells (itself a vector of contracted GTF) to each atomic species.
+        // One for the DFT basis and one for the auxiliary basis.
         cube_vector shells_all_species_SCF, shells_all_species_AUX;
-        //Vector assigning the vector of L (ang. mom. quant. num.) to each atomic species
+        // Vector assigning the vector of L (ang. mom. quant. num.) to each atomic species.
         std::vector<std::vector<int>> L_all_species_SCF, L_all_species_AUX;
-        //Vector assigning the vector of nG (number of contracted Gaussians) to each atomic species
+        // Vector assigning the vector of nG (number of contracted Gaussians) to each atomic species.
         std::vector<std::vector<int>> nG_all_species_SCF, nG_all_species_AUX;
         // Vector storing the number shells for each chemical species.
         std::vector<int> nshells_all_species_SCF, nshells_all_species_AUX;
-
-        std::string b_filename;
+        // Name of the basis sets file.
+        std::string bases_filename;
 
     protected:
+        // Open basis sets file.
         std::ifstream b_file;
 
     public:
-        GTFConfiguration(std::string, std::string, int ncells = 50);
+        GTFConfiguration(std::string bases_file, std::string outp_file, int ncells);
         ~GTFConfiguration(){};
 
     protected:  
-        double replace_D_2_double(std::string);
+        // Method to convert possible Fortran convention for scientific notation in the bases file to that of normal people :)
+        double replace_D_2_double(std::string&);
 
     private:
-        void skip_PP();
-        void parseBasis(bool);
+        // Preliminary parsing method common to both basis sets.
         void parseBases();
+        // Method to parse a given basis (bool = true => SCF, bool = false => AUX).
+        void parseBasis(bool);
+        // Method to skip possible pseudo-potentials in the basis sets file (they are irrelevant to the matrix elements).
+        void skip_PP();
+        // Method to build the Rlist and RlistOpposites attributes, relative to the selected Bravais vectors.
+        void Rlistsfun(const int ncells);
         
 };
 
