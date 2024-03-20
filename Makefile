@@ -10,6 +10,16 @@ INCLUDE = -I$(PWD)/include
 # Libraries
 LIBS = -DARMA_DONT_USE_WRAPPER -L$(PWD) -lxatu -larmadillo -lopenblas -llapack -larpack -fopenmp -lgfortran
 
+# Conditional flags for compilation
+ifeq ($(DEBUG), 1)
+	CFLAGS = -Wall -lm -g
+	FFLAGS = -Wall -Wno-tabs -lm -g
+endif
+ifeq ($(HDF5), 1)
+	CFLAGS += -DARMA_USE_HDF5
+	LIBS += -lhdf5
+endif
+
 # Compilation targets
 CC_SRC_FILES := $(wildcard src/*.cpp)
 OBJECTS := $(patsubst src/%.cpp, build/%.o, $(CC_SRC_FILES))
@@ -22,7 +32,7 @@ dummy_build_folder := $(shell mkdir -p build)
 dummy_bin_folder := $(shell mkdir -p bin)
 
 build:	$(OBJECTS)
-	ar rcs libxatu.a $(OBJECTS)
+	ar rcs libxatu.a $(OBJECTS) 
 	
 xatu: main/xatu.cpp $(OBJECTS) 
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
