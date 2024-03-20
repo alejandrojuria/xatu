@@ -12,3 +12,4 @@
 #include "xatu/utils.hpp"
 #include "xatu/forward_declaration.hpp"
 #include "xatu/interactions.hpp"
+#include "xatu/HDF5Configuration.hpp"
