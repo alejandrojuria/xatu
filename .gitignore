@@ -1,6 +1,5 @@
 build/
 bin/
-plot/
 libxatu.a
 main/
 test/bin
