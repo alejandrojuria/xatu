@@ -97,6 +97,9 @@ void ExcitonConfiguration::parseContent(){
         else if(arg == "scissor"){
             excitonInfo.scissor = parseScalar<double>(content[0]);
         }
+        else if(arg == "regularization"){
+            excitonInfo.regularization = parseScalar<double>(content[0]);
+        }
         else{    
             std::cout << "Unexpected argument: " << arg << ", skipping block..." << std::endl;
         }
