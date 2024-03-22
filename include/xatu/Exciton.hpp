@@ -24,6 +24,7 @@ class Exciton : public System {
         // Read-only parameters
         int ncell_, totalCells_, nbands_, nrmbands_, excitonbasisdim_;
         double eps_m_, eps_s_, r0_, scissor_;
+        double regularization_ = a_;
         arma::ivec bands_, valenceBands_, conductionBands_;
         arma::uvec bandList_;
         arma::imat basisStates_;
@@ -89,6 +90,8 @@ class Exciton : public System {
         const int& nReciprocalVectors = nReciprocalVectors_;
         // Returns scissor cut value
         const double& scissor = scissor_;
+        // Returns regularization distance
+        const double& regularization = regularization_;
 
         const arma::mat& eigvalKStack = eigvalKStack_;
         const arma::mat& eigvalKQStack = eigvalKQStack_;
@@ -141,6 +144,7 @@ class Exciton : public System {
         void setReciprocalVectors(int);
         void setScissor(double);
         void setExchange(bool);
+        void setRegularization(double);
 
     private:
         // Methods for BSE matrix initialization

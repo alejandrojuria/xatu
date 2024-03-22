@@ -72,6 +72,10 @@ void Exciton::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     this->scissor_ = cfg.excitonInfo.scissor;
     this->mode_    = cfg.excitonInfo.mode;
     this->nReciprocalVectors_ = cfg.excitonInfo.nReciprocalVectors;
+    this->regularization_ = cfg.excitonInfo.regularization;
+    if (regularization_ == 0){
+        regularization_ = a_;
+    }
 }
 
 /**
@@ -376,6 +380,15 @@ void Exciton::setExchange(bool exchange){
     this->exchange = exchange;
 }
 
+/**
+ * Sets the regularization distance for the Coulomb potential divergence at r=0.
+ * @param regularization Distance in Angstroms.
+ * @return void
+*/
+void Exciton::setRegularization(double regularization){
+    this->regularization_ = regularization;
+}
+
 
 /*---------------------------------------- Potentials ----------------------------------------*/
 
@@ -433,8 +446,8 @@ double Exciton::potential(double r){
     double R = abs(r)/r0;
     double potential_value;
     if(r == 0){
-        STVH0(a/r0, &SH0);
-        potential_value = ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(a/r0));
+        STVH0(regularization/r0, &SH0);
+        potential_value = ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(regularization/r0));
     }
     else if (r > cutoff){
         potential_value = 0.0;
@@ -987,6 +1000,10 @@ void Exciton::initializeHamiltonian(bool triangular){
     }
     if(nk == 0){
         throw std::invalid_argument("Error: BZ mesh must be initialized first");
+    }
+
+    if (this->regularization_ == 0){
+        regularization_ = a_;
     }
 
     this->excitonbasisdim_ = nk*valenceBands.n_elem*conductionBands.n_elem;
