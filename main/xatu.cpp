@@ -2,7 +2,8 @@
 #include <chrono>
 #include <iomanip>
 #include <tclap/CmdLine.h>
-#include <xatu.hpp>
+#include "xatu.hpp"
+
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -25,6 +26,7 @@ int main(int argc, char* argv[]){
     TCLAP::SwitchArg        spinArg("s", "spin", "Compute exciton spin and write it to file.", cmd, false);
     TCLAP::ValueArg<int>    dftArg("d", "dft", "Indicates that the system file is a .outp CRYSTAL file.", false, -1, "No. Fock matrices", cmd);
     TCLAP::SwitchArg        absorptionArg("a", "absorption", "Computes the absorption spectrum.", cmd, false);
+    TCLAP::ValueArg<std::string> formatArg("f", "format", "Format of the input system file.", false, "model", "model or hdf5", cmd);
 
     TCLAP::AnyOf         outputOptions;
     TCLAP::SwitchArg     energyArg("e", "energy", "Write energies.", false);
@@ -52,6 +54,7 @@ int main(int argc, char* argv[]){
     int decimals       = precisionArg.getValue();
     std::string method = methodArg.getValue();
     std::vector<int> rsInfo = realspaceArg.getValue();
+    std::string format = formatArg.getValue();
     int holeIndex = 0, ncellsRSWF = 8;
     if (rsInfo.size() == 1){
         holeIndex = rsInfo[0];
@@ -76,7 +79,16 @@ int main(int argc, char* argv[]){
         systemConfig.reset(new xatu::CRYSTALConfiguration(systemfile, ncells));
     }
     else{
-        systemConfig.reset(new xatu::SystemConfiguration(systemfile));
+        if (format == "hdf5"){
+            systemConfig.reset(new xatu::HDF5Configuration(systemfile));
+            triangular = true;
+        }
+        else if (format == "model"){
+            systemConfig.reset(new xatu::SystemConfiguration(systemfile));
+        }
+        else{
+            throw std::invalid_argument("Format not recognized. Use 'model' or 'hdf5'.");
+        }
     }
 
     // If bands flag is present, compute bands and exit.
