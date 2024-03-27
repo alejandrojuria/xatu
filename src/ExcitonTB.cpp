@@ -372,7 +372,12 @@ double ExcitonTB::keldysh(double r){
  * @return Value of Coulomb potential, V(r).
  */
 double ExcitonTB::coulomb(double r){
-    return (r == 0.0) ? ec/(4E-10*PI*eps0*r) : ec*1E10/(4*PI*eps0*regularization);    
+    double cutoff = arma::norm(system->bravaisLattice.row(0)) * cutoff_ + 1E-5;
+    r = abs(r);
+    if (r > cutoff){
+        return 0.0;
+    }
+    return (r != 0) ? ec/(4E-10*PI*eps0*r) : ec*1E10/(4*PI*eps0*regularization);    
 }
 
 /**
