@@ -23,7 +23,7 @@ class Lattice {
         int factor_ = 1;
         double a_, c_, unitCellArea_;
         arma::mat bravaisLattice_, motif_, unitCellList_;
-        arma::mat reciprocalLattice_, kpoints_;
+        arma::mat reciprocalLattice_, kpoints_, meshBZ_;
         std::map<std::string, int> atomToIndex;
         arma::mat inverseReciprocalMatrix;
 
@@ -44,8 +44,10 @@ class Lattice {
         const arma::mat& unitCellList = unitCellList_;
         // Returns reciprocal lattice vectors
         const arma::mat& reciprocalLattice = reciprocalLattice_;
-        // Returns kpoints
+        // Returns kpoints that define the basis
         const arma::mat& kpoints = kpoints_;
+        // Returns mesh of the Brillouin zone
+        const arma::mat& meshBZ = meshBZ_;
         // Number of k points
         const int& nk = nk_;
         // Lattice parameters

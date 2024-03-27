@@ -1,4 +1,5 @@
 #include <numeric>
+#include <iomanip>
 #include "xatu/Lattice.hpp"
 
 namespace xatu {
@@ -155,6 +156,7 @@ void Lattice::brillouinZoneMesh(int n){
 		kpoints.row(i) = kpoint;
 	}
 	kpoints_ = kpoints;
+	meshBZ_ = kpoints;
 	nk_ = kpoints.n_rows;
 	std::cout << "Done. Number of k points in BZ mesh: " << nk << std::endl;
 }
@@ -199,7 +201,11 @@ void Lattice::reducedBrillouinZoneMesh(int n, int factor){
  * @param shift Vector to shift center of BZ mesh. 
  */
 void Lattice::shiftBZ(const arma::rowvec& shift){
-	arma::cout << "Shifting BZ mesh by vector: " << shift << arma::endl;
+	std::cout << std::left << std::setw(30) << "Shifting BZ mesh by vector: ";
+	for (auto si : shift){
+		std::cout << si << "  ";
+	}
+	std::cout << std::endl;
 	if(shift.n_elem != 3){
 		std::cout << "shift vector must be 3d" << std::endl;
 		return; 
