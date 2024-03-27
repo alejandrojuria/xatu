@@ -2,6 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "xatu/SystemTB.hpp"
+#include "xatu/utils.hpp"
 
 namespace xatu {
 
@@ -16,7 +17,7 @@ namespace xatu {
 SystemTB::SystemTB(const SystemTB& system) : System(system) {
 
 	isTriangular_ = system.isTriangular;
-	isCRYSTAL_ 	  = system.isCRYSTAL_;
+	isAU_     	  = system.isAU;
 }
 
 /**
@@ -25,7 +26,9 @@ SystemTB::SystemTB(const SystemTB& system) : System(system) {
  * to init a SystemTB from a configuration file.
  * @param configuration SystemConfiguration object obtained from config. file.
  */
-SystemTB::SystemTB(const SystemConfiguration& configuration) : System(configuration){};
+SystemTB::SystemTB(const SystemConfiguration& configuration) : System(configuration){
+	this->isTriangular_ = checkIfTriangular(this->hamiltonianMatrices.slice(0));
+};
 
 // --------------------------------- Methods ---------------------------------
 
@@ -42,8 +45,8 @@ void SystemTB::setTriangular(bool isTriangular){
  * @details The isCRYSTAL attribute ensures proper handling of the energies (to be given in eV).
  * @param isCRYSTAL Whether the system is CRYSTAL or not.
  */
-void SystemTB::setCRYSTAL(bool isCRYSTAL){
-	isCRYSTAL_ = isCRYSTAL;
+void SystemTB::setAU(bool isAU){
+	isAU_ = isAU;
 };
 
 /**
@@ -112,7 +115,7 @@ void SystemTB::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigv
 	double auToEV = 27.2;
 
 	if (!overlapMatrices.empty()){
-		if (isCRYSTAL){
+		if (isAU){
 			h *= auToEV;
 		}
 		orthogonalize_hamiltonian(k, h);	

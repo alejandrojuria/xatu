@@ -18,29 +18,32 @@ class SystemTB : public System {
     //// Attributes
     protected:
         bool isTriangular_ = false;
-        bool isCRYSTAL_ = false;
+        bool isAU_ = false;
 
     // Const references to expose relevant attributes in a read-only way
     public:
         // Returns true if the system matrices (hamiltonian and overlap) are triangular
         const bool& isTriangular = isTriangular_;
-        // Returns true if the system is DFT 
-        const bool& isCRYSTAL = isCRYSTAL_;
+        // Returns true if the system is in atomic units 
+        const bool& isAU = isAU_;
     
     //// Methods
+    /* Constructors and destructor */
+    protected:
+        SystemTB(){}; // Protected so that SystemTB cannot be initialized without parameters
     public:
-        /* Constructors and destructor */
         SystemTB(const SystemTB&);
         SystemTB(const SystemConfiguration&);  
         ~SystemTB(){};
 
         /* Setters */
         void setTriangular(bool);
-        void setCRYSTAL(bool);
+        void setAU(bool);
 
         /* Bloch Hamiltonian */
         arma::cx_mat hamiltonian(arma::rowvec k) const;
         arma::cx_mat overlap(arma::rowvec k) const;
+        using System::solveBands;
         void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&) const;
 
         /* Gauge */
