@@ -41,8 +41,10 @@ class System : public Lattice {
 
 
     //// Methods
-    public:
         /* Constructors and destructor */
+    protected:
+        System(){}; // Protected so that System cannot be init without parameters
+    public:
         System(const System&);
         System(const SystemConfiguration&);
         virtual ~System(){};
