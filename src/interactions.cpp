@@ -2,8 +2,14 @@
 
 #include "xatu.hpp"
 
+// TO DO, NOTA BENE: This file is currently unused. It is aimed at extracting the calculation
+// of the interaction matrix elements out of the exciton class to be available for
+// a wider class of calculations that involve V.
+
 
 namespace xatu {
+
+// ---------------------------- Potentials ----------------------------
 
 /** 
  * Calculate value of interaction potential (Keldysh). Units are eV.
@@ -14,7 +20,7 @@ namespace xatu {
  * @param eps_s Dielectric constant of substrate.
  * @param eps_m Dielectric constant of embedding medium (Air = 1).
  * @param cutoff Cutoff distance in potential, V(r > Rc) = 0.
- * @param a Regularization value, V(0) = V(a).
+ * @param a Regularization distance, V(0) = V(a).
  * @return Value of Keldysh potential, V(r).
  */
 double keldysh(double r, double r0, double eps_s, double eps_m, double cutoff, double a){
@@ -105,6 +111,18 @@ double keldyshFT(const arma::rowvec& q, double r0, double eps_s, double eps_m, d
     potential = potential*ec*1E10/(2*eps0*eps_bar*unitCellArea*totalCells);
     return potential;
 }
+
+/**
+ * Coulomb potential in real space.
+ * @param r Distance at which we evaluate the potential.
+ * @param regularization Regularization distance to remove divergence at r=0.
+ * @return Value of Coulomb potential, V(r).
+*/
+double coulomb(double r, double regularization){
+    return (r > 1E-8) ? ec/(4E-10*PI*eps0*r) : ec*1E10/(4*PI*eps0*regularization);    
+}
+
+// ----------------------- Interaction matrix element initialization -----------------------
 
 /**
  * Routine to compute the lattice Fourier transform with the potential displaced by some
