@@ -44,8 +44,10 @@ class Lattice {
         const arma::mat& unitCellList = unitCellList_;
         // Returns reciprocal lattice vectors
         const arma::mat& reciprocalLattice = reciprocalLattice_;
-        // Returns kpoints
+        // Returns kpoints that define the basis
         const arma::mat& kpoints = kpoints_;
+        // Returns mesh of the Brillouin zone
+        const arma::mat& meshBZ = meshBZ_;
         // Number of k points
         const int& nk = nk_;
         // Lattice parameters
@@ -56,6 +58,8 @@ class Lattice {
         const double& unitCellArea = unitCellArea_;
         // Number of unit cells connected to the origin
         const int& ncells = ncells_;
+        // Reduction factor of Brillouin zone mesh
+        const int& factor = factor_;
 
     //// Methods
     protected:
@@ -64,41 +68,27 @@ class Lattice {
         Lattice(const Lattice&); // Copy constructor
         ~Lattice(){};
 
-        int getDimension();
-        int getNumAtoms();
-        arma::mat getBravaisLattice();
-        arma::mat getMotif();
-        arma::mat getUnitCellList();
-        arma::mat getReciprocalLattice();
-
-        /* Mesh generation routines */
+        // Brillouin zone meshing & utilities
         void brillouinZoneMesh(int);
-        arma::mat brillouinZoneMeshCrystalCoordinates(int);
         void reducedBrillouinZoneMesh(int, int);
         void shiftBZ(const arma::rowvec&);
-        void preserveC3();
-        void brillouinZoneC3Mesh(int);
-        arma::mat wignerSeitzSupercell(int);
+        void calculateInverseReciprocalMatrix();
+        int findEquivalentPointBZ(const arma::rowvec&, int);
+
+        // Supercells
         arma::mat truncateSupercell(int, double);
         arma::mat truncateReciprocalSupercell(int, double);
         arma::mat generateCombinations(int n, int ndim, bool centered = false);
-        arma::mat supercellCutoff(int);
 
         /* Crystal operations */
-        arma::cx_mat inversionOperator(const arma::cx_vec&);
         arma::rowvec rotateC3(const arma::rowvec&);
-        int findEquivalentPointBZ(const arma::rowvec&, int);
-        void calculateInverseReciprocalMatrix();
-
 
     protected:
         void initializeLatticeAttributes(const SystemConfiguration&);
         void extractLatticeParameters();
         void computeUnitCellArea();
         void calculateReciprocalLattice();
-        bool isInsideWsCell(const arma::rowvec&, const arma::mat&, 
-                            const arma::rowvec&);
-        
+
 };
 
 }

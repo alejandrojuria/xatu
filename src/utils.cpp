@@ -151,32 +151,6 @@ std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int
     return pairs;
 }
 
-/* Routine to pretty print the eigenenergies from the BSE calculation. Computes number of degenerate states 
-corresponding to each energy level. 
-Input: + Result object
-       + int n: Number of energies 
-       + int precision: Number of decimals (sets degeneracy threshold)*/
-void printEnergies(Result result, int n, int precision){
-
-    // Print header
-    printf("+---------------+-----------------------------+-----------------------------+\n");
-    printf("|       N       |          Eigval (eV)        |          Degeneracy         |\n");
-    printf("+---------------+-----------------------------+-----------------------------+\n");
-
-    std::vector<std::vector<double>> pairs = detectDegeneracies(result.eigval, n, precision);
-    int it = 1;
-
-    for(auto pair : pairs){
-        double energy  = pair[0];
-        int degeneracy = (int)pair[1];
-
-        printf("|%15d|%29.*lf|%29d|\n", it, precision, energy, degeneracy);
-        printf("+---------------+-----------------------------+-----------------------------+\n");
-
-        it++;
-    }
-}
-
 /**
  * Prints the header of the code with the credits.
  */
@@ -192,6 +166,15 @@ void printHeader(){
     std::cout << "| J. J. Palacios                                                            |" << std::endl;
     std::cout << "| Universidad Autónoma de Madrid, Spain                                     |" << std::endl;
     std::cout << "+---------------------------------------------------------------------------+" << std::endl;
+}
+
+/**
+ * Auxiliary routine used to check if a matrix is triangular (either upper or lower)
+ * @details Used in System when constructed from SystemConfiguration objects to determine
+ * how to build H(k) and S(k).
+*/
+bool checkIfTriangular(const arma::cx_mat& matrix){
+	return (matrix.is_trimatu() != matrix.is_trimatl());
 }
 
 

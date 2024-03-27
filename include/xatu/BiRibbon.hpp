@@ -1,7 +1,7 @@
 #pragma once
 #include <armadillo>
 #include <string>
-#include "xatu/System.hpp"
+#include "xatu/SystemTB.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -11,7 +11,7 @@
 
 namespace xatu {
 
-class BiRibbon : public System{
+class BiRibbon : public SystemTB {
     
     public:
         //// Attributes

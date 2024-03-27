@@ -38,16 +38,23 @@ class ConfigurationBase {
         ConfigurationBase(std::string);
         virtual ~ConfigurationBase(){};
 
-        std::string parseArgument(std::string);
+        // Methods used in the constructor
         void extractArguments();
         void extractRawContent();
-        virtual void parseContent() = 0;
         void checkArguments();
-        std::string standarizeLine(std::string&);
+
+        // Parsing methods
+        std::string  parseArgument(std::string);
+        virtual void parseContent() = 0;
+        double       parseFraction(std::string&);
+        std::string  parseWord(std::string&);
+        std::string  standarizeLine(std::string&);
+
+        // Utilities
         void printContent();
-        double parseFraction(std::string&);
         void restartFileStream();
 
+        // Templated methods
         /**
          * Template method to parse one line containing only one value of a type T.
          * @param line String to parse.
