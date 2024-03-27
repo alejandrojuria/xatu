@@ -20,7 +20,7 @@ namespace xatu {
 void ExcitonTB::initializeExcitonAttributes(int ncell, const arma::ivec& bands, 
                                       const arma::rowvec& parameters, const arma::rowvec& Q){
     this->ncell_      = ncell;
-    this->totalCells_ = pow(ncell, system->ndim);
+    this->totalCells_ = pow(ncell, system_->ndim);
     this->Q_          = Q;
     this->bands_      = bands;
     this->eps_m_      = parameters(0);
@@ -71,6 +71,12 @@ void ExcitonTB::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     this->scissor_ = cfg.excitonInfo.scissor;
     this->mode_    = cfg.excitonInfo.mode;
     this->nReciprocalVectors_ = cfg.excitonInfo.nReciprocalVectors;
+    this->regularization_ = cfg.excitonInfo.regularization;
+    if (regularization_ == 0){
+        regularization_ = system->a;
+    }
+    this->potential_ = cfg.excitonInfo.potential;
+    this->exchangePotential_ = cfg.excitonInfo.exchangePotential;
 }
 
 /**
@@ -83,7 +89,7 @@ void ExcitonTB::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
  * @param Q Center-of-mass momentum.
  */
 ExcitonTB::ExcitonTB(const SystemConfiguration& config, int ncell, const arma::ivec& bands, 
-                     const arma::rowvec& parameters, const arma::rowvec& Q){
+                     const arma::rowvec& parameters, const arma::rowvec& Q) {
 
     system_.reset(new SystemTB(config));
 
@@ -149,11 +155,11 @@ ExcitonTB::ExcitonTB(const SystemConfiguration& config, const ExcitonConfigurati
     initializeExcitonAttributes(excitonConfig);
 }
 
-ExcitonTB::ExcitonTB(SystemTB& sys, int ncell, const arma::ivec& bands, 
+ExcitonTB::ExcitonTB(std::shared_ptr<SystemTB> sys, int ncell, const arma::ivec& bands, 
                      const arma::rowvec& parameters, const arma::rowvec& Q){
 
     
-    system_.reset(&sys);
+    system_ = sys;
     initializeExcitonAttributes(ncell, bands, parameters, Q);
 
     if (bands.n_elem > system->basisdim){
@@ -185,7 +191,7 @@ ExcitonTB::ExcitonTB(SystemTB& sys, int ncell, const arma::ivec& bands,
  * @param parameters Dielectric constant and screening length.
  * @param Q Center-of-mass momentum of the exciton.
  */
-ExcitonTB::ExcitonTB(SystemTB& sys, int ncell, int nbands, int nrmbands, 
+ExcitonTB::ExcitonTB(std::shared_ptr<SystemTB> sys, int ncell, int nbands, int nrmbands, 
                      const arma::rowvec& parameters, const arma::rowvec& Q) : 
                      ExcitonTB(sys, ncell, {}, parameters, Q) {
     
@@ -280,6 +286,14 @@ void ExcitonTB::setReciprocalVectors(int nReciprocalVectors){
     this->nReciprocalVectors_ = nReciprocalVectors;
 }
 
+/**
+ * Sets the regularization distance for the Coulomb potential divergence at r=0.
+ * @param regularization Distance in Angstroms.
+ * @return void
+*/
+void ExcitonTB::setRegularization(double regularization){
+    this->regularization_ = regularization;
+}
 
 /*---------------------------------------- Potentials ----------------------------------------*/
 
@@ -330,15 +344,15 @@ void ExcitonTB::STVH0(double X, double *SH0) {
  * @param r Distance at which we evaluate the potential.
  * @return Value of Keldysh potential, V(r).
  */
-double ExcitonTB::potential(double r){
+double ExcitonTB::keldysh(double r){
     double eps_bar = (eps_m + eps_s)/2;
     double SH0;
     double cutoff = arma::norm(system->bravaisLattice.row(0)) * cutoff_ + 1E-5;
     double R = abs(r)/r0;
     double potential_value;
     if(r == 0){
-        STVH0(system->a/r0, &SH0);
-        potential_value = ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(system->a/r0));
+        STVH0(regularization/r0, &SH0);
+        potential_value = ec/(8E-10*eps0*eps_bar*r0)*(SH0 - y0(regularization/r0));
     }
     else if (r > cutoff){
         potential_value = 0.0;
@@ -349,53 +363,46 @@ double ExcitonTB::potential(double r){
     };
 
     return potential_value;
-    
 };
-
-/*---------------------------------------- Fourier transforms ----------------------------------------*/
 
 /**
- * Calculate lattice Fourier transform of Keldsyh potential.
- * @param k kpoint where we compute the FT.
- * @param cells Matrix with position of unit cells over which we sum to obtain the lattice FT.
- * @param useApproximation Boolean to toggle simplified FT calculation (one summation instead of two over unit cells).
- * @return Lattice Fourier transform of the potential, lFT[V](k).
+ * Coulomb potential in real space.
+ * @param r Distance at which we evaluate the potential.
+ * @param regularization Regularization distance to remove divergence at r=0.
+ * @return Value of Coulomb potential, V(r).
  */
-std::complex<double> ExcitonTB::fourierTransform(arma::rowvec k, const arma::mat& cells, bool useApproximation){
-    std::complex<double> imag(0, 1);
-    //std::complex<double> Vk = potential(0);
-    std::complex<double> Vk = 0.0;
+double ExcitonTB::coulomb(double r){
+    return (r == 0.0) ? ec/(4E-10*PI*eps0*r) : ec*1E10/(4*PI*eps0*regularization);    
+}
 
-    if (useApproximation){
-        for(int n = 0; n < cells.n_rows; n++){
-            arma::rowvec cell = cells.row(n);
-            double module = arma::norm(cell);
-            Vk += potential(module)*std::exp(imag*arma::dot(k, cell));
-	    }
-        Vk *= totalCells;
+/**
+ * Method to select the potential to be used in the of the exciton calculation.
+ * @param potential Potential to be used in the direct term.
+ * @return Pointer to function representing the potential.
+ */
+
+potptr ExcitonTB::selectPotential(std::string potential){
+    if(potential == "keldysh"){
+        return &ExcitonTB::keldysh;
     }
+    else if(potential == "coulomb"){
+        return &ExcitonTB::coulomb;
+    }
+    else{
+        throw std::invalid_argument("selectPotential(): potential must be either 'keldysh' or 'coulomb'");
+    }
+}
 
-    else{ // This might be wrong if already using truncated cells
-        for (int n = 0; n < cells.n_rows; n++){
-            arma::rowvec cell = cells.row(n);
-            for (int m = 0; m < cells.n_rows; m++){
-                arma::rowvec cell2 = cells.row(m);
-                double module = arma::norm(cell - cell2);
-                Vk += potential(module)*std::exp(imag*arma::dot(k, cell - cell2));
-            }
-        }
-    };
 
-    Vk /= pow(totalCells, 2);
-    return Vk;
-};
+
+/*---------------------------------------- Fourier transforms ----------------------------------------*/
 
 /**
  * Evaluates the Fourier transform of the Keldysh potential, which is an analytical expression.
  * @param q kpoint where we evaluate the FT.
  * @return Fourier transform of the potential at q, FT[V](q).
  */
-double ExcitonTB::analyticFourierTransform(arma::rowvec q){
+double ExcitonTB::keldyshFT(arma::rowvec q){
     double radius = cutoff*arma::norm(system->reciprocalLattice.row(0));
     double potential = 0;
     double eps_bar = (eps_m + eps_s)/2;
@@ -420,9 +427,11 @@ double ExcitonTB::analyticFourierTransform(arma::rowvec q){
  * @param sAtomIndex Index of second atom of the motif.
  * @param k kpoint where we evaluate the FT.
  * @param cells Matrix with the unit cells over which we sum to compute the lattice FT.
+ * @param potential Pointer to potential function.
  * @return Motif lattice Fourier transform of the Keldysh potential at k.
  */
-std::complex<double> ExcitonTB::motifFourierTransform(int fAtomIndex, int sAtomIndex, const arma::rowvec& k, const arma::mat& cells){
+std::complex<double> ExcitonTB::motifFourierTransform(int fAtomIndex, int sAtomIndex, const arma::rowvec& k, 
+                                                      const arma::mat& cells, potptr potential){
 
     std::complex<double> imag(0,1);
     std::complex<double> Vk = 0.0;
@@ -432,11 +441,33 @@ std::complex<double> ExcitonTB::motifFourierTransform(int fAtomIndex, int sAtomI
     for(int n = 0; n < cells.n_rows; n++){
         arma::rowvec cell = cells.row(n);
         double module = arma::norm(cell + firstAtom - secondAtom);
-        Vk += potential(module)*std::exp(imag*arma::dot(k, cell));
+        Vk += (this->*potential)(module)*std::exp(imag*arma::dot(k, cell));
     }
     Vk /= pow(totalCells, 1);
 
     return Vk;
+}
+
+/**
+ * Method to compute the motif FT matrix at a given k vector.
+ * @param k k vector where we compute the motif FT.
+ * @param cells Matrix of unit cells over which the motif FT is computed.
+ * @param potential Pointer to potential function.
+ * @return void
+ */
+arma::cx_mat ExcitonTB::motifFTMatrix(const arma::rowvec& k, const arma::mat& cells, potptr potential){
+    // Uses hermiticity of V
+    int natoms = system->natoms;
+    arma::cx_mat motifFT = arma::zeros<arma::cx_mat>(natoms, natoms);
+
+    for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
+        for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
+            motifFT(fAtomIndex, sAtomIndex) = motifFourierTransform(fAtomIndex, sAtomIndex, k, cells, potential);
+            motifFT(sAtomIndex, fAtomIndex) = conj(motifFT(fAtomIndex, sAtomIndex));
+        }   
+    }
+
+    return motifFT;
 }
 
 /**
@@ -481,7 +512,7 @@ arma::cx_mat ExcitonTB::extendMotifFT(const arma::cx_mat& motifFT){
  * @param motifFT Motif Fourier transform.
  * @return Interaction term.
  */
-std::complex<double> ExcitonTB::exactInteractionTermMFT(const arma::cx_vec& coefsK1, 
+std::complex<double> ExcitonTB::realSpaceInteractionTerm(const arma::cx_vec& coefsK1, 
                                      const arma::cx_vec& coefsK2,
                                      const arma::cx_vec& coefsK3, 
                                      const arma::cx_vec& coefsK4,
@@ -523,7 +554,7 @@ std::complex<double> ExcitonTB::exactInteractionTermMFT(const arma::cx_vec& coef
  * @param k2Q kpoint corresponding to k' + Q.
  * @return Interaction term.
  */
-std::complex<double> ExcitonTB::interactionTermFT(const arma::cx_vec& coefsK, 
+std::complex<double> ExcitonTB::reciprocalInteractionTerm(const arma::cx_vec& coefsK, 
                                      const arma::cx_vec& coefsK2,
                                      const arma::cx_vec& coefsKQ, 
                                      const arma::cx_vec& coefsK2Q,
@@ -536,7 +567,7 @@ std::complex<double> ExcitonTB::interactionTermFT(const arma::cx_vec& coefsK,
     std::complex<double> Ic, Iv;
     std::complex<double> term = 0;
     double radius = cutoff * arma::norm(system->reciprocalLattice.row(0));
-    arma::mat reciprocalVectors = system->truncateReciprocalSupercell(nrcells, radius);
+    arma::mat reciprocalVectors = system_->truncateReciprocalSupercell(nrcells, radius);
 
     for(int i = 0; i < reciprocalVectors.n_rows; i++){
         auto G = reciprocalVectors.row(i);
@@ -544,7 +575,7 @@ std::complex<double> ExcitonTB::interactionTermFT(const arma::cx_vec& coefsK,
         Ic = blochCoherenceFactor(coefsKQ, coefsK2Q, kQ, k2Q, G);
         Iv = blochCoherenceFactor(coefsK, coefsK2, k, k2, G);
 
-        term += Ic*conj(Iv)*analyticFourierTransform(k - k2 + G);
+        term += Ic*conj(Iv)*keldyshFT(k - k2 + G);
     }
 
     return term;
@@ -640,36 +671,18 @@ arma::cx_mat ExcitonTB::fixGlobalPhase(arma::cx_mat& coefs){
     return coefs;
 }
 
-/**
- * Method to compute the motif FT matrix at a given k vector.
- * @param k k vector where we compute the motif FT.
- * @param cells Matrix of unit cells over which the motif FT is computed.
- * @return void
- */
-arma::cx_mat ExcitonTB::motifFTMatrix(const arma::rowvec& k, const arma::mat& cells){
-    // Uses hermiticity of V
-    int natoms = system->natoms;
-    arma::cx_mat motifFT = arma::zeros<arma::cx_mat>(natoms, natoms);
-
-    for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
-        for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
-            motifFT(fAtomIndex, sAtomIndex) = motifFourierTransform(fAtomIndex, sAtomIndex, k, cells);
-            motifFT(sAtomIndex, fAtomIndex) = conj(motifFT(fAtomIndex, sAtomIndex));
-        }   
-    }
-
-    return motifFT;
-}
+/*------------------------------------ Initializers ------------------------------------*/
 
 /**
  * Method to initialize the motif Fourier transform for all possible motif combination 
  * at a given kpoint.
  * @param i Index of kpoint.
  * @param cells Matrix of unit cells over which the motif FT is computed.
+ * @param potential Pointer to potential function.
  * @return void
  */
-void ExcitonTB::initializeMotifFT(int i, const arma::mat& cells){
-    ftMotifStack.slice(i) = motifFTMatrix(system->kpoints.row(i), cells);
+void ExcitonTB::initializeMotifFT(int i, const arma::mat& cells, potptr potential){
+    ftMotifStack.slice(i) = motifFTMatrix(system->meshBZ.row(i), cells, potential);
 }
 
 
@@ -680,11 +693,11 @@ void ExcitonTB::initializeMotifFT(int i, const arma::mat& cells){
  * @param triangular Boolean to specify whether the Hamiltonian matrices are triangular (default = false).
  * @return void
  */ 
-void ExcitonTB::initializeResultsH0(bool triangular){
+void ExcitonTB::initializeResultsH0(){
 
     int nTotalBands = bandList.n_elem;
     double radius = arma::norm(system->bravaisLattice.row(0)) * cutoff_;
-    arma::mat cells = system->truncateSupercell(ncell, radius);
+    arma::mat cells = system_->truncateSupercell(ncell, radius);
 
     int nk = system->nk;
     int natoms = system->natoms;
@@ -694,7 +707,7 @@ void ExcitonTB::initializeResultsH0(bool triangular){
     this->eigvecKQStack_ = arma::cx_cube(basisdim, nTotalBands, nk);
     this->eigvalKStack_  = arma::mat(nTotalBands, nk);
     this->eigvalKQStack_ = arma::mat(nTotalBands, nk);
-    this->ftMotifStack   = arma::cx_cube(natoms, natoms, nk);
+    this->ftMotifStack   = arma::cx_cube(natoms, natoms, system->meshBZ.n_rows);
     this->ftMotifQ       = arma::cx_mat(natoms, natoms);
 
     vec auxEigVal(basisdim);
@@ -706,7 +719,7 @@ void ExcitonTB::initializeResultsH0(bool triangular){
 	int displayNext = step;
 	int percent = 0;
 
-    system->calculateInverseReciprocalMatrix();
+    system_->calculateInverseReciprocalMatrix();
     std::complex<double> imag(0, 1);
 
     std::cout << "Diagonalizing H0 for all k points... " << std::flush;
@@ -735,15 +748,17 @@ void ExcitonTB::initializeResultsH0(bool triangular){
     std::cout << "Done" << std::endl;
 
     if(this->mode == "realspace"){
-        std::cout << "Computing lattice Fourier transform..." << std::endl;
+        std::cout << "Computing lattice Fourier transform... " << std::flush;
+
+        potptr directPotential = selectPotential(this->potential_);
         #pragma omp parallel for
-        for (unsigned int i = 0; i < system->kpoints.n_rows; i++){
+        for (unsigned int i = 0; i < system->meshBZ.n_rows; i++){
             // BIGGEST BOTTLENECK OF THE CODE
-            initializeMotifFT(i, cells);     
+            initializeMotifFT(i, cells, directPotential);     
 
                 /* AJU 24-11-23: Progress bar does not work properly with parallel for 
                    Fix it or remove it direcly? */
-                // percent = (100 * (i + 1)) / meshBZ_.n_rows ;
+                // percent = (100 * (i + 1)) / meshBZ.n_rows ;
                 // if (percent >= displayNext){
                 //     cout << "\r" << "[" << std::string(percent / 5, '|') << std::string(100 / 5 - percent / 5, ' ') << "]";
                 //     cout << percent << "%";
@@ -751,11 +766,12 @@ void ExcitonTB::initializeResultsH0(bool triangular){
                 //     displayNext += step;
                 // }
         }
-        std::cout << "\nDone" << std::endl;
+        std::cout << "Done\n" << std::endl;
     }
 
     if(this->exchange){
-        this->ftMotifQ = motifFTMatrix(this->Q, cells);
+        potptr exchangePotential = selectPotential(this->exchangePotential_);
+        this->ftMotifQ = motifFTMatrix(this->Q, cells, exchangePotential);
     }
 };
 
@@ -764,7 +780,7 @@ void ExcitonTB::initializeResultsH0(bool triangular){
  * @param triangular Boolean to specify whether the single-particle Hamiltonian matrices are triangular.
  * @return void.
  */
-void ExcitonTB::initializeHamiltonian(bool triangular){
+void ExcitonTB::initializeHamiltonian(){
 
     if(bands.empty()){
         throw std::invalid_argument("Error: Exciton object must have some bands");
@@ -773,17 +789,29 @@ void ExcitonTB::initializeHamiltonian(bool triangular){
         throw std::invalid_argument("Error: BZ mesh must be initialized first");
     }
 
+    if (this->regularization_ < 1E-10){
+        regularization_ = system->a;
+    }
+
     this->excitonbasisdim_ = system->nk*valenceBands.n_elem*conductionBands.n_elem;
     this->totalCells_ = pow(ncell*system->factor, system->ndim);
 
     std::cout << "Initializing basis for BSE... " << std::flush;
     initializeBasis();
-    //useSpinfulBasis();
     generateBandDictionary();
 
-    initializeResultsH0(triangular);
+    initializeResultsH0();
 }
 
+/**
+ * Method to initialize the BSE.
+ * @details Calls the more general routine which allows
+ * to specify a subset of the complete basis.
+ */ 
+void ExcitonTB::BShamiltonian(){
+    arma::imat basis = {};
+    BShamiltonian(basis);
+}
 
 /**
  * Initialize BSE hamiltonian matrix and kinetic matrix.
@@ -838,10 +866,10 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
 
         // Using the atomic gauge
         if(gauge == "atomic"){
-            coefsK = system->latticeToAtomicGauge(eigvecKStack.slice(k_index).col(v), system->kpoints.row(k_index));
-            coefsKQ = system->latticeToAtomicGauge(eigvecKQStack.slice(kQ_index).col(c), system->kpoints.row(kQ_index));
-            coefsK2 = system->latticeToAtomicGauge(eigvecKStack.slice(k2_index).col(v2), system->kpoints.row(k2_index));
-            coefsK2Q = system->latticeToAtomicGauge(eigvecKQStack.slice(k2Q_index).col(c2), system->kpoints.row(k2Q_index));
+            coefsK = system_->latticeToAtomicGauge(eigvecKStack.slice(k_index).col(v), system->kpoints.row(k_index));
+            coefsKQ = system_->latticeToAtomicGauge(eigvecKQStack.slice(kQ_index).col(c), system->kpoints.row(kQ_index));
+            coefsK2 = system_->latticeToAtomicGauge(eigvecKStack.slice(k2_index).col(v2), system->kpoints.row(k2_index));
+            coefsK2Q = system_->latticeToAtomicGauge(eigvecKQStack.slice(k2Q_index).col(c2), system->kpoints.row(k2Q_index));
         }
         else{
             coefsK = eigvecKStack.slice(k_index).col(v);
@@ -852,19 +880,19 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
 
         std::complex<double> D, X = 0.0;
         if (mode == "realspace"){
-            int effective_k_index = system->findEquivalentPointBZ(system->kpoints.row(k2_index) - system->kpoints.row(k_index), ncell);
+            int effective_k_index = system_->findEquivalentPointBZ(system->kpoints.row(k2_index) - system->kpoints.row(k_index), ncell);
             arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
-            D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
+            D = realSpaceInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             if(this->exchange){
-                X = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK, coefsK2Q, this->ftMotifQ);
+                X = realSpaceInteractionTerm(coefsKQ, coefsK2, coefsK, coefsK2Q, this->ftMotifQ);
             }            
         }
         else if (mode == "reciprocalspace"){
             arma::rowvec k = system->kpoints.row(k_index);
             arma::rowvec k2 = system->kpoints.row(k2_index);
-            D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
+            D = reciprocalInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
             if(this->exchange){
-                X = interactionTermFT(coefsK2Q, coefsK2, coefsKQ, coefsK, k2 + Q, k2, k + Q, k, this->nReciprocalVectors);
+                X = reciprocalInteractionTerm(coefsK2Q, coefsK2, coefsKQ, coefsK, k2 + Q, k2, k + Q, k, this->nReciprocalVectors);
             }
         }
         
@@ -891,7 +919,12 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
  * @param nstates Number of states to be stored from the diagonalization.
  * @return Result object storing the exciton energies and states.
  */ 
-Result ExcitonTB::diagonalize(std::string method, int nstates){
+ResultTB* ExcitonTB::diagonalizeRaw(std::string method, int nstates){
+
+    if (HBS.empty() || HBS.is_zero()){
+        throw std::invalid_argument("Error: BSE Hamiltonian must be initialized first");
+    }
+
     std::cout << "Solving BSE with ";
     arma::vec eigval;
     arma::cx_mat eigvec;
@@ -909,13 +942,25 @@ Result ExcitonTB::diagonalize(std::string method, int nstates){
 
         arma::cx_vec cx_eigval;
         arma::eigs_gen(cx_eigval, eigvec, arma::sp_cx_mat(HBS), nstates, "sr");
-        eigval = arma::sort(real(cx_eigval));
+        eigval = arma::real(cx_eigval);
     }
     
     std::cout << "Done" << std::endl;
-    Result results = Result(*this, eigval, eigvec);
 
-    return results;
+    return new ResultTB(this, eigval, eigvec);
+}
+
+/**
+ * Routine to diagonalize the BSE and return a Result object.
+ * @details Wrapper for the diagonalizeRaw method, which returns a raw pointer.
+ * We wrap it into a unique pointer to avoid memory leaks.
+ * @param method Method to diagonalize the BSE, either 'diag' (standard diagonalization) 
+ * 'davidson' (iterative diagonalization) or 'sparse' (Lanczos).
+ * @param nstates Number of states to be stored from the diagonalization.
+ * @return Result object storing the exciton energies and states.
+ */ 
+std::unique_ptr<ResultTB> ExcitonTB::diagonalize(std::string method, int nstates){
+    return std::unique_ptr<ResultTB>(diagonalizeRaw(method, nstates));
 }
 
 // ------------- Routines to compute Fermi Golden Rule -------------
@@ -942,7 +987,7 @@ double ExcitonTB::pairDensityOfStates(double energy, double delta) const {
             };
         }
     }
-    dos /= (a*nk);
+    dos /= (system->a * system->nk);
 
     return dos;
 }
@@ -977,12 +1022,12 @@ void ExcitonTB::writePairDOS(FILE* file, double delta, int n){
  */
 cx_vec ExcitonTB::ehPairCoefs(double energy, const vec& gapEnergy, std::string side){
 
-    cx_vec coefs = arma::zeros<cx_vec>(nk);
+    cx_vec coefs = arma::zeros<cx_vec>(system->nk);
     int closestKindex = -1;
     double eDiff;
     double currentEnergy = gapEnergy(0) - energy;
 
-    for(int n = 1; n < nk/2; n++){
+    for(int n = 1; n < system->nk/2; n++){
         
         eDiff = gapEnergy(n) - energy;
         if(abs(eDiff) < abs(currentEnergy)){
@@ -990,33 +1035,35 @@ cx_vec ExcitonTB::ehPairCoefs(double energy, const vec& gapEnergy, std::string s
             currentEnergy = eDiff;
         };
     };
-    cout << closestKindex << endl;
-    cout << "Selected k: " << kpoints(closestKindex) << "\t" << closestKindex << endl;
-    cout << "Closest gap energy: " << gapEnergy(closestKindex) << endl;
+    std::cout << closestKindex << std::endl;
+    std::cout << "Selected k: " << system->kpoints(closestKindex) << "\t" << closestKindex << std::endl;
+    std::cout << "Closest gap energy: " << gapEnergy(closestKindex) << std::endl;
     // By virtue of band symmetry, we expect n < nk/2
-    double dispersion = PI/(16*a);
+    double dispersion = PI/(16*system->a);
     if(side == "left"){
         coefs(closestKindex) = 1.;
     }
     else if(side == "right"){
-        coefs(nk - 1 - closestKindex) = 1.;
+        coefs(system->nk - 1 - closestKindex) = 1.;
     }
 
-    cout << "Energy gap (-k): " << gapEnergy(closestKindex) << endl;
-    cout << "Energy gap (k): " << gapEnergy(nk - 1 - closestKindex) << endl;
+    std::cout << "Energy gap (-k): " << gapEnergy(closestKindex) << std::endl;
+    std::cout << "Energy gap (k): " << gapEnergy(system->nk - 1 - closestKindex) << std::endl;
 
     return coefs;
 };
 
 /**
  * Method to compute the transition rate from one exciton to a general non-interacting electron-hole pair.
- * @param targetExciton Exciton object representing the final system.
+ * @param targetExciton Exciton object representing the final system->
  * @param initialState Exciton state (coefficients) from which the transition happens.
  * @param finalState Final exciton state in the transition.
  * @param energy Energy of the initial exciton state.
  * @return Transition rate from initialState to finalState.
  */ 
-double ExcitonTB::fermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec& initialState, const arma::cx_vec& finalState, double energy){
+double ExcitonTB::fermiGoldenRule(const ExcitonTB& targetExciton, 
+                                  const arma::cx_vec& initialState, 
+                                  const arma::cx_vec& finalState, double energy){
 
     double transitionRate = 0;
     arma::imat initialBasis = basisStates;
@@ -1040,10 +1087,14 @@ double ExcitonTB::fermiGoldenRule(const Exciton& targetExciton, const arma::cx_v
 
             // Using the atomic gauge
             if(gauge == "atomic"){
-                coefsK = latticeToAtomicGauge(targetExciton.eigvecKStack.slice(kf_index).col(vf), kpoints.row(kf_index));
-                coefsKQ = latticeToAtomicGauge(targetExciton.eigvecKQStack.slice(kf_index).col(cf), kpoints.row(kf_index));
-                coefsK2 = latticeToAtomicGauge(eigvecKStack.slice(ki_index).col(vi), kpoints.row(ki_index));
-                coefsK2Q = latticeToAtomicGauge(eigvecKQStack.slice(ki_index).col(ci), kpoints.row(ki_index));
+                coefsK = system_->latticeToAtomicGauge(
+                    targetExciton.eigvecKStack.slice(kf_index).col(vf), system->kpoints.row(kf_index));
+                coefsKQ = system_->latticeToAtomicGauge(
+                    targetExciton.eigvecKQStack.slice(kf_index).col(cf), system->kpoints.row(kf_index));
+                coefsK2 = system_->latticeToAtomicGauge(
+                    eigvecKStack.slice(ki_index).col(vi), system->kpoints.row(ki_index));
+                coefsK2Q = system_->latticeToAtomicGauge(
+                    eigvecKQStack.slice(ki_index).col(ci), system->kpoints.row(ki_index));
             }
             else{
                 coefsK = targetExciton.eigvecKStack.slice(kf_index).col(vf);
@@ -1054,16 +1105,17 @@ double ExcitonTB::fermiGoldenRule(const Exciton& targetExciton, const arma::cx_v
 
             std::complex<double> D, X;
             if (mode == "realspace"){
-                int effective_k_index = findEquivalentPointBZ(kpoints.row(ki_index) - kpoints.row(kf_index), ncell);
+                int effective_k_index = system_->findEquivalentPointBZ(
+                    system->kpoints.row(ki_index) - system->kpoints.row(kf_index), ncell);
                 arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
-                D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
+                D = realSpaceInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
                 X = 0;
 
             }
             else if (mode == "reciprocalspace"){
-                arma::rowvec k = kpoints.row(kf_index);
-                arma::rowvec k2 = kpoints.row(ki_index);
-                D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
+                arma::rowvec k = system->kpoints.row(kf_index);
+                arma::rowvec k2 = system->kpoints.row(ki_index);
+                D = reciprocalInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
                 X = 0;
             }
             
@@ -1091,18 +1143,19 @@ double ExcitonTB::fermiGoldenRule(const Exciton& targetExciton, const arma::cx_v
  * @param increasing Used to specify whether the gap increases or decreases with k.
  * @return k vector of the equivalent electron-hole pair.
 */
-arma::rowvec ExcitonTB::findElectronHolePair(const Exciton& targetExciton, double energy, std::string side, bool increasing){
+arma::rowvec ExcitonTB::findElectronHolePair(const ExcitonTB& targetExciton, double energy, std::string side, bool increasing){
 
 // First identify k edge e-h pair with same energy as exciton
     double n = 10; // Submeshing
     arma::rowvec min_k, max_k, kmin, kmax;
+    int nk = system->nk;
     if (side == "right"){
-        min_k = kpoints.row(nk/2);
-        max_k = -kpoints.row(0);
+        min_k = system->kpoints.row(nk/2);
+        max_k = - system->kpoints.row(0);
     }
     else if(side == "left"){
-        max_k = kpoints.row(0);
-        min_k = kpoints.row(nk/2 - 1);
+        max_k = system->kpoints.row(0);
+        min_k = system->kpoints.row(nk/2 - 1);
     }
     
     arma::rowvec k;
@@ -1119,14 +1172,14 @@ arma::rowvec ExcitonTB::findElectronHolePair(const Exciton& targetExciton, doubl
         for(double i = 0; i <= n; i++){
             
             k = min_k * (1 - i/n) + max_k * i/n;
-            targetExciton.solveBands(k, eigval, eigvec);
+            targetExciton.system->solveBands(k, eigval, eigvec);
 
             eigval = eigval(targetExciton.bandList);
             vEnergy = eigval(0);
 
             if(arma::norm(Q) != 0){
                 arma::rowvec kQ = k + Q;
-                targetExciton.solveBands(kQ, eigval, eigvec);
+                targetExciton.system->solveBands(kQ, eigval, eigvec);
 
                 eigval = eigval(targetExciton.bandList);
             }
@@ -1176,7 +1229,9 @@ arma::rowvec ExcitonTB::findElectronHolePair(const Exciton& targetExciton, doubl
  * @param increasing Used to specify whether the gap increases or decreases with k.
  * @return Transition rate from the initial exciton state to a non-interacting e-h pair.
  */
-double ExcitonTB::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::cx_vec& initialState, double energy, std::string side, bool increasing){
+double ExcitonTB::edgeFermiGoldenRule(const ExcitonTB& targetExciton, 
+                                      const arma::cx_vec& initialState, 
+                                      double energy, std::string side, bool increasing){
 
     double transitionRate = 0;
     arma::imat initialBasis = basisStates;
@@ -1187,7 +1242,7 @@ double ExcitonTB::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::
     arma::cx_mat eigvec;
     arma::cx_vec coefsK, coefsKQ;
 
-    targetExciton.solveBands(k, eigval, eigvec);
+    targetExciton.system->solveBands(k, eigval, eigvec);
 
     eigvec = fixGlobalPhase(eigvec);
     eigvec = eigvec.cols(targetExciton.bandList);
@@ -1195,7 +1250,7 @@ double ExcitonTB::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::
 
     if(arma::norm(Q) != 0){
         arma::rowvec kQ = k + Q;
-        targetExciton.solveBands(kQ, eigval, eigvec);
+        targetExciton.system->solveBands(kQ, eigval, eigvec);
 
         eigvec = fixGlobalPhase(eigvec);
         eigvec = eigvec.cols(targetExciton.bandList);
@@ -1205,7 +1260,7 @@ double ExcitonTB::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::
     bool computeOccupations = true;
     if (computeOccupations){
         //////// Specific for Bi ribbon; must be deleted afterwards.
-        int N = targetExciton.basisdim;
+        int N = targetExciton.system->basisdim;
         double l_e_edge_occ = arma::norm(coefsKQ.subvec(0, 15));
         double r_e_edge_occ = arma::norm(coefsKQ.subvec(N - 16, N - 1));
         double l_h_edge_occ = arma::norm(coefsK.subvec(0, 15));
@@ -1222,18 +1277,19 @@ double ExcitonTB::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::
     }
     
     // Now compute motif FT using k of edge pair
-    
-    double radius = arma::norm(bravaisLattice.row(0)) * cutoff_;
-    arma::mat cells = truncateSupercell(ncell, radius);
+    double radius = arma::norm(system->bravaisLattice.row(0)) * cutoff_;
+    arma::mat cells = system_->truncateSupercell(ncell, radius);
+    potptr potential = selectPotential(this->potential_);
 
-    arma::cx_cube ftMotifStack = arma::cx_cube(natoms, natoms, meshBZ_.n_rows);
+    int natoms = system->natoms;
+    arma::cx_cube ftMotifStack = arma::cx_cube(natoms, natoms, system->kpoints.n_rows);
     
     #pragma omp parallel for collapse(2)
-    for(int i = 0; i < nk; i++){
+    for(int i = 0; i < system->nk; i++){
         for(int fAtomIndex = 0; fAtomIndex < natoms; fAtomIndex++){
             for(int sAtomIndex = fAtomIndex; sAtomIndex < natoms; sAtomIndex++){
                 ftMotifStack(fAtomIndex, sAtomIndex, i) = 
-                motifFourierTransform(fAtomIndex, sAtomIndex, meshBZ_.row(i) - k, cells);
+                motifFourierTransform(fAtomIndex, sAtomIndex, system->kpoints.row(i) - k, cells, potential);
                 ftMotifStack(sAtomIndex, fAtomIndex, i) = conj(ftMotifStack(fAtomIndex, sAtomIndex, i));
             }   
         }
@@ -1253,8 +1309,8 @@ double ExcitonTB::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::
 
         // Using the atomic gauge
         if(gauge == "atomic"){
-            coefsK2 = latticeToAtomicGauge(eigvecKStack.slice(ki_index).col(vi), kpoints.row(ki_index));
-            coefsK2Q = latticeToAtomicGauge(eigvecKQStack.slice(ki_index).col(ci), kpoints.row(ki_index));
+            coefsK2 = system_->latticeToAtomicGauge(eigvecKStack.slice(ki_index).col(vi), system->kpoints.row(ki_index));
+            coefsK2Q = system_->latticeToAtomicGauge(eigvecKQStack.slice(ki_index).col(ci), system->kpoints.row(ki_index));
         }
         else{
             coefsK2 = eigvecKStack.slice(ki_index).col(vi);
@@ -1264,25 +1320,25 @@ double ExcitonTB::edgeFermiGoldenRule(const Exciton& targetExciton, const arma::
         std::complex<double> D, X;
         if (mode == "realspace"){
             arma::cx_mat motifFT = ftMotifStack.slice(ki_index);
-            D = exactInteractionTermMFT(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
+            D = realSpaceInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             X = 0;
 
         }
         else if (mode == "reciprocalspace"){
-            arma::rowvec k2 = kpoints.row(ki_index);
-            D = interactionTermFT(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
+            arma::rowvec k2 = system->kpoints.row(ki_index);
+            D = reciprocalInteractionTerm(coefsK, coefsK2, coefsKQ, coefsK2Q, k, k2, k, k2, this->nReciprocalVectors);
             X = 0;
         }
         
         W(i) = - (D - X);                
     };
 
-    double delta = 2.0/targetExciton.nk; // Adjust delta depending on number of k points
+    double delta = 2.0/targetExciton.system->nk; // Adjust delta depending on number of k points
     double rho = targetExciton.pairDensityOfStates(energy, delta);
     cout << "DoS value: " << rho << endl;
     double hbar = 6.582119624E-16; // Units are eV*s
 
-    transitionRate = (ncell*a)*2*PI*std::norm(arma::dot(W, initialState))*rho/hbar;
+    transitionRate = (ncell*system->a)*2*PI*std::norm(arma::dot(W, initialState))*rho/hbar;
 
 
     return transitionRate;
@@ -1296,13 +1352,13 @@ void ExcitonTB::printInformation(){
     cout << std::left << std::setw(30) << "Number of cells: " << ncell << endl;
     cout << std::left << std::setw(30) << "Valence bands:";
     for (int i = 0; i < valenceBands.n_elem; i++){
-        cout << valenceBands(i) << "\t";
+        cout << valenceBands(i) << " ";
     }
     cout << endl;
 
     cout << std::left << std::setw(30) << "Conduction bands: ";
     for (int i = 0; i < conductionBands.n_elem; i++){
-        cout << conductionBands(i) << "\t";
+        cout << conductionBands(i) << " ";
     }
     cout << "\n" << endl;
 
@@ -1311,8 +1367,10 @@ void ExcitonTB::printInformation(){
     if(mode == "reciprocalspace"){
         cout << std::left << std::setw(30) << "nG: " << nReciprocalVectors << endl;
     }
+    cout << std::left << std::setw(30) << "Potential: " << potential_ << endl;
     if(exchange){
         cout << std::left << std::setw(30) << "Exchange: " << (exchange ? "True" : "False") << endl;
+        cout << std::left << std::setw(30) << "Exchange potential: " << exchangePotential_ << endl;
     }
     if(arma::norm(Q) > 1E-7){
         cout << std::left << std::setw(30) << "Q: "; 

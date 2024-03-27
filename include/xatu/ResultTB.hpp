@@ -4,7 +4,6 @@
 #pragma once
 #include <armadillo>
 #include "xatu/SystemTB.hpp"
-#include "xatu/ExcitonTB.hpp"
 #include "xatu/Result.hpp"
 
 extern "C" {
@@ -24,14 +23,21 @@ extern "C" {
 
 namespace xatu {
 
+class ExcitonTB;
+
 class ResultTB : public Result<SystemTB> {
 
     public:
-        // Constructor
+        //// Constructor
         ResultTB(ExcitonTB* exciton_, arma::vec& eigval_, arma::cx_mat& eigvec_);
+        ~ResultTB() = default;
         
-        // Observables
+        //// Observables
+        // First recover hidden methods from Result<SystemTB>
         using Result<SystemTB>::spinX; // Add overload for spinX
+        using Result<SystemTB>::writeRealspaceAmplitude;
+
+        // Define additional methods
         arma::cx_vec spinX(const arma::cx_vec&);
         arma::mat velocity(int);
         arma::cx_vec velocitySingleParticle(int, int, int, std::string);

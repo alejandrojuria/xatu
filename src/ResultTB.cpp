@@ -1,27 +1,25 @@
 #ifndef RESULTTB_CPP
 #define RESULTTB_CPP
 
-#pragma once
 #include <complex>
 #include "xatu/ResultTB.hpp"
-#include "xatu/ExcitonTB.hpp"
 
 namespace xatu {
 
 /* -------------------- Observables -------------------- */
 
-ResultTB::ResultTB(ExcitonTB* exciton_, arma::vec& eigval_, arma::cx_mat& eigvec_) : Result<SystemTB>(exciton_, eigval_, eigvec_){};
+ResultTB::ResultTB(ExcitonTB* exciton_, arma::vec& eigval_, arma::cx_mat& eigvec_) : 
+    Result<SystemTB>( (Exciton<SystemTB> *)exciton_, eigval_, eigvec_){};
 
 /** 
  * Routine to compute the expected Sz spin value of the electron
- * and hole that form a given exciton.
+ * and hole that form a given exciton->
  * @param coefs Coefficients of the exciton state. Note that the coefficients must be given
  * in the exact ordering used in the exciton basis. Otherwise, wrong results will be obtained.
  * @return Vector with the total spin of the exciton, the spin of the hole and that of the electron
  */
 arma::cx_vec ResultTB::spinX(const arma::cx_vec& coefs){
     
-
     // Initialize Sz for both electron and hole to zero
     arma::cx_double electronSpin = 0;
     arma::cx_double holeSpin = 0;
@@ -66,9 +64,9 @@ arma::cx_vec ResultTB::spinX(const arma::cx_vec& coefs){
         arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nvbands, nvbands);
         arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(ncbands, ncbands);
         for(int i = 0; i < nvbands; i++){
-            int vIndex = exciton->bandToIndex[exciton->valenceBands(i)];
+            int vIndex = exciton_->bandToIndex[exciton->valenceBands(i)];
             for(int j = 0; j < nvbands; j++){
-                int vIndex2 = exciton->bandToIndex[exciton->valenceBands(j)];
+                int vIndex2 = exciton_->bandToIndex[exciton->valenceBands(j)];
                 eigvec = exciton->eigvecKStack.slice(k).col(vIndex);
                 spinEigvec = eigvec % spinVector;
                 eigvec = exciton->eigvecKStack.slice(k).col(vIndex2);
@@ -76,9 +74,9 @@ arma::cx_vec ResultTB::spinX(const arma::cx_vec& coefs){
             }
         }
         for(int i = 0; i < ncbands; i++){
-            int cIndex = exciton->bandToIndex[exciton->conductionBands(i)];
+            int cIndex = exciton_->bandToIndex[exciton->conductionBands(i)];
             for(int j = 0; j < ncbands; j++){
-                int cIndex2 = exciton->bandToIndex[exciton->conductionBands(j)];
+                int cIndex2 = exciton_->bandToIndex[exciton->conductionBands(j)];
                 eigvec = exciton->eigvecKQStack.slice(k).col(cIndex2);
                 spinEigvec = eigvec % spinVector;
                 eigvec = exciton->eigvecKQStack.slice(k).col(cIndex);
@@ -106,7 +104,7 @@ arma::cx_vec ResultTB::spinX(const arma::cx_vec& coefs){
  * using the eigenvector of the exciton state, assuming an underlying tight-binding basis.
  * @param stateindex Index of exciton eigenstate.
  * @return Outputs a matrix where the first column is the center-of-mass velocity of the exciton,
- * and the second is the relative velocity of the exciton.
+ * and the second is the relative velocity of the exciton->
  */
 arma::mat ResultTB::velocity(int index){
 
@@ -217,8 +215,8 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
     // Finally compute velocity matrix elements
     arma::cx_vec velocityMatrixElement = arma::zeros<arma::cx_vec>(3);
     arma::cx_vec fState, sState;
-    int n = exciton->bandToIndex[fIndex];
-    int m = exciton->bandToIndex[sIndex];
+    int n = exciton_->bandToIndex[fIndex];
+    int m = exciton_->bandToIndex[sIndex];
 
     if (bandType == "valence"){
         fState = exciton->eigvecKStack.slice(kIndex).col(n);
@@ -236,7 +234,7 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
 }
 
 /**
- * Method to compute the oscillator strength of the exciton.
+ * Method to compute the oscillator strength of the exciton->
  * @details Computes the oscillator strength of the exciton, which is a measure of the brightness
  * of the exciton, and it is used to obtain the optical conducitivity.
  * @return Matrix with all the oscillator strenghts in all three directions for all excitons.
@@ -381,24 +379,24 @@ void ResultTB::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeI
     int it = 0;
 
     // Compute probabilities
+    #pragma omp parallel for
     for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
         arma::rowvec cell = cellCombinations.row(cellIndex);
         for (unsigned int atomIndex = 0; atomIndex < system->motif.n_rows; atomIndex++){
+            int idx = atomIndex + cellIndex*system->motif.n_rows;
             //coefs(it) = atomCoefficientSquared(atomIndex, cell, holeCell, RScoefs);
-            coefs(it) = realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
-            it++;
+            coefs(idx) = realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
         }
     }
 
     // Write probabilities to file
-    it = 0;
     for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
         arma::rowvec cell = cellCombinations.row(cellIndex);
         for(unsigned int atomIndex = 0; atomIndex < system->motif.n_rows; atomIndex++){
+            int idx = atomIndex + cellIndex*system->motif.n_rows;
             arma::rowvec position = system->motif.row(atomIndex).subvec(0, 2) + cell;
             fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n",
-                            position(0), position(1), coefs(it));
-            it++;
+                            position(0), position(1), coefs(idx));
         }
     }
     fprintf(textfile, "#\n");                              
