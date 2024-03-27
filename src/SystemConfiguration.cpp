@@ -296,4 +296,5 @@ std::ostream& operator<<(std::ostream& stream, const SystemConfiguration& config
     config.printConfiguration(stream);
 }
 
+
 }
