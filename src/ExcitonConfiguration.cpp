@@ -133,19 +133,22 @@ void ExcitonConfiguration::checkContentCoherence(){
     if(excitonInfo.nbands == 0 && excitonInfo.bands.empty()){
         throw std::invalid_argument("Must specify 'nbands' or 'bandlist' parameters");
     };
+
+    bool potentialFound = false;
+    bool exchangePotentialFound = false;
     for (auto potential : supportedPotentials){
         if(excitonInfo.potential == potential){
-            break;
+            potentialFound = true;
         }
+        if(excitonInfo.exchange && excitonInfo.exchangePotential == potential){
+            exchangePotentialFound = true;
+        }
+    }
+    if (!potentialFound){
         throw std::invalid_argument("Specified 'potential' not supported. Use 'keldysh' or 'coulomb'");
     }
-    if (excitonInfo.exchange){
-        for (auto potential : supportedPotentials){
-            if(excitonInfo.exchangePotential == potential){
-                break;
-            }
+    if (excitonInfo.exchange && !exchangePotentialFound){
         throw std::invalid_argument("Specified 'exchange.potential' not supported. Use 'keldysh' or 'coulomb'");
-        }
     }
     if (excitonInfo.mode != "realspace" && excitonInfo.mode != "reciprocalspace"){
         throw std::invalid_argument("Invalid mode. Use 'realspace' or 'reciprocalspace'");
