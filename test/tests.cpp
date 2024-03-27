@@ -159,14 +159,14 @@ TEST_CASE("TB hBN energies (full diagonalization)", "[tb-hBN-fulldiag]"){
     std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
                                                          {6.074062, 1}};
@@ -191,14 +191,14 @@ TEST_CASE("TB hBN energies (davidson)", "[tb-hBN-davidson]"){
     std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("davidson", nstates);
 
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
                                                          {6.074062, 1}};
@@ -223,14 +223,14 @@ TEST_CASE("TB hBN energies (Lanczos)", "[hBN-lanczos]"){
     std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("sparse", nstates);
 
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{5.335690, 2}, 
                                                          {6.074062, 1}};
@@ -255,7 +255,7 @@ TEST_CASE("TB hBN energies (reciprocal)", "[tb-hBN-reciprocal]"){
     std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
     exciton.setMode("reciprocalspace");
     exciton.setReciprocalVectors(5);
 
@@ -264,7 +264,7 @@ TEST_CASE("TB hBN energies (reciprocal)", "[tb-hBN-reciprocal]"){
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{6.234291, 1}, 
                                                          {6.236636, 1},
@@ -290,7 +290,7 @@ TEST_CASE("TB hBN reciprocal w.f.", "[tb-hBN-kwf]"){
     std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
@@ -298,16 +298,16 @@ TEST_CASE("TB hBN reciprocal w.f.", "[tb-hBN-kwf]"){
     auto results = exciton.diagonalize("diag", nstates);
 
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
-    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.kpoints.n_rows);
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_rows);
     for (int n = 0; n < nstates; n++){
-        arma::cx_vec statecoefs = results.eigvec.col(n);
-        for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        arma::cx_vec statecoefs = results->eigvec.col(n);
+        for (int i = 0; i < exciton.system->kpoints.n_rows; i++){
         double coef = 0;
         for(int nband = 0; nband < nbandsCombinations; nband++){
             coef += abs(statecoefs(nbandsCombinations*i + nband))*
                     abs(statecoefs(nbandsCombinations*i + nband));
         };
-        coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
+        coef /= arma::norm(exciton.system->kpoints.row(1) - exciton.system->kpoints.row(0)); // L2 norm instead of l2
         kwf(i) += coef;
         };
     }
@@ -334,27 +334,27 @@ TEST_CASE("TB hBN real-space w.f.", "[tb-hBN-rswf]"){
     std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    arma::rowvec holePosition = exciton.motif.row(holeIndex).subvec(0, 2) + holeCell;
+    arma::rowvec holePosition = exciton.system->motif.row(holeIndex).subvec(0, 2) + holeCell;
 
-    double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.ncell;
-    arma::mat cellCombinations = exciton.truncateSupercell(exciton.ncell, radius);
-    arma::vec rswf = arma::zeros(cellCombinations.n_rows*exciton.motif.n_rows);
+    double radius = arma::norm(exciton.system->bravaisLattice.row(0)) * exciton.ncell;
+    arma::mat cellCombinations = exciton.system->truncateSupercell(exciton.ncell, radius);
+    arma::vec rswf = arma::zeros(cellCombinations.n_rows*exciton.system->motif.n_rows);
 
     // Compute probabilities
     for(int n = 0; n < nstates; n++){
         int it = 0;
-        arma::cx_vec statecoefs = results.eigvec.col(n);
+        arma::cx_vec statecoefs = results->eigvec.col(n);
         for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
         arma::rowvec cell = cellCombinations.row(cellIndex);
-        for (unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
-            rswf(it) += results.realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
+        for (unsigned int atomIndex = 0; atomIndex < exciton.system->motif.n_rows; atomIndex++){
+            rswf(it) += results->realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
             it++;
         }
         }
@@ -380,14 +380,14 @@ TEST_CASE("TB hBN absorption", "[tb-hBN-kubo]"){
     std::string modelfile = "../examples/material_models/hBN.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    arma::cx_mat vme_ex = results.excitonOscillatorStrength();
+    arma::cx_mat vme_ex = results->excitonOscillatorStrength();
     arma::mat norm_vme_ex = arma::square(arma::abs(vme_ex));
     double cum_norm_vme_ex = arma::accu(norm_vme_ex);
 
@@ -410,14 +410,14 @@ TEST_CASE("TB hBN energies (spinful)", "[tb-hBN-spinful]"){
     std::string modelfile = "../examples/material_models/hBN_spinful.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1, 1, 10});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{5.335690, 8}, 
                                                          {6.074062, 4}};
@@ -442,7 +442,7 @@ TEST_CASE("TB hBN spin", "[tb-hBN-spin]"){
     std::string modelfile = "../examples/material_models/hBN_spinful.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1, 1, 10});
     
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
@@ -452,7 +452,7 @@ TEST_CASE("TB hBN spin", "[tb-hBN-spin]"){
     arma::mat expectedSpin = arma::vec{-1, 0, 0, 1};  
 
     for(uint i = 0; i < nstates; i++){
-        arma::cx_vec spin = results.spinX(i);
+        arma::cx_vec spin = results->spinX(i);
         REQUIRE(spin.n_elem == 3);
         REQUIRE_THAT(std::real(spin(0)), Catch::Matchers::WithinAbs(expectedSpin(i), 1E-2));
         REQUIRE_THAT(std::abs(spin(1)), Catch::Matchers::WithinAbs(0.5, 1E-2));
@@ -478,14 +478,15 @@ TEST_CASE("DFT hBN", "[dft-hBN]"){
     std::string modelfile = "../examples/material_models/DFT/hBN_base_HSE06.outp";
     xatu::CRYSTALConfiguration config = xatu::CRYSTALConfiguration(modelfile, 100);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
+    exciton.system->setAU(true);
 
     exciton.brillouinZoneMesh(ncell);
-    exciton.initializeHamiltonian(triangular);
+    exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{4.442317, 1}, 
                                                          {4.442427, 1}};
@@ -497,16 +498,16 @@ TEST_CASE("DFT hBN", "[dft-hBN]"){
 
     // Check reciprocal w.f.
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
-    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.kpoints.n_rows);
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_rows);
     for (int n = 0; n < nstates; n++){
-        arma::cx_vec statecoefs = results.eigvec.col(n);
-        for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        arma::cx_vec statecoefs = results->eigvec.col(n);
+        for (int i = 0; i < exciton.system->kpoints.n_rows; i++){
         double coef = 0;
         for(int nband = 0; nband < nbandsCombinations; nband++){
             coef += abs(statecoefs(nbandsCombinations*i + nband))*
                     abs(statecoefs(nbandsCombinations*i + nband));
         };
-        coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
+        coef /= arma::norm(exciton.system->kpoints.row(1) - exciton.system->kpoints.row(0)); // L2 norm instead of l2
         kwf(i) += coef;
         };
     }
@@ -516,20 +517,20 @@ TEST_CASE("DFT hBN", "[dft-hBN]"){
     REQUIRE_THAT(kwfHash, Catch::Matchers::WithinAbs(expectedKwfHash, 1E-5));
 
     // Check realspace w.f.
-    arma::rowvec holePosition = exciton.motif.row(holeIndex).subvec(0, 2) + holeCell;
+    arma::rowvec holePosition = exciton.system->motif.row(holeIndex).subvec(0, 2) + holeCell;
 
-    double radius = arma::norm(exciton.bravaisLattice.row(0)) * exciton.ncell;
-    arma::mat cellCombinations = exciton.truncateSupercell(exciton.ncell, 2);
-    arma::vec rswf = arma::zeros(cellCombinations.n_rows*exciton.motif.n_rows);
+    double radius = arma::norm(exciton.system->bravaisLattice.row(0)) * exciton.ncell;
+    arma::mat cellCombinations = exciton.system->truncateSupercell(exciton.ncell, 2);
+    arma::vec rswf = arma::zeros(cellCombinations.n_rows*exciton.system->motif.n_rows);
 
     // Compute probabilities
     for(int n = 0; n < nstates; n++){
         int it = 0;
-        arma::cx_vec statecoefs = results.eigvec.col(n);
+        arma::cx_vec statecoefs = results->eigvec.col(n);
         for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
         arma::rowvec cell = cellCombinations.row(cellIndex);
-        for (unsigned int atomIndex = 0; atomIndex < exciton.motif.n_rows; atomIndex++){
-            rswf(it) += results.realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
+        for (unsigned int atomIndex = 0; atomIndex < exciton.system->motif.n_rows; atomIndex++){
+            rswf(it) += results->realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
             it++;
         }
         }
@@ -555,14 +556,14 @@ TEST_CASE("MoS2 energies", "[MoS2-energies]"){
     std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{1.768783, 2}, 
                                                          {1.780562, 2}};
@@ -587,7 +588,7 @@ TEST_CASE("MoS2 reciprocal w.f.", "[MoS2-kwf]"){
     std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
@@ -595,16 +596,16 @@ TEST_CASE("MoS2 reciprocal w.f.", "[MoS2-kwf]"){
     auto results = exciton.diagonalize("diag", nstates);
 
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
-    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.kpoints.n_rows);
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_rows);
     for (int n = 0; n < nstates; n++){
-        arma::cx_vec statecoefs = results.eigvec.col(n);
-        for (int i = 0; i < exciton.kpoints.n_rows; i++){
+        arma::cx_vec statecoefs = results->eigvec.col(n);
+        for (int i = 0; i < exciton.system->kpoints.n_rows; i++){
         double coef = 0;
         for(int nband = 0; nband < nbandsCombinations; nband++){
             coef += abs(statecoefs(nbandsCombinations*i + nband))*
                     abs(statecoefs(nbandsCombinations*i + nband));
         };
-        coef /= arma::norm(exciton.kpoints.row(1) - exciton.kpoints.row(0)); // L2 norm instead of l2
+        coef /= arma::norm(exciton.system->kpoints.row(1) - exciton.system->kpoints.row(0)); // L2 norm instead of l2
         kwf(i) += coef;
         };
     }
@@ -630,10 +631,10 @@ TEST_CASE("MoS2 spin", "[MoS2-spin]"){
     std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
-    exciton.reducedBrillouinZoneMesh(ncell, factor);
-    exciton.shiftBZ({0.6628, -1.1480, 0});
+    exciton.system->reducedBrillouinZoneMesh(ncell, factor);
+    exciton.system->shiftBZ({0.6628, -1.1480, 0});
 
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
@@ -645,7 +646,7 @@ TEST_CASE("MoS2 spin", "[MoS2-spin]"){
                                        { 9.991e-01,  4.998e-01,  4.993e-01}}; 
                               
     for(uint i = 0; i < nstates; i++){
-        arma::cx_vec spin = results.spinX(i);
+        arma::cx_vec spin = results->spinX(i);
         for(uint j = 0; j < 3; j++){
             double spinValue = real(spin(j));
             REQUIRE_THAT(spinValue, Catch::Matchers::WithinAbs(expectedSpin(i, j), 1E-4));
@@ -674,14 +675,14 @@ TEST_CASE("MoS2 exciton bands", "[MoS2-Q]"){
 
     for (const auto& q : Q_values){
         Q(1) = q;
-        xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55}, Q);
+        xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55}, Q);
 
         exciton.brillouinZoneMesh(ncell);
         exciton.initializeHamiltonian();
         exciton.BShamiltonian();
 
-        xatu::Result results = exciton.diagonalize("diag", nstates);
-        auto resultingEnergies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+        auto results = exciton.diagonalize("diag", nstates);
+        auto resultingEnergies = xatu::detectDegeneracies(results->eigval, nstates, 6);
 
         energies.push_back(resultingEnergies[0]);
     }
@@ -713,15 +714,15 @@ TEST_CASE("MoS2 exchange", "[MoS2-exchange]"){
     std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55}, Q);
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55}, Q);
     exciton.setExchange(true);
     
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
 
-    xatu::Result results = exciton.diagonalize("diag", nstates);
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto results = exciton.diagonalize("diag", nstates);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{1.810464, 2}, 
                                                          {1.825740, 1},
@@ -748,16 +749,16 @@ TEST_CASE("MoS2 reduced BZ", "[MoS2-reducedBZ]"){
     std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
-    exciton.reducedBrillouinZoneMesh(ncell, factor);
-    exciton.shiftBZ({0.6628, -1.1480, 0});
+    exciton.system->reducedBrillouinZoneMesh(ncell, factor);
+    exciton.system->shiftBZ({0.6628, -1.1480, 0});
 
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    auto energies = xatu::detectDegeneracies(results.eigval, nstates, 6);
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
     std::vector<std::vector<double>> expectedEnergies = {{1.795378, 1}, 
                                                          {1.809810, 1},
@@ -784,14 +785,14 @@ TEST_CASE("MoS2 absorption", "[MoS2-kubo]"){
     std::string modelfile = "../examples/material_models/MoS2.model";    
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
 
-    xatu::Exciton exciton = xatu::Exciton(config, ncell, 2, 0, {1., 4., 13.55});
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    arma::cx_mat vme_ex = results.excitonOscillatorStrength();
+    arma::cx_mat vme_ex = results->excitonOscillatorStrength();
     arma::mat norm_vme_ex = arma::square(arma::abs(vme_ex));
     double cum_norm_vme_ex = arma::accu(norm_vme_ex);
 
