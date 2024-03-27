@@ -1,13 +1,11 @@
+#ifndef EXCITON_HPP
+#define EXCITON_HPP
+
 #pragma once
 #include <complex>
 #include <omp.h>
 #include <stdlib.h>
-#include <memory>
-#include "xatu/System.hpp"
-#include "xatu/ExcitonConfiguration.hpp"
-#include "xatu/Result.hpp"
-#include "xatu/forward_declaration.hpp"
-#include "xatu/utils.hpp"
+
 
 #ifndef constants
 #define PI 3.141592653589793
@@ -17,13 +15,17 @@
 
 namespace xatu {
 
+template<typename T>
+class Result;
+
+template <typename T>
 class Exciton {
 
     // ----------------------------------- Attributes -----------------------------------
     // Read-only parameters
     protected:
 
-        std::shared_ptr<System> system_;
+        std::shared_ptr<T> system_;
 
         // General Exciton attributes
         int ncell_, totalCells_, nbands_, nrmbands_, excitonbasisdim_;
@@ -44,7 +46,7 @@ class Exciton {
         arma::mat HK_;
 
     public:
-        const std::shared_ptr<System> system = system_;
+        const std::shared_ptr<T>& system = system_;
         // Number of unit cells along one axis
         const int& ncell = ncell_;
         // Total number of unit cells
@@ -85,8 +87,11 @@ class Exciton {
         std::map<int, int> bandToIndex;
 
     // ----------------------------------- Methods -----------------------------------
+    protected:
+        Exciton() = default;
     public:
         // Constructor & Destructor
+        Exciton(std::shared_ptr<T> sys_ptr) : system_(sys_ptr){};
         virtual ~Exciton(){};
 
         // Setters
@@ -107,14 +112,23 @@ class Exciton {
         // Gauge fixing
         arma::cx_mat fixGlobalPhase(arma::cx_mat&);
 
+        // BSE diagonalization: This method is not intented to be used
+        // directly, but to be called by the 'diagonalize' method which has to be implemented
+        // by the child classes.
+        virtual Result<T>* diagonalizeRaw(std::string method = "diag", int nstates = 8) = 0;
+
     public:
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
+        void brillouinZoneMesh(int);
         virtual void printInformation();
         
         // BSE initialization and energies
         virtual void initializeHamiltonian() = 0;
         virtual void BShamiltonian() = 0;
-        virtual Result diagonalize(std::string method = "diag", int nstates = 8) = 0;
 };
 
 }
+
+#include "xatu/Exciton.tpp"
+
+#endif
