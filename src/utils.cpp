@@ -158,7 +158,7 @@ void printHeader(){
     std::cout << "+---------------------------------------------------------------------------+" << std::endl;
     std::cout << "|                                                                           |" << std::endl;
     std::cout << "|                                     Xatu                                  |" << std::endl;
-    std::cout << "|                               v1.3 - 27/03/2024                           |" << std::endl;
+    std::cout << "|                              v1.3.1 - 28/03/2024                          |" << std::endl;
     std::cout << "|                    https://github.com/alejandrojuria/xatu                 |" << std::endl;
     std::cout << "|                                                                           |" << std::endl;
     std::cout << "|                                  [Authors]                                |" << std::endl;
