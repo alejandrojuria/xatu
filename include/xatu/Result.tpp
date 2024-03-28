@@ -25,7 +25,18 @@ Result<T>::Result(Exciton<T>* exciton, arma::vec& eigval, arma::cx_mat& eigvec) 
 template <typename T>
 double Result<T>::kineticEnergy(int stateindex){
     arma::cx_vec coefs = eigvec.col(stateindex);
-    std::complex<double> energy = arma::cdot(coefs, exciton->HK*coefs);
+    arma::vec HK = arma::zeros(exciton->excitonbasisdim);
+
+    for (uint32_t n = 0; n < exciton->excitonbasisdim; n++){
+        int v = exciton_->bandToIndex[exciton->basisStates(n, 0)];
+        int c = exciton_->bandToIndex[exciton->basisStates(n, 1)];
+        uint32_t k_index = exciton->basisStates(n, 2);
+        uint32_t kQ_index = k_index;
+
+        HK(n) = exciton->eigvalKQStack.col(kQ_index)(c) - exciton->eigvalKStack.col(k_index)(v);
+    }
+
+    std::complex<double> energy = arma::cdot(coefs, HK % coefs);
     return energy.real();
 }
 
@@ -38,9 +49,7 @@ double Result<T>::kineticEnergy(int stateindex){
  */
 template <typename T>
 double Result<T>::potentialEnergy(int stateindex){
-    arma::cx_vec coefs = eigvec.col(stateindex);
-    arma::cx_mat HV = exciton->HBS - exciton->HK;
-    std::complex<double> energy = arma::cdot(coefs, HV*coefs);
+    std::complex<double> energy = eigval(stateindex) - kineticEnergy(stateindex);
     return energy.real();
 }
 
