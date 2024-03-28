@@ -19,7 +19,8 @@ class Lattice {
     
     //// Attributes
     protected:
-        int ndim_, natoms_, nk_, ncells_;
+        int ndim_, natoms_, ncells_;
+        uint32_t nk_;
         int factor_ = 1;
         double a_, c_, unitCellArea_;
         arma::mat bravaisLattice_, motif_, unitCellList_;
@@ -49,7 +50,7 @@ class Lattice {
         // Returns mesh of the Brillouin zone
         const arma::mat& meshBZ = meshBZ_;
         // Number of k points
-        const int& nk = nk_;
+        const uint32_t& nk = nk_;
         // Lattice parameters
         const double& a = a_;
         // Lattice parameters
