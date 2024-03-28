@@ -838,36 +838,35 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
         basisStates = basis;
     };
 
-    int basisDimBSE = basisStates.n_rows;
+    uint64_t basisDimBSE = basisStates.n_rows;
     std::cout << "BSE dimension: " << basisDimBSE << std::endl;
     std::cout << "Initializing Bethe-Salpeter matrix... " << std::flush;
 
     HBS_ = arma::zeros<cx_mat>(basisDimBSE, basisDimBSE);
-    HK_   = arma::zeros<arma::mat>(basisDimBSE, basisDimBSE);
     
     // To be able to parallelize over the triangular matrix, we build
-    long int loopLength = basisDimBSE*(basisDimBSE + 1)/2.;
+    uint64_t loopLength = basisDimBSE*(basisDimBSE + 1)/2.;
 
     // https://stackoverflow.com/questions/242711/algorithm-for-index-numbers-of-triangular-matrix-coefficients
     #pragma omp parallel for
-    for(long int n = 0; n < loopLength; n++){
+    for(uint64_t n = 0; n < loopLength; n++){
 
         arma::cx_vec coefsK, coefsK2, coefsKQ, coefsK2Q;
 
-        long int ii = loopLength - 1 - n;
-        long int m  = floor((sqrt(8*ii + 1) - 1)/2);
-        long int i = basisDimBSE - 1 - m;
-        long int j = basisDimBSE - 1 - ii + m*(m+1)/2;
+        uint64_t ii = loopLength - 1 - n;
+        uint64_t m  = floor((sqrt(8*ii + 1) - 1)/2);
+        uint64_t i = basisDimBSE - 1 - m;
+        uint64_t j = basisDimBSE - 1 - ii + m*(m+1)/2;
     
-        double k_index = basisStates(i, 2);
+        uint32_t k_index = basisStates(i, 2);
         int v = bandToIndex[basisStates(i, 0)];
         int c = bandToIndex[basisStates(i, 1)];
-        int kQ_index = k_index;
+        uint32_t kQ_index = k_index;
 
-        double k2_index = basisStates(j, 2);
+        uint32_t k2_index = basisStates(j, 2);
         int v2 = bandToIndex[basisStates(j, 0)];
         int c2 = bandToIndex[basisStates(j, 1)];
-        int k2Q_index = k2_index;
+        uint32_t k2Q_index = k2_index;
 
         // Using the atomic gauge
         if(gauge == "atomic"){
@@ -885,7 +884,7 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
 
         std::complex<double> D, X = 0.0;
         if (mode == "realspace"){
-            int effective_k_index = system_->findEquivalentPointBZ(system->kpoints.row(k2_index) - system->kpoints.row(k_index), ncell);
+            uint32_t effective_k_index = system_->findEquivalentPointBZ(system->kpoints.row(k2_index) - system->kpoints.row(k_index), ncell);
             arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
             D = realSpaceInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             if(this->exchange){
@@ -904,9 +903,7 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
         if (i == j){
             HBS_(i, j) = (this->scissor + 
                           eigvalKQStack.col(kQ_index)(c) - eigvalKStack.col(k_index)(v))/2. 
-                          - (D - X)/2.;
-            HK_(i, j) = eigvalKQStack(c, kQ_index) - eigvalKStack(v, k_index);
-            
+                          - (D - X)/2.;            
         }
         else{
             HBS_(i, j) =  - (D - X);
@@ -927,7 +924,7 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
 ResultTB* ExcitonTB::diagonalizeRaw(std::string method, int nstates){
 
     if (HBS.empty() || HBS.is_zero()){
-        throw std::invalid_argument("Error: BSE Hamiltonian must be initialized first");
+        throw std::invalid_argument("diagonalizeRaw(): BSE Hamiltonian is not initialized.");
     }
 
     std::cout << "Solving BSE with ";
