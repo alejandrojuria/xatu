@@ -28,7 +28,8 @@ class Exciton {
         std::shared_ptr<T> system_;
 
         // General Exciton attributes
-        int ncell_, totalCells_, nbands_, nrmbands_, excitonbasisdim_;
+        int ncell_, nbands_, nrmbands_;
+        uint32_t totalCells_, excitonbasisdim_;
         double scissor_;
         arma::ivec bands_, valenceBands_, conductionBands_;
         arma::uvec bandList_;
@@ -43,16 +44,15 @@ class Exciton {
         // Internals for BSE
         arma::mat eigvalKStack_, eigvalKQStack_;
         arma::cx_cube eigvecKStack_, eigvecKQStack_;
-        arma::mat HK_;
 
     public:
         const std::shared_ptr<T>& system = system_;
         // Number of unit cells along one axis
         const int& ncell = ncell_;
         // Total number of unit cells
-        const int& totalCells = totalCells_;
+        const uint32_t& totalCells = totalCells_;
         // Dimension of electron-hole pair basis used to build excitons
-        const int& excitonbasisdim = excitonbasisdim_;
+        const uint32_t& excitonbasisdim = excitonbasisdim_;
         // Number of bands participating in exciton formation, starting from the Fermi level
         const int& nbands = nbands_;
         // Remove bands starting from the Fermi level to build excited excitons directly
@@ -69,8 +69,6 @@ class Exciton {
         const arma::ivec& conductionBands = conductionBands_;
         // Returns Bethe-Salpeter Hamiltonian
         const arma::cx_mat& HBS = HBS_;
-        // Returns kinetic term of BSE
-        const arma::mat& HK = HK_;
         // Returns cutoff for potential
         const double& cutoff = cutoff_;
         // Returns scissor cut value
