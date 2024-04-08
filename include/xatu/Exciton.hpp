@@ -5,6 +5,7 @@
 #include <complex>
 #include <omp.h>
 #include <stdlib.h>
+#include <memory>
 
 
 #ifndef constants
