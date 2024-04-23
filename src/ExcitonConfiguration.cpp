@@ -84,9 +84,7 @@ void ExcitonConfiguration::parseContent(){
             excitonInfo.nReciprocalVectors = parseScalar<int>(content[0]);
         }
         else if(arg == "exchange"){
-            std::string str = content[0];
-            str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
-            std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+            std::string str = parseWord(content[0]);
             if ((str != "true") && (str != "false")){
                 throw std::invalid_argument("Exchange option must be set to 'true' or 'false'.");
             }
@@ -94,8 +92,20 @@ void ExcitonConfiguration::parseContent(){
                 excitonInfo.exchange = true;
             }
         }
+        else if(arg == "exchange.potential"){
+            std::string str = parseWord(content[0]);
+            std::cout << arg << " " << str << std::endl;
+            excitonInfo.exchangePotential = str;
+        }
+        else if(arg == "potential"){
+            std::string str = parseWord(content[0]);
+            excitonInfo.potential = str;
+        }
         else if(arg == "scissor"){
             excitonInfo.scissor = parseScalar<double>(content[0]);
+        }
+        else if(arg == "regularization"){
+            excitonInfo.regularization = parseScalar<double>(content[0]);
         }
         else{    
             std::cout << "Unexpected argument: " << arg << ", skipping block..." << std::endl;
@@ -109,19 +119,39 @@ void ExcitonConfiguration::parseContent(){
  */
 void ExcitonConfiguration::checkContentCoherence(){
     if(excitonInfo.Q.n_elem != 3){
-        throw std::logic_error("Q must be a 3d vector");
+        throw std::logic_error("'Q' must be a 3d vector");
     };
     if(excitonInfo.ncell <= 0){
-        throw std::logic_error("ncell must be a positive number");
+        throw std::logic_error("'ncell' must be a positive number");
     };
     if(excitonInfo.bands.empty() && excitonInfo.nbands == 0){
-        throw std::logic_error("bands must be specified");
+        throw std::logic_error("'bands' must be specified");
     };
     if(excitonInfo.eps.empty()){
-        throw std::logic_error("eps must be specified");
+        throw std::logic_error("'dielectric' must be specified");
     };
     if(excitonInfo.nbands == 0 && excitonInfo.bands.empty()){
         throw std::invalid_argument("Must specify 'nbands' or 'bandlist' parameters");
+    };
+
+    bool potentialFound = false;
+    bool exchangePotentialFound = false;
+    for (auto potential : supportedPotentials){
+        if(excitonInfo.potential == potential){
+            potentialFound = true;
+        }
+        if(excitonInfo.exchange && excitonInfo.exchangePotential == potential){
+            exchangePotentialFound = true;
+        }
+    }
+    if (!potentialFound){
+        throw std::invalid_argument("Specified 'potential' not supported. Use 'keldysh' or 'coulomb'");
+    }
+    if (excitonInfo.exchange && !exchangePotentialFound){
+        throw std::invalid_argument("Specified 'exchange.potential' not supported. Use 'keldysh' or 'coulomb'");
+    }
+    if (excitonInfo.mode != "realspace" && excitonInfo.mode != "reciprocalspace"){
+        throw std::invalid_argument("Invalid mode. Use 'realspace' or 'reciprocalspace'");
     }
 };
 

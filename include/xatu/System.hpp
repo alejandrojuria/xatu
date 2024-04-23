@@ -10,10 +10,10 @@
 namespace xatu {
 
 /**
- * The System class contains all information regarding the system where we want to compute
- * the exciton spectrum. It is defined as a sub-class of Crystal.
+ * The System class is an abstract class that contains the minimum information relative to the system 
+ * where we want to compute the exciton spectrum. It is defined as a sub-class of Lattice.
 */
-class System : public Lattice{
+class System : public Lattice {
     
     //// Attributes
     protected:
@@ -41,38 +41,28 @@ class System : public Lattice{
 
 
     //// Methods
+        /* Constructors and destructor */
+    protected:
+        System(){}; // Protected so that System cannot be init without parameters
     public:
-        /* Constructor and destructor */
-
-        System();
         System(const System&);
-        System(const SystemConfiguration&);  
+        System(const SystemConfiguration&);
+        virtual ~System(){};
 
-        void setFilling(int);
-
-        /* Bloch Hamiltonian */
-
-        arma::cx_mat hamiltonian(arma::rowvec k, bool isTriangular = false) const;
-        arma::cx_mat overlap(arma::rowvec k, bool isTriangular = false) const;
-        void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&, bool triangular = false) const;
-        void solveBands(std::string, bool triangular = false) const;
-
-        /* Modifiers */
-        void addZeeman(double);
-
-        /* Expected value of spin components */
-        
-        double expectedSpinZValue(const arma::cx_vec&);
-        double expectedSpinYValue(const arma::cx_vec&);
-        double expectedSpinXValue(const arma::cx_vec&);      
-
-        arma::cx_vec velocity(const arma::rowvec, int, int) const;  
-    
         void initializeSystemAttributes(const SystemConfiguration&);
 
-    private:
-        void orthogonalize(const arma::rowvec&, arma::cx_mat&, bool) const;
-        void orthogonalize_hamiltonian(const arma::rowvec&, arma::cx_mat&, bool) const;
+        /* Setters */
+        void setFilling(int);
+        void setSystemName(std::string);
+
+        /* Bloch Hamiltonian */
+        virtual arma::cx_mat hamiltonian(arma::rowvec k) const = 0;
+        virtual arma::cx_mat overlap(arma::rowvec k) const = 0;
+        virtual void solveBands(arma::rowvec&, arma::vec&, arma::cx_mat&) const = 0;
+        void solveBands(std::string) const;
+
+        /* Modifiers */
+        void addZeeman(double);    
 };
 
 }

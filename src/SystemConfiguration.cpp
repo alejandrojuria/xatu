@@ -1,4 +1,5 @@
 #include <complex>
+#include <algorithm>
 #include "xatu/SystemConfiguration.hpp"
 
 namespace xatu {
@@ -242,15 +243,14 @@ void SystemConfiguration::checkContentCoherence() {
         throw std::invalid_argument("Error: Number of overlap matrices must match number of H matrices");
     }
 
-    int nspecies = 1;
-    int previous_species = 0;
+    std::vector<int> species_vec;
     for(unsigned int atomIndex = 0; atomIndex < systemInfo.motif.n_rows; atomIndex++){
         int species = systemInfo.motif.row(atomIndex)(3);
-        if (species != previous_species){
-            previous_species = species;
-            nspecies++;
+        if ( std::find(species_vec.begin(), species_vec.end(), species) == species_vec.end() ){
+            species_vec.push_back(species);
         }
     }
+    int nspecies = species_vec.size();
 
     if (systemInfo.norbitals.size() != nspecies) {
         throw std::invalid_argument("Error: Number of different species must match be consistent in motif and orbitals");
@@ -295,5 +295,6 @@ void SystemConfiguration::printConfiguration(std::ostream& stream) const {
 std::ostream& operator<<(std::ostream& stream, const SystemConfiguration& config){
     config.printConfiguration(stream);
 }
+
 
 }
