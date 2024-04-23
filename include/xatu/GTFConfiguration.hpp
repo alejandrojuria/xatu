@@ -20,10 +20,14 @@ class GTFConfiguration : public CRYSTALConfiguration {
         std::vector<std::vector<int>> L_all_species_SCF, L_all_species_AUX;
         // Vector assigning the vector of nG (number of contracted Gaussians) to each atomic species.
         std::vector<std::vector<int>> nG_all_species_SCF, nG_all_species_AUX;
-        // Vector storing the number shells for each chemical species.
+        // Vector storing the number shells for each atomic species.
         std::vector<int> nshells_all_species_SCF, nshells_all_species_AUX;
+        // Vector storing the number orbitals for each atomic species.
+        std::vector<int> norbs_all_species_SCF, norbs_all_species_AUX;
         // Name of the basis sets file.
         std::string bases_filename;
+        // Redefinition of the Hamiltonian matrices as real if SOC is absent.
+        arma::cube fockMatrices, alphaMatrices, betaMatrices;
 
     protected:
         // Open basis sets file.
@@ -46,6 +50,8 @@ class GTFConfiguration : public CRYSTALConfiguration {
         void skip_PP();
         // Method to build the Rlist and RlistOpposites attributes, relative to the selected Bravais vectors.
         void Rlistsfun(const int ncells);
+        // Method to redefine the Hamiltonian matrices as real if SOC is absent.
+        void makeHreal();
         
 };
 

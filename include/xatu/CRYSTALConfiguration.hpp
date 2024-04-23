@@ -14,8 +14,11 @@ class CRYSTALConfiguration : public SystemConfiguration {
         bool SOC_FLAG = false;
         bool MAGNETIC_FLAG = false;
         bool alpha_electrons = true;
-        
-        arma::mat motif, bravaisLattice;
+        arma::mat motif;
+        // Basis of Bravais vectors (R1,R2,R3), stored by columns: (ndim x 3)
+        arma::mat bravaisLattice;
+        // List of Bravais vectors in Angstrom, stored by rows: (ncells x 3)
+        arma::mat bravaisVectors;
         
         std::vector<int> atomic_number_ordering;
         std::vector<int> shellsPerSpecies;
@@ -23,7 +26,6 @@ class CRYSTALConfiguration : public SystemConfiguration {
         // std::map<int, std::vector<std::string>> shellTypesPerSpecies;
         std::map<int, cube_vector> gaussianCoefficients;
 
-        arma::mat bravaisVectors;
         arma::cx_cube overlapMatrices, fockMatrices;
         arma::cx_cube alphaMatrices, betaMatrices;
 
