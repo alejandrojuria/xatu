@@ -42,10 +42,17 @@ class ExcitonConfiguration : public ConfigurationBase{
         double scissor = 0.0;
         // Number of reciprocal vectors to use in reciprocal space calculation
         int nReciprocalVectors = 0;
+        // Potential to use in direct term
+        std::string potential = "keldysh";
+        // Potential to use in exchange if active
+        std::string exchangePotential = "keldysh";
+        // Regularization distance
+        double regularization = 0.0;
     };
 
     public:
         configuration excitonInfo;
+        std::vector<std::string> supportedPotentials = {"keldysh", "coulomb"};
     
     public:
         ExcitonConfiguration();

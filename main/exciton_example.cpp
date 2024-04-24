@@ -69,8 +69,8 @@ int main(int argc, char* argv[]){
     cout << "System configuration file: " << modelfile << "\n" << endl;
 
     xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
-    xatu::Exciton bulkExciton = xatu::Exciton(config, ncell, nbands, nrmbands, parameters);
-    arma::cout << "Orbitals: " << bulkExciton.orbitals << arma::endl;
+    xatu::ExcitonTB bulkExciton = xatu::ExcitonTB(config, ncell, nbands, nrmbands, parameters);
+    arma::cout << "Orbitals: " << bulkExciton.system->orbitals << arma::endl;
     bulkExciton.setMode("realspace");
 
     cout << "Valence bands:\n" << bulkExciton.valenceBands << endl;
@@ -99,19 +99,19 @@ int main(int argc, char* argv[]){
     if(writeEigvals){
         std::cout << "Writing eigvals to file: " << filename << std::endl;
         fprintf(textfile_en, "%d\n", ncell);
-        results.writeEigenvalues(textfile_en, 8);
+        results->writeEigenvalues(textfile_en, 8);
     }
 
     if(writeStates){
         std::cout << "Writing states to file: " << filename_st << std::endl;
-        results.writeStates(textfile_st, nstates);
+        results->writeStates(textfile_st, nstates);
     }
     
     if(writeWF){
         std::cout << "Writing k w.f. to file: " << filename_kwf << std::endl;
         int nstates = 8;
         for(int stateindex = 0; stateindex < nstates; stateindex++){
-            results.writeExtendedReciprocalAmplitude(stateindex, textfile_kwf);   
+            results->writeExtendedReciprocalAmplitude(stateindex, textfile_kwf);   
         }
     }
 
@@ -123,7 +123,7 @@ int main(int argc, char* argv[]){
         
         for(unsigned int i = 0; i < statesToWrite.n_elem; i++){
             std::cout << "Writing state " << i + 1 << " out of " << statesToWrite.n_elem << std::endl;
-            results.writeRealspaceAmplitude(statesToWrite(i), holeIndex, holeCell, textfile_rswf, 10);
+            results->writeRealspaceAmplitude(statesToWrite(i), holeIndex, holeCell, textfile_rswf, 10);
         }
     }
 

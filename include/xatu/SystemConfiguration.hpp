@@ -49,7 +49,7 @@ class SystemConfiguration : public virtual ConfigurationBase {
         arma::cx_cube parseMatrices(std::vector<std::string>&);
         arma::mat parseMotif(std::vector<std::string>&);
         arma::urowvec parseOrbitals(std::vector<std::string>&);
-        virtual void parseContent();
+        void parseContent() override;
         void checkContentCoherence();
 
 };

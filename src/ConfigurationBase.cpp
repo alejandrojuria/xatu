@@ -183,4 +183,18 @@ double ConfigurationBase::parseFraction(std::string& content){
     return fraction;
 }
 
+/**
+ * Method to parse a string from the configuration files.
+ * @details This method removes all spaces and change the string to lowercase.
+ * @param content String to be parsed.
+ * @returns Parsed string.
+ */
+std::string ConfigurationBase::parseWord(std::string& content){
+    std::string str = content;
+    str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
+    std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+    return str;
+
+};
+
 }
