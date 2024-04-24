@@ -29,8 +29,9 @@ GTFConfiguration::GTFConfiguration(std::string bases_file, std::string outp_file
         throw std::invalid_argument("GTFConfiguration: bases file does not exist");
     }
 
-   parseBases();
-   Rlistsfun(ncells);
+    parseBases();
+    Rlistsfun(ncells);
+    makeHreal();
 
 }
 
@@ -65,6 +66,7 @@ void GTFConfiguration::parseBasis(bool basis_id){
     cube_vector shells_all_species;
     std::vector<std::vector<int>> L_all_species, nG_all_species; 
     std::vector<int> nshells_all_species(nspecies,0);
+    std::vector<int> norbs_all_species(nspecies,0);
     for (int s = 0; s < nspecies; s++){ //initialize the first dimension with empty entries, so that they can be reordered later
         shells_all_species.push_back({});
         L_all_species.push_back({});
@@ -162,14 +164,24 @@ void GTFConfiguration::parseBasis(bool basis_id){
         nG_all_species[itr_order]       = nG_in_species;
         L_all_species[itr_order]        = L_in_species;
         shells_all_species[itr_order]   = shells_in_species;
+
+        int L_cum = 0;
+        for(int L_shl : L_in_species){
+            L_cum += L_shl;
+        }
+        L_cum = 2*L_cum + L_in_species.size();
+        norbs_all_species[itr_order] = L_cum;
+
     }
     if(basis_id){ //basis_id == true => SCF basis; basis_id == false => auxiliary basis
         this->nshells_all_species_SCF = nshells_all_species;
+        this->norbs_all_species_SCF   = norbs_all_species;
         this->nG_all_species_SCF      = nG_all_species;
         this->L_all_species_SCF       = L_all_species;
         this->shells_all_species_SCF  = shells_all_species;
     } else {
         this->nshells_all_species_AUX = nshells_all_species;
+        this->norbs_all_species_AUX   = norbs_all_species;
         this->nG_all_species_AUX      = nG_all_species;
         this->L_all_species_AUX       = L_all_species;
         this->shells_all_species_AUX  = shells_all_species;
@@ -228,6 +240,20 @@ void GTFConfiguration::Rlistsfun(const int ncells){
     this->Rlist = Rlist;
     this->RlistOpposites = RlistOpposites;
     this->R_unpaired = R_unpaired;
+}
+
+/**
+ * Method to redefine the Hamiltonian matrices as real if SOC is absent.
+ * @return void
+ */
+void GTFConfiguration::makeHreal(){
+
+    if(!SOC_FLAG){
+        this->fockMatrices  = arma::real(CRYSTALConfiguration::fockMatrices);
+        this->alphaMatrices = arma::real(CRYSTALConfiguration::alphaMatrices);
+        this->betaMatrices  = arma::real(CRYSTALConfiguration::betaMatrices);
+    }
+
 }
 
 
