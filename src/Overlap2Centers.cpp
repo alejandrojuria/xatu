@@ -38,7 +38,7 @@ Overlap2Centers::Overlap2Centers(const IntegralsBase& IntBase, const std::string
  */
 void Overlap2Centers::overlap2Cfun(const int nR, const std::string& o2Mat_name, const bool basis_id){
 
-int dimMat {basis_id? dimMat_SCF : dimMat_AUX};
+uint32_t dimMat {basis_id? dimMat_SCF : dimMat_AUX};
 std::vector<std::vector<int>> orbitals_info_int {basis_id? orbitals_info_int_SCF : orbitals_info_int_AUX};
 std::vector<std::vector<double>> orbitals_info_real {basis_id? orbitals_info_real_SCF : orbitals_info_real_AUX};
 std::vector<double> FAC12 {basis_id? FAC12_SCF : FAC12_AUX};
@@ -48,27 +48,27 @@ std::string basis_string {basis_id? "SCF" : "AUX"};
 std::cout << "Computing " << nR << " " << dimMat << "x" << dimMat << " 2-center overlap matrices in the " << basis_string  << " basis..." << std::endl;
 auto begin = std::chrono::high_resolution_clock::now();  
 
-    long int nelem_triang = 0.5*dimMat*(dimMat + 1);
-    long int nelem_triang_offd {nelem_triang - dimMat};
-    long long int total_elem = nelem_triang*nR;
+    uint64_t nelem_triang = 0.5*dimMat*(dimMat + 1);
+    uint64_t nelem_triang_offd {nelem_triang - dimMat};
+    uint64_t total_elem = nelem_triang*nR;
     arma::cube overlap2Matrices {arma::zeros<arma::cube>(dimMat,dimMat,nR)};
 
     #pragma omp parallel for 
-    for(long long int s = 0; s < total_elem; s++){ //Spans the lower triangle of all the nR matrices <P,0|P',R>
-        long int sind {s % nelem_triang};    //Index for the corresponding entry in the overlap matrix, irrespective of the specific R
+    for(uint64_t s = 0; s < total_elem; s++){ //Spans the lower triangle of all the nR matrices <P,0|P',R>
+        uint64_t sind {s % nelem_triang};    //Index for the corresponding entry in the overlap matrix, irrespective of the specific R
         int Rind {s / nelem_triang};         //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
-        std::array<int,2> orb_braket {triangInd_to_rowcol.at(sind)}; 
+        std::array<uint32_t,2> orb_braket {triangInd_to_rowcol.at(sind)}; 
         // arma::colvec R {RlistAU.col(Rind)};  //Bravais vector (a.u.) corresponding to the "s" matrix element
         int RindOpp    {RlistOpposites.at(Rind)};  //Position in RlistAU (i.e. 0 for R=0) of the opposite of the corresponding Bravais vector 
 
-        int orb_bra {orb_braket[0]};   //Orbital number (<dimMat) of the bra corresponding to the index s 
+        uint32_t orb_bra {orb_braket[0]};   //Orbital number (<dimMat) of the bra corresponding to the index s 
         int L_bra  {orbitals_info_int[orb_bra][2]};
         int m_bra  {orbitals_info_int[orb_bra][3]};
         int nG_bra {orbitals_info_int[orb_bra][4]};
         arma::colvec coords_bra {orbitals_info_real[orb_bra][0], orbitals_info_real[orb_bra][1], orbitals_info_real[orb_bra][2]};  //Position (a.u.) of bra atom
         std::vector<int> g_coefs_bra   {g_coefs.at( L_bra*(L_bra + 1) + m_bra )};
 
-        int orb_ket {orb_braket[1]};   //Orbital number (<dimMat) of the ket corresponding to the index s. orb_ket <= orb_bra (lower triangle)
+        uint32_t orb_ket {orb_braket[1]};   //Orbital number (<dimMat) of the ket corresponding to the index s. orb_ket <= orb_bra (lower triangle)
         int L_ket  {orbitals_info_int[orb_ket][2]};
         int m_ket  {orbitals_info_int[orb_ket][3]};
         int nG_ket {orbitals_info_int[orb_ket][4]};
@@ -86,9 +86,8 @@ auto begin = std::chrono::high_resolution_clock::now();
             for(int gaussC_ket = 0; gaussC_ket < nG_ket; gaussC_ket++){ //Iterate over the contracted Gaussians in the ket orbital
                 double exponent_ket {orbitals_info_real[orb_ket][2*gaussC_ket + 3]};
                 //double d_ket {orbitals_info_real[orb_ket][2*gaussC_ket + 4]};
-                //double FAC3_gaussC_ket {FAC3[orb_ket][gaussC_ket]};
 
-                double p   {exponent_bra + exponent_ket};  //Exponent coefficient of the Hermite Gaussian
+                double p {exponent_bra + exponent_ket};  //Exponent coefficient of the Hermite Gaussian
                 arma::colvec P {(exponent_bra*coords_bra + exponent_ket*coords_ket)/p};  //Center of the Hermite Gaussian
                 double PAx {P(0) - coords_bra(0)}; 
                 double PAy {P(1) - coords_bra(1)}; 
@@ -136,17 +135,17 @@ auto begin = std::chrono::high_resolution_clock::now();
 
     #pragma omp parallel for collapse(2) 
     for(int Rind : R_unpaired){ //compute the upper triangles of the R-matrices corresponding to unpaired Bravais vectors 
-        for(long int s = 0; s < nelem_triang_offd; s++){
-            std::array<int,2> orb_braket {triangInd_to_rowcol.at(s)};
+        for(uint64_t s = 0; s < nelem_triang_offd; s++){
+            std::array<uint32_t,2> orb_braket {triangInd_to_rowcol.at(s)};
 
-            int orb_bra {orb_braket[1]};   
+            uint32_t orb_bra {orb_braket[1]};   
             int L_bra  {orbitals_info_int[orb_bra][2]};
             int m_bra  {orbitals_info_int[orb_bra][3]};
             int nG_bra {orbitals_info_int[orb_bra][4]};
             arma::colvec coords_bra {orbitals_info_real[orb_bra][0], orbitals_info_real[orb_bra][1], orbitals_info_real[orb_bra][2]};  
             std::vector<int> g_coefs_bra   {g_coefs.at( L_bra*(L_bra + 1) + m_bra )};
 
-            int orb_ket {orb_braket[0] + 1};   
+            uint32_t orb_ket {orb_braket[0] + 1};   
             int L_ket  {orbitals_info_int[orb_ket][2]};
             int m_ket  {orbitals_info_int[orb_ket][3]};
             int nG_ket {orbitals_info_int[orb_ket][4]};
@@ -164,9 +163,8 @@ auto begin = std::chrono::high_resolution_clock::now();
                 for(int gaussC_ket = 0; gaussC_ket < nG_ket; gaussC_ket++){ //Iterate over the contracted Gaussians in the ket orbital
                     double exponent_ket {orbitals_info_real[orb_ket][2*gaussC_ket + 3]};
                     //double d_ket {orbitals_info_real[orb_ket][2*gaussC_ket + 4]};
-                    //double FAC3_gaussC_ket {FAC3[orb_ket][gaussC_ket]};
 
-                    double p   {exponent_bra + exponent_ket};  //Exponent coefficient of the Hermite Gaussian
+                    double p {exponent_bra + exponent_ket};  //Exponent coefficient of the Hermite Gaussian
                     arma::colvec P {(exponent_bra*coords_bra + exponent_ket*coords_ket)/p};  //Center of the Hermite Gaussian
                     double PAx {P(0) - coords_bra(0)}; 
                     double PAy {P(1) - coords_bra(1)}; 

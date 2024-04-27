@@ -25,16 +25,16 @@ void Overlap2MixCenters::overlap2MixCfun(const int nR, const std::string& o2MixM
 std::cout << "Computing " << nR << " " << dimMat_AUX << "x" << dimMat_SCF << " 2-center mixed overlap matrices..." << std::endl;
 auto begin = std::chrono::high_resolution_clock::now();  
 
-    long int nelem_rectang = dimMat_AUX*dimMat_SCF;
-    long long int total_elem = nelem_rectang*nR;
+    uint64_t nelem_rectang = dimMat_AUX*dimMat_SCF;
+    uint64_t total_elem = nelem_rectang*nR;
     arma::cube overlap2MixMatrices {arma::zeros<arma::cube>(dimMat_AUX,dimMat_SCF,nR)};
 
     #pragma omp parallel for
-    for(long long int s = 0; s < total_elem; s++){ //Spans all the elements of all the nR matrices <P,0|mu,R>
-        long int sind {s % nelem_rectang};   //Index for the corresponding entry in the overlap matrix, irrespective of the specific R
+    for(uint64_t s = 0; s < total_elem; s++){ //Spans all the elements of all the nR matrices <P,0|mu,R>
+        uint64_t sind {s % nelem_rectang};   //Index for the corresponding entry in the overlap matrix, irrespective of the specific R
         int Rind {s / nelem_rectang};   //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
-        int orb_bra {sind % dimMat_AUX};  //Orbital number (<dimMat_AUX) of the bra corresponding to the index s
-        int orb_ket {sind / dimMat_AUX};  //Orbital number (<dimMat_SCF) of the ket corresponding to the index s
+        uint32_t orb_bra {sind % dimMat_AUX};  //Orbital number (<dimMat_AUX) of the bra corresponding to the index s
+        uint32_t orb_ket {sind / dimMat_AUX};  //Orbital number (<dimMat_SCF) of the ket corresponding to the index s
         // arma::colvec R {RlistAU.col(Rind)};  //Bravais vector (a.u.) corresponding to the "s" matrix element
 
         int L_bra  {orbitals_info_int_AUX[orb_bra][2]};
@@ -60,9 +60,8 @@ auto begin = std::chrono::high_resolution_clock::now();
             for(int gaussC_ket = 0; gaussC_ket < nG_ket; gaussC_ket++){ //Iterate over the contracted Gaussians in the ket orbital
                 double exponent_ket {orbitals_info_real_SCF[orb_ket][2*gaussC_ket + 3]};
                 //double d_ket {orbitals_info_real_SCF[orb_ket][2*gaussC_ket + 4]};
-                //double FAC3_gaussC_ket {FAC3_SCF[orb_ket][gaussC_ket]};
 
-                double p   {exponent_bra + exponent_ket};  //Exponent coefficient of the Hermite Gaussian
+                double p {exponent_bra + exponent_ket};  //Exponent coefficient of the Hermite Gaussian
                 arma::colvec P {(exponent_bra*coords_bra + exponent_ket*coords_ket)/p};  //Center of the Hermite Gaussian
                 double PAx {P(0) - coords_bra(0)}; 
                 double PAy {P(1) - coords_bra(1)}; 

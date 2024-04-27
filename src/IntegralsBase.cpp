@@ -339,12 +339,12 @@ void IntegralsBase::gfun(const int maxL){
 /**
  * Method to build the unordered_map method containing the inverse of the (bijective) function: s(i,j) = j + i(i+1)/2.
  */
-void IntegralsBase::triangIndfun(const int dimMat_AUX){
+void IntegralsBase::triangIndfun(const uint32_t dimMat_AUX){
     
-    std::unordered_map<long int,std::array<int,2>> triangInd_to_rowcol;
-    long int countr = 0;
-    for(int i = 0; i < dimMat_AUX; i++){
-        for(int j = 0; j <= i; j++){
+    std::unordered_map<uint64_t,std::array<uint32_t,2>> triangInd_to_rowcol;
+    uint64_t countr = 0;
+    for(uint32_t i = 0; i < dimMat_AUX; i++){
+        for(uint32_t j = 0; j <= i; j++){
             triangInd_to_rowcol[countr] = {i,j};
             countr++;
         }

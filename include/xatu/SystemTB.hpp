@@ -11,7 +11,7 @@ namespace xatu {
 
 /**
  * The System class contains all information regarding the system where we want to compute
- * the exciton spectrum. It is defined as a sub-class of Crystal.
+ * the exciton spectrum. It is defined as a sub-class of System.
 */
 class SystemTB : public System {
     

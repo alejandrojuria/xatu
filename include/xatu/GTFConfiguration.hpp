@@ -27,7 +27,7 @@ class GTFConfiguration : public CRYSTALConfiguration {
         // Name of the basis sets file.
         std::string bases_filename;
         // Redefinition of the Hamiltonian matrices as real if SOC is absent.
-        arma::cube fockMatrices, alphaMatrices, betaMatrices;
+        // arma::cube fockMatrices, alphaMatrices, betaMatrices;
 
     protected:
         // Open basis sets file.
@@ -51,7 +51,7 @@ class GTFConfiguration : public CRYSTALConfiguration {
         // Method to build the Rlist and RlistOpposites attributes, relative to the selected Bravais vectors.
         void Rlistsfun(const int ncells);
         // Method to redefine the Hamiltonian matrices as real if SOC is absent.
-        void makeHreal();
+        // void makeHreal();
         
 };
 

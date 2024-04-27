@@ -56,7 +56,7 @@ class IntegralsBase {
         // Location where the integrals files generated in this family of classes are stored.
         std::string IntFiles_Dir; 
         // Matrix dimension (or number of orbitals, with fixed l,m) in the SCF and AUX basis sets.
-        int dimMat_SCF, dimMat_AUX;
+        uint32_t dimMat_SCF, dimMat_AUX;
         // Maximum l orbital quantum number among all shells and among both basis sets.
         int maxL;
         // The first dimension spans the orbitals (size = dimMat). The entries in the second dimension are: 1) atomic 
@@ -79,7 +79,7 @@ class IntegralsBase {
         // Inverse of the bijective index reduction s(i,j) = j + i(i+1)/2 employed in triangular matrices. The key values are 
         // s = [0, 0.5*dimMat_AUX(dimMat_AUX+1) ) because it is to be used to re-index the 2-centers matrices in the auxiliary basis.
         // The entries in the returned array are (i,j), which for lower triangular matrices is (row,column). 
-        std::unordered_map<long int,std::array<int,2>> triangInd_to_rowcol;
+        std::unordered_map<uint64_t,std::array<uint32_t,2>> triangInd_to_rowcol;
 
     //// Methods
     public:
@@ -103,7 +103,7 @@ class IntegralsBase {
         // Method to build the unordered_map method g_coefs, which contains the g^{l,m}_{i,j,k} expansion coefficients.
         void gfun(const int maxL);
         // Method to build the unordered_map method triangInd_to_rowcol, which contains the inverse of the (bijective) function: s(i,j) = j + i(i+1)/2.
-        void triangIndfun(const int dimMat_AUX);
+        void triangIndfun(const uint32_t dimMat_AUX);
         // Method to compute the E^{i,i'}_{t} coefficients in the Hermite Gaussian expansion 
         // G_{i}G_{i'}=\sum_{t=0}^{i+i'}E^{i,i'}_{t}\Lambda_{t}, for i,i'<=4. Returns the vector for 0 <= t <= (i+i'), in increasing t order.
         // The values of the pair (i,i') with i>=i' are in a bijection with the "index" argument as index(i,i')= i' + i(i+1)/2.

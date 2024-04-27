@@ -31,7 +31,7 @@ GTFConfiguration::GTFConfiguration(std::string bases_file, std::string outp_file
 
     parseBases();
     Rlistsfun(ncells);
-    makeHreal();
+    // makeHreal();
 
 }
 
@@ -246,15 +246,15 @@ void GTFConfiguration::Rlistsfun(const int ncells){
  * Method to redefine the Hamiltonian matrices as real if SOC is absent.
  * @return void
  */
-void GTFConfiguration::makeHreal(){
+// void GTFConfiguration::makeHreal(){
 
-    if(!SOC_FLAG){
-        this->fockMatrices  = arma::real(CRYSTALConfiguration::fockMatrices);
-        this->alphaMatrices = arma::real(CRYSTALConfiguration::alphaMatrices);
-        this->betaMatrices  = arma::real(CRYSTALConfiguration::betaMatrices);
-    }
+//     if(!SOC_FLAG){
+//         this->fockMatrices  = arma::real(CRYSTALConfiguration::fockMatrices);
+//         this->alphaMatrices = arma::real(CRYSTALConfiguration::alphaMatrices);
+//         this->betaMatrices  = arma::real(CRYSTALConfiguration::betaMatrices);
+//     }
 
-}
+// }
 
 
 }
