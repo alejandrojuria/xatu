@@ -254,7 +254,9 @@ void CRYSTALConfiguration::parseAtoms(){
  */
 void CRYSTALConfiguration::parseAtomicBasis(){
     std::string line, chemical_species;
-    int norbitals, natom, totalOrbitals = 0, nspecies = 0;
+    int natom, nspecies = 0;
+    int64_t norbitals; 
+    int64_t totalOrbitals = 0;
     std::string shellType;
     // std::vector<std::string> shellTypes;
     double exponent, sCoef, pCoef, dCoef;
@@ -328,46 +330,74 @@ void CRYSTALConfiguration::parseAtomicBasis(){
 }
 
 /**
- * Method to parse the Fock and overlap matrices from the input file.
- * @return void
+ * Method to parse the Fock and overlap matrices from the .outp file.
+ * @return arma::cx_mat
  */
 arma::cx_mat CRYSTALConfiguration::parseMatrix(){
-    std::string line;
+        std::string line;
     arma::cx_mat matrix = arma::zeros<arma::cx_mat>(norbitals, norbitals);
-    bool firstNonEmptyLineFound = false;
-    arma::cx_rowvec matrixRow;
     double coef;
-    std::string colIndicesStr;
-    std::vector<int> colIndices;
-    int i, index, colIndex = 0, rowIndex = 0;
+    if(norbitals < 10000){
+        std::string colIndicesStr;
+        std::vector<int> colIndices;
+        int i, index, colIndex = 0, rowIndex = 0;
 
-    while(std::getline(m_file, line)){
-        if (line.empty()){
-            colIndices.clear();
-            std::getline(m_file, colIndicesStr); // After blank line get indices
-            std::istringstream iss(colIndicesStr);
-            while(iss >> index){
-                colIndices.push_back(index);
-            }
-            std::getline(m_file, line); // Get next line
+        while(std::getline(m_file, line)){
             if (line.empty()){
-                continue;
+                colIndices.clear();
+                std::getline(m_file, colIndicesStr); // After blank line get indices
+                std::istringstream iss(colIndicesStr);
+                while(iss >> index){
+                    colIndices.push_back(index);
+                }
+                std::getline(m_file, line); // Get next line
+                if (line.empty()){continue;}   // Skips to the bottom of the while loop
             }
-        }
         
-        i = 0;
-        std::istringstream iss(line);
-        iss >> rowIndex;
-        while(iss >> coef){
-            colIndex = colIndices[i];
-            matrix(rowIndex - 1, colIndex - 1) = coef;
-            i++;
-        }
+            i = 0;
+            std::istringstream iss(line);
+            iss >> rowIndex;
+            while(iss >> coef){
+                colIndex = colIndices[i];
+                matrix(rowIndex - 1, colIndex - 1) = coef;
+                i++;
+            }
 
-        if (rowIndex == norbitals && colIndex == norbitals){
-            return matrix;
+            if(colIndex == norbitals){
+                return matrix;
+            }
         }
     }
+    else{ // Apparently CRYSTAL prints **** instead of the corresponding row and column numbers when those are >= 10000 
+        int     subCol;  // Index for the column in the current block
+        int64_t subRow;  // Index for the row in the current block
+        int64_t blockIndex = -10;  // The number of the current block (starting at 0) times 10
+        while(std::getline(m_file, line)){
+            if (line.empty()){ // Start of a new sub-block (including the first one)
+                subRow = 0;
+                blockIndex += 10;
+                std::getline(m_file, line); // After blank line skip the new line
+                std::getline(m_file, line); // Get next line, which contains column indices or ****
+                std::getline(m_file, line); // The next line is blank except for the last sub-block. If so, skip to the bottom of the while loop
+                if (line.empty()){continue;}   
+            }
+
+            subCol = 0;
+            std::istringstream iss(line);
+            iss.ignore(4,' ');  // Extract and disregard first 4 characters, or until a blank space is met (apparently CRYSTAL won't print more than 4 characters as row/column identifier)
+            while(iss >> coef){ // Read matrix elements in the current line (or row)
+                matrix(blockIndex + subRow, blockIndex + subCol) = coef;
+                subCol++;
+            }
+            subRow++;
+
+            if((blockIndex + subCol) == norbitals){
+                return matrix;
+            }
+
+        }
+    }
+
 }
 
 /**

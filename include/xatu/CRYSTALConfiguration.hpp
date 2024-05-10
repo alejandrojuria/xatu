@@ -9,7 +9,8 @@ namespace xatu {
 class CRYSTALConfiguration : public SystemConfiguration {
 
     public:
-        int ndim, natoms, norbitals, nsh, nspecies;
+        int ndim, natoms, nsh, nspecies;
+        int64_t norbitals;
         int totalElectrons, coreElectrons;
         bool SOC_FLAG = false;
         bool MAGNETIC_FLAG = false;
@@ -22,7 +23,7 @@ class CRYSTALConfiguration : public SystemConfiguration {
         
         std::vector<int> atomic_number_ordering;
         std::vector<int> shellsPerSpecies;
-        std::vector<int> orbitalsPerSpecies;
+        std::vector<int64_t> orbitalsPerSpecies;
         // std::map<int, std::vector<std::string>> shellTypesPerSpecies;
         std::map<int, cube_vector> gaussianCoefficients;
 

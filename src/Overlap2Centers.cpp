@@ -75,8 +75,7 @@ auto begin = std::chrono::high_resolution_clock::now();
         arma::colvec coords_ket {RlistAU.col(Rind) + arma::colvec{orbitals_info_real[orb_ket][0], orbitals_info_real[orb_ket][1], orbitals_info_real[orb_ket][2]} };  //Position (a.u.) of ket atom
         std::vector<int> g_coefs_ket   {g_coefs.at( L_ket*(L_ket + 1) + m_ket )};
 
-        arma::colvec coords_braket {coords_bra - coords_ket};
-        double norm_braket {arma::dot(coords_braket,coords_braket)};
+        double norm_braket {arma::dot(coords_bra - coords_ket, coords_bra - coords_ket)};
         double FAC12_braket = FAC12[orb_bra]*FAC12[orb_ket];
 
         for(int gaussC_bra = 0; gaussC_bra < nG_bra; gaussC_bra++){ //Iterate over the contracted Gaussians in the bra orbital
@@ -228,65 +227,67 @@ if(std::abs(trace_overlap0-dimMat) >= 0.1){
  */
 double Overlap2Centers::Efunt0(const int index, const double p, const double PA, const double PB){
 
-    if(index == 0){ // (i,j) = (0,0)
+    switch(index)
+    {
+    case 0:  {// (i,j) = (0,0)
         return 1.0;
-    } 
-    else if(index == 1) { // (i,j) = (1,0)
+    }
+    case 1:  {// (i,j) = (1,0)
         return PA;
     }
-    else if(index == 2) { // (i,j) = (1,1)
+    case 2:  {// (i,j) = (1,1)
         return (PA*PB + 0.5/p);
     }
-    else if(index == 3) { // (i,j) = (2,0)
+    case 3:  {// (i,j) = (2,0)
         return (PA*PA + 0.5/p);
     }
-    else if(index == 4) { // (i,j) = (2,1)
+    case 4:  {// (i,j) = (2,1)
         double facp = 0.5/p;
         return (PA*2*facp + PB*(PA*PA + facp)); 
     }
-    else if(index == 5) { // (i,j) = (2,2)
+    case 5:  {// (i,j) = (2,2)
         double facp = 0.5/p;
         return (facp*(3*facp + PB*(4*PA + PB)) + PA*PA*(facp + PB*PB));  
     }
-    else if(index == 6) { // (i,j) = (3,0)
+    case 6:  {// (i,j) = (3,0)
         return (PA*(PA*PA*p + 1.5)/p);
     }
-    else if(index == 7) { // (i,j) = (3,1)
+    case 7:  {// (i,j) = (3,1)
         double facp = 0.5/p;
         return ((PA*p*(6*(PA + PB) + PB*PA*PA*p*4) + 3)*facp*facp);
     }
-    else if(index == 8) { // (i,j) = (3,2)
+    case 8:  {// (i,j) = (3,2)
         double facp = 0.5/p;
         return ((PA*p*(PA*PA*(PB*PB*p*4 + 2) + 6*PB*(2*PA + PB)) + 9*PA + 6*PB)*facp*facp);
     }
-    else if(index == 9) { // (i,j) = (3,3)
+    case 9:  {// (i,j) = (3,3)
         double facp = 0.5/p;
         double PAPAp = PA*PA*p;
         double PBPBp = PB*PB*p;
         double PAPBp = PA*PB*p;
         return ((PAPBp*(PAPAp*(PBPBp*8 + 12) + 12*(PBPBp + 3*PAPBp) + 54) + 18*(PAPAp + PBPBp) + 15)*facp*facp*facp);
     }
-    else if(index == 10) { // (i,j) = (4,0)
+    case 10: {// (i,j) = (4,0)
         double facp = 0.5/p;
         double PAPAp = PA*PA*p; 
         return ((PAPAp*4*(PAPAp + 3) + 3)*facp*facp);
     }
-    else if(index == 11) { // (i,j) = (4,1)
+    case 11: {// (i,j) = (4,1)
         double facp = 0.5/p;
         return ((PA*PA*p*4*((PA*PB*p + 2)*PA + 3*PB) + 12*PA + 3*PB)*facp*facp); 
     }
-    else if(index == 12) { // (i,j) = (4,2)
+    case 12: {// (i,j) = (4,2)
         double facp = 0.5/p;
         double PAPAp = PA*PA*p;
         return ((PAPAp*(PAPAp*(4 + PB*PB*p*8) + PB*p*(32*PA + 24*PB) + 36) + PB*6*p*(8*PA + PB) + 15)*facp*facp*facp);
     }
-    else if(index == 13) { // (i,j) = (4,3)
+    case 13: {// (i,j) = (4,3)
         double facp = 0.5/p;
         double PAPAp = PA*PA*p;
         double PBPBp = PB*PB*p;
         return ((PAPAp*(PAPAp*PB*(8*PBPBp + 12) + 24*PBPBp*(2*PA + PB) + 24*PA + 108*PB) + PBPBp*(72*PA + 6*PB) + 60*PA + 45*PB)*facp*facp*facp);
     }
-    else if(index == 14) { // (i,j) = (4,4)
+    case 14: {// (i,j) = (4,4)
         double facp = 0.5/p;
         double facp_to2 = facp*facp;
         double PAPAp = PA*PA*p;
@@ -294,9 +295,10 @@ double Overlap2Centers::Efunt0(const int index, const double p, const double PA,
         double PAPBp = PA*PB*p;
         return ((PAPAp*(PAPAp*(PBPBp*16*(PBPBp + 3) + 12) + PAPBp*(PBPBp*128 + 192) + PBPBp*48*(PBPBp + 9) + 180)
         + PAPBp*(PBPBp*192 + 480) + PBPBp*12*(PBPBp + 15) + 105)*facp_to2*facp_to2);
-    } 
-    else {
+    }
+    default: {
         throw std::invalid_argument("Overlap2Centers::Efunt0 error: the E^{i,i'}_{0} coefficients are being evaluated for i and/or i' >= 5");
+    }
     }
         
 }

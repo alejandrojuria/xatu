@@ -358,28 +358,29 @@ void IntegralsBase::triangIndfun(const uint32_t dimMat_AUX){
  */
 arma::colvec IntegralsBase::Efun(const int index, const double p, const double PA, const double PB){
 
-    if(index == 0){ // (i,j) = (0,0)
+    switch(index)
+    {
+    case 0:  {// (i,j) = (0,0)
         return arma::colvec {1.0};
-    } 
-    else if(index == 1) { // (i,j) = (1,0)
+    }
+    case 1:  {// (i,j) = (1,0)
         double facp = 0.5/p;
         return arma::colvec {PA, facp};
     }
-    else if(index == 2) { // (i,j) = (1,1)
+    case 2:  {// (i,j) = (1,1)
         double facp = 0.5/p;
         return arma::colvec {PA*PB + facp,  (PA + PB)*facp,  facp*facp};
     }
-    else if(index == 3) { // (i,j) = (2,0)
+    case 3:  {// (i,j) = (2,0)
         double facp = 0.5/p;
         return arma::colvec {PA*PA + facp,  PA*2*facp,  facp*facp};
     }
-    else if(index == 4) { // (i,j) = (2,1)
+    case 4:  {// (i,j) = (2,1)
         double facp = 0.5/p;
         double facp_to2 = facp*facp;
-        return arma::colvec {PA*2*facp + PB*(PA*PA + facp),  (PA*2*p*(PA + 2*PB) + 3)*facp_to2,
-            (2*PA + PB)*facp_to2,  facp_to2*facp};
+        return arma::colvec {PA*2*facp + PB*(PA*PA + facp),  (PA*2*p*(PA + 2*PB) + 3)*facp_to2, (2*PA + PB)*facp_to2,  facp_to2*facp};
     }
-    else if(index == 5) { // (i,j) = (2,2)
+    case 5:  {// (i,j) = (2,2)
         double facp = 0.5/p;
         double facp_to2 = facp*facp;
         double facp_to3 = facp_to2*facp;
@@ -389,13 +390,13 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
         return arma::colvec {(4*PAPAp*PBPBp + 2*PAPAp + 2*PBPBp + 8*PAPBp + 3)*facp_to2,  (PA + PB)*(PAPBp*4 + 6)*facp_to2,
             (PAPAp + PBPBp + 4*PAPBp + 3)*2*facp_to3,  (PA + PB)*2*facp_to3, facp_to3*facp}; 
     }
-    else if(index == 6) { // (i,j) = (3,0)
+    case 6:  {// (i,j) = (3,0)
         double facp = 0.5/p;
         double facp_to2 = facp*facp;
         double PAPAp = PA*PA*p;
         return arma::colvec {PA*(PAPAp*2 + 3)*facp,  (PAPAp*6 + 3)*facp_to2,  3*PA*facp_to2,  facp_to2*facp};
     }
-    else if(index == 7) { // (i,j) = (3,1)
+    case 7:  {// (i,j) = (3,1)
         double facp = 0.5/p;
         double facp_to2 = facp*facp;
         double facp_to3 = facp_to2*facp;
@@ -404,7 +405,7 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
         return arma::colvec {(4*PAPAp*PAPBp + 6*PAPAp + 6*PAPBp + 3)*facp_to2,  (PA*(PAPAp*2 + PAPBp*6 + 9) + 3*PB)*facp_to2,
             (PAPAp + PAPBp + 1)*6*facp_to3,  (3*PA + PB)*facp_to3,  facp_to3*facp};
     }
-    else if(index == 8) { // (i,j) = (3,2)
+    case 8:  {// (i,j) = (3,2)
         double facp = 0.5/p;
         double facp_to2 = facp*facp;
         double facp_to3 = facp_to2*facp;
@@ -417,7 +418,7 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
             (PAPAp*(PA + 6*PB) + 3*PB*(PAPBp + 2) + 9*PA)*2*facp_to3,  (3*PAPAp + 6*PAPBp + PBPBp + 5)*2*facp_to4,
             (3*PA + 2*PB)*facp_to4, facp_to4*facp};
     }
-    else if(index == 9) { // (i,j) = (3,3)
+    case 9:  {// (i,j) = (3,3)
         double facp = 0.5/p;
         double facp_to3 = facp*facp*facp;
         double facp_to4 = facp_to3*facp;
@@ -432,7 +433,7 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
         (PAPAp + PBPBp + 8*PAPBp + 15)*(PA + PB)*2*facp_to4,  ((PAPAp + PBPBmas3PAPB)*6 + 15)*facp_to5,  
         (PA + PB)*3*facp_to5,  facp_to5*facp};
     }
-    else if(index == 10) { // (i,j) = (4,0)
+    case 10: {// (i,j) = (4,0)
         double facp = 0.5/p;
         double facp_to2 = facp*facp;
         double facp_to3 = facp_to2*facp;
@@ -440,7 +441,7 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
         return arma::colvec {(PAPAp*4*(PAPAp + 3) + 3)*facp_to2,  (PAPAp*8 + 12)*PA*facp,  (PAPAp*12 + 6)*facp_to3,
             PA*4*facp_to3,  facp_to3*facp};
     }
-    else if(index == 11) { // (i,j) = (4,1)
+    case 11: {// (i,j) = (4,1)
         double facp = 0.5/p;
         double facp_to2 = facp*facp;
         double facp_to3 = facp_to2*facp;
@@ -451,7 +452,7 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
             (PAPAp*4*(PAPAp + PAPBp*4 + 9) + PAPBp*24 + 15)*facp_to3,  (PAPAp*(8*PA + 12*PB) + 24*PA + 6*PB)*facp_to3,
             (12*PAPAp + 8*PAPBp + 10)*facp_to4,  (4*PA + PB)*facp_to4,  facp_to4*facp};
     }
-    else if(index == 12) { // (i,j) = (4,2)
+    case 12: {// (i,j) = (4,2)
         double facp = 0.5/p;
         double facp_to3 = facp*facp*facp;
         double facp_to4 = facp_to3*facp;
@@ -465,7 +466,7 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
             (PAPAp*8*(PA + 3*PB) + PA*8*(PBPBp + 5) + 20*PB)*facp_to4,  (12*PAPAp + 16*PAPBp + 2*PBPBp + 15)*facp_to5,
             (2*PA + PB)*2*facp_to5,  facp_to5*facp};
     }
-    else if(index == 13) { // (i,j) = (4,3)
+    case 13: {// (i,j) = (4,3)
         double facp = 0.5/p;
         double facp_to3 = facp*facp*facp;
         double facp_to4 = facp_to3*facp;
@@ -481,7 +482,7 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
         (PAPAp*(8*PA + 36*PB) + PBPBp*2*(12*PA + PB) + 60*PA + 45*PB)*facp_to5,  (6*(2*PAPAp + PBPBp + 4*PAPBp) + 21)*facp_to6,
         (4*PA + 3*PB)*facp_to6,  facp_to6*facp};
     }
-    else if(index == 14) { // (i,j) = (4,4)
+    case 14: {// (i,j) = (4,4)
         double facp = 0.5/p;
         double facp_to4 = facp*facp*facp*facp;
         double facp_to5 = facp_to4*facp;
@@ -499,9 +500,10 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
         (PAPAp*(4*PAPAp + 64*PAPBp + PBPBp*144 + 180) + PAPBp*(PBPBp*64 + 480) + PBPBp*(4*PBPBp + 180) + 210)*facp_to6,
         (8*(PAPAp + PBPBp + 5*PAPBp) + 84)*PAmasPB*facp_to6,  (12*(PAPAp + PBPBp) + 32*PAPBp + 28)*facp_to7,
         PAmasPB*4*facp_to7,  facp_to7*facp};
-    } 
-    else {
+    }
+    default: {
         throw std::invalid_argument("IntegralsBase::Efun error: the E^{i,i'}_{t} coefficients are being evaluated for i and/or i' >= 5");
+    }
     }
         
 }
