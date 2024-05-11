@@ -22,7 +22,6 @@ IntegralsBase::IntegralsBase(const GTFConfiguration& GTFconfig, const std::strin
     FAC12fun(GTFconfig, maxL, false );
     FAC3fun( true );
     FAC3fun( false );
-    std::cout << "IntegralsBase INITIALIZED" << std::endl; 
 
 };
 
@@ -116,6 +115,62 @@ void IntegralsBase::buildOrbitalsInfo(const GTFConfiguration& GTFconfig){
     this->maxL = maxL;
 
 }
+
+/**
+* Method to create the matrix of the first nR (at least) Bravais vectors, stored by columns and ordered by ascending norm.
+* The number of returned vectors is at least nR because full stars are given. bravaisLattice contains R1,R2,R3 by columns.
+* It basically substitutes RlistAU for the integrals when more R-vectors are requested than contained in the .outp.
+*/
+arma::mat IntegralsBase::generateRlist(const arma::mat& bravaisLattice, const int nR){
+
+    arma::rowvec norms_Ri = arma::sqrt(arma::sum(bravaisLattice % bravaisLattice));
+    // Automatic correction accounting for possibly large differences of norms in the lattice vectors
+    int normRatio = std::ceil(0.5*arma::max(norms_Ri.cols(0,ndim-1))/arma::min(norms_Ri.cols(0,ndim-1))); 
+    // Conservative estimate to make sure that none of the first n vectors is left out
+    double RindmaxAux = std::ceil(3*normRatio*std::sqrt(nR));
+    arma::rowvec Rindmax;
+    if(ndim == 3){
+        Rindmax = {RindmaxAux, RindmaxAux, RindmaxAux};
+    } else if(ndim == 2){
+        Rindmax = {RindmaxAux, RindmaxAux, 0}; 
+    } else if(ndim == 1){
+        Rindmax = {RindmaxAux, 0, 0}; 
+    } else {
+        throw std::logic_error("IntegralsBase::generateRlist error: attempted to construct list of Bravais vectors for a finite system");
+    }
+
+    arma::mat generated_Rlist = {}; 
+    arma::colvec generated_norms = {};     
+    for(int Rind1 = -Rindmax(0); Rind1 <= Rindmax(0); Rind1++){
+        for(int Rind2 = -Rindmax(1); Rind2 <= Rindmax(1); Rind2++){
+            for(int Rind3 = -Rindmax(2); Rind3 <= Rindmax(2); Rind3++){
+                arma::irowvec Rindvec = {Rind1, Rind2, Rind3};
+                arma::rowvec Rvec = Rindvec.cols(0,ndim-1)*bravaisLattice;
+                generated_Rlist = arma::join_vert(generated_Rlist, Rvec);
+
+                arma::colvec norm_aux(1,arma::fill::value(arma::norm(Rvec)));
+                generated_norms = arma::join_vert(generated_norms, norm_aux);
+            }       
+        }
+    }
+
+    arma::ucolvec indices = arma::sort_index(generated_norms);
+    generated_norms = arma::sort(generated_norms);
+    generated_Rlist = generated_Rlist.rows(indices); // Order the lattice vectors (stored as rows still) according to the norms 
+
+    double requested_norm = generated_norms(nR - 1);
+    int countr = nR;
+    double current_norm = generated_norms(countr);
+    std::cout << "Requested direct lattice vectors maximum norm: " << requested_norm << " Angstrom (IntegralsBase::generateRlist)" << std::endl;
+
+    while(current_norm - requested_norm < 1e-3){
+        countr++;
+        current_norm = generated_norms(countr);
+    }
+    return (generated_Rlist.rows(0, countr - 1)).t();
+
+}
+
 
 /**
  * Method to build the matrix of the normalization prefactor FAC1(m,l)->FAC1[l][m]. 
@@ -220,7 +275,7 @@ void IntegralsBase::FAC12fun(const GTFConfiguration& GTFconfig, const int maxL, 
     std::vector<double> FAC12;
     if(basis_id){ //basis_id == true => SCF basis; basis_id == false => auxiliary basis
         FAC12.reserve( dimMat_SCF );
-        for(int orb = 0; orb < dimMat_SCF; orb++){
+        for(uint32_t orb = 0; orb < dimMat_SCF; orb++){
             std::vector<int> orbital = orbitals_info_int_SCF[orb]; 
             int L_orb = orbital[2];
             int m_orb = orbital[3];
@@ -234,7 +289,7 @@ void IntegralsBase::FAC12fun(const GTFConfiguration& GTFconfig, const int maxL, 
 
     } else {
         FAC12.reserve( dimMat_AUX );
-        for(int orb = 0; orb < dimMat_AUX; orb++){
+        for(uint32_t orb = 0; orb < dimMat_AUX; orb++){
             std::vector<int> orbital = orbitals_info_int_AUX[orb]; 
             int L_orb = orbital[2];
             int m_orb = orbital[3];
@@ -257,7 +312,7 @@ void IntegralsBase::FAC3fun(const bool basis_id){
     std::vector<std::vector<double>> FAC3;
     if(basis_id){ //basis_id == true => SCF basis; basis_id == false => auxiliary basis
         FAC3.reserve( dimMat_SCF );
-        for(int orb = 0; orb < dimMat_SCF; orb++){
+        for(uint32_t orb = 0; orb < dimMat_SCF; orb++){
             std::vector<double> FAC3_pre;
             std::vector<int> orbital          = orbitals_info_int_SCF[orb]; 
             std::vector<double> orbital_coefs = orbitals_info_real_SCF[orb]; 
@@ -273,7 +328,7 @@ void IntegralsBase::FAC3fun(const bool basis_id){
 
     } else {
         FAC3.reserve( dimMat_AUX );
-        for(int orb = 0; orb < dimMat_AUX; orb++){
+        for(uint32_t orb = 0; orb < dimMat_AUX; orb++){
             std::vector<double> FAC3_pre;
             std::vector<int> orbital          = orbitals_info_int_AUX[orb]; 
             std::vector<double> orbital_coefs = orbitals_info_real_AUX[orb]; 

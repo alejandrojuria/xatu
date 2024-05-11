@@ -92,6 +92,10 @@ class IntegralsBase {
         void buildOrbitalsInfo(const GTFConfiguration&);
         int factorial(int);
         int doubleFactorial(int);
+        // Method to create the matrix of the first nR (at least) Bravais vectors, stored by columns and ordered by ascending norm.
+        // The number of returned vectors is at least nR because full stars are given. bravaisLattice contains R1,R2,R3 by columns.
+        // It basically substitutes RlistAU for the integrals when more R-vectors are requested than contained in the .outp.
+        arma::mat generateRlist(const arma::mat& bravaisLattice, const int nR);
         // Method to build the matrix of the normalization prefactor FAC1(m,l)->FAC1[l][m], used in FAC12fun.
         std::vector<std::vector<double>> FAC1fun(const int maxL);
         // Method to build the vector of the normalization prefactor FAC2(shell,l)->FAC2[shell], used in FAC12fun.

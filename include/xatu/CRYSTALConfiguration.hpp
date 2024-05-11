@@ -16,7 +16,7 @@ class CRYSTALConfiguration : public SystemConfiguration {
         bool MAGNETIC_FLAG = false;
         bool alpha_electrons = true;
         arma::mat motif;
-        // Basis of Bravais vectors (R1,R2,R3), stored by columns: (ndim x 3)
+        // Basis of Bravais vectors (R1,R2,R3) in Angstrom, stored by columns: (ndim x 3)
         arma::mat bravaisLattice;
         // List of Bravais vectors in Angstrom, stored by rows: (ncells x 3)
         arma::mat bravaisVectors;
