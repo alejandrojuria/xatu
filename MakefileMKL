@@ -1,0 +1,58 @@
+# Compiler & compiler flags
+CC = g++
+FC = gfortran
+CFLAGS = -O2 -Wall 
+FFLAGS = -O2 -Wall -Wno-tabs 
+
+# MKL directory
+MKL_DIR = /opt/intel/oneapi/mkl/2024.1
+
+# Include folders
+INCLUDE = -I$(PWD)/include
+INCLUDE_MKL = -I$(MKL_DIR)/include
+
+# Libraries
+LIBS = -L$(PWD) -lxatu -larmadillo -larpack -fopenmp -lgfortran -DARMA_DONT_USE_WRAPPER -DARMA_BLAS_LONG_LONG  
+LIBS_MKL = -L$(MKL_DIR)/lib -DMKL_ILP64 -m64 -lmkl_rt -lmkl_blas95_lp64 -lmkl_lapack95_lp64  
+##LIBS_MKL = -m64 -L$(MKL_DIR)/lib -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_gnu_thread -lmkl_core -lgomp -lpthread -lm -ldl
+
+# Conditional flags for compilation
+ifeq ($(DEBUG), 1)
+	CFLAGS = -Wall -g
+	FFLAGS = -Wall -Wno-tabs -g
+endif
+ifeq ($(HDF5), 1)
+	CFLAGS += -DARMA_USE_HDF5
+	LIBS += -lhdf5
+endif
+
+# Compilation targets
+CC_SRC_FILES := $(wildcard src/*.cpp)
+OBJECTS := $(patsubst src/%.cpp, build/%.o, $(CC_SRC_FILES))
+FC_SRC_FILES := $(wildcard src/*.f90)
+OBJECTS_FC := $(patsubst src/%.f90, build/%.o, $(FC_SRC_FILES))
+OBJECTS += $(OBJECTS_FC)
+
+# Create folders
+dummy_build_folder := $(shell mkdir -p build)
+dummy_bin_folder := $(shell mkdir -p bin)
+
+build:	$(OBJECTS)
+	ar rcs libxatu.a $(OBJECTS) 
+	
+xatu: main/xatu.cpp $(OBJECTS) 
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(INCLUDE_MKL) $(LIBS) $(LIBS_MKL)
+
+%: main/%.cpp $(OBJECTS)
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(INCLUDE_MKL) $(LIBS) $(LIBS_MKL)
+
+# Compilation steps
+# $< refers to first prerequisite and $@ to the target
+build/%.o: src/%.cpp
+	$(CC) -c $< -o $@ $(CFLAGS) $(INCLUDE) $(INCLUDE_MKL) $(LIBS) $(LIBS_MKL)
+
+build/%.o: src/%.f90
+	$(FC) -c $< -o $@ $(FFLAGS) $(INCLUDE) $(INCLUDE_MKL) $(LIBS) $(LIBS_MKL)
+
+clean:
+	rm -f build/*.o bin/* libxatu.a

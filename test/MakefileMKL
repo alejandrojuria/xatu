@@ -1,0 +1,22 @@
+# Compiler & compiler flags
+CC = g++
+CFLAGS = -O2 -Wall 
+
+ROOT_DIR := $(shell dirname $(PWD))
+
+# MKL directory
+MKL_DIR = /opt/intel/oneapi/mkl/2024.1
+
+# Include folders
+INCLUDE = -I$(ROOT_DIR)/include -I$(ROOT_DIR)/test -I$(MKL_DIR)/include
+
+# Libraries
+LIBS = -DARMA_DONT_USE_WRAPPER -DARMA_BLAS_LONG_LONG -L$(ROOT_DIR) -L$(ROOT_DIR)/test -L$(MKL_DIR)/lib -DMKL_ILP64 -m64 -lmkl_rt -lmkl_blas95_lp64 -lmkl_lapack95_lp64 -lxatu -larmadillo -larpack -fopenmp -lgfortran
+
+dummy_bin_folder := $(shell mkdir -p bin)
+
+tests: tests.cpp
+	$(CC) -o bin/$@.x $< $(CFLAGS) $(INCLUDE) $(LIBS)
+
+clean:
+	rm -f bin/*.x

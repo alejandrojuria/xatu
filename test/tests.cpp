@@ -67,7 +67,7 @@ TEST_CASE("CRYSTAL file parsing", "[CRYSTAL_parsing]"){
     std::cout.setstate(std::ios_base::failbit);
 
     std::string modelfile = "../examples/material_models/DFT/hBN_base_HSE06.outp";
-    xatu::CRYSTALConfiguration config = xatu::CRYSTALConfiguration(modelfile);
+    xatu::CRYSTALConfiguration config = xatu::CRYSTALConfiguration(modelfile,20);
 
     int expectedFilling = 6;
     int expectedDim = 2;
