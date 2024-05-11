@@ -8,31 +8,34 @@ namespace xatu {
  * @param o2MixMat_name Name of the file where the mixed 2-center overlap matrices will be stored as a cube (o2MixMat_name.o2mc).
  * @param o2Mat_name Name of the file where the 2-center overlap matrices in the SCF basis will be stored as a cube (o2Mat_name.o2c).
  */
-Overlap2MixCenters::Overlap2MixCenters(const IntegralsBase& IntBase, const std::string& o2MixMat_name, const std::string& o2Mat_name) 
-    : IntegralsBase{IntBase}, Overlap2Centers{IntBase, o2Mat_name, true} {
+Overlap2MixCenters::Overlap2MixCenters(const IntegralsBase& IntBase, const uint32_t nR, const std::string& o2MixMat_name, const std::string& o2Mat_name) 
+    : IntegralsBase{IntBase}, Overlap2Centers{IntBase, nR, o2Mat_name, true} {
 
-    overlap2MixCfun(ncells, o2MixMat_name);
+    overlap2MixCfun(nR, o2MixMat_name);
 
 }
 
 /**
- * Method to compute the overlap matrices in the mixed SCF and auxiliary basis sets (<P,0|mu,R>) for the first nR Bravais vectors R, 
- * where nR <= ncells (attribute of IntegralsBase and third argument of GTFConfiguration 's constructor).
+ * Method to compute the overlap matrices in the mixed SCF and auxiliary basis sets (<P,0|mu,R>) for the first nR Bravais vectors R. 
+ * These first nR (at least, until the star of vectors is completed) are generated with IntegralsBase::generateRlist.
  * The resulting cube (third dimension spans the Bravais vectors) is saved in the o2MixMat_name.o2mc file.
  */
-void Overlap2MixCenters::overlap2MixCfun(const int nR, const std::string& o2MixMat_name){
+void Overlap2MixCenters::overlap2MixCfun(const uint32_t nR, const std::string& o2MixMat_name){
 
-std::cout << "Computing " << nR << " " << dimMat_AUX << "x" << dimMat_SCF << " 2-center mixed overlap matrices..." << std::endl;
+arma::mat RlistAU = ANG2AU*generateRlist(bravaisLattice, nR);
+uint32_t nR_star = RlistAU.n_cols;
+
+std::cout << "Computing " << nR_star << " " << dimMat_AUX << "x" << dimMat_SCF << " 2-center mixed overlap matrices..." << std::endl;
 auto begin = std::chrono::high_resolution_clock::now();  
 
     uint64_t nelem_rectang = dimMat_AUX*dimMat_SCF;
-    uint64_t total_elem = nelem_rectang*nR;
-    arma::cube overlap2MixMatrices {arma::zeros<arma::cube>(dimMat_AUX,dimMat_SCF,nR)};
+    uint64_t total_elem = nelem_rectang*nR_star;
+    arma::cube overlap2MixMatrices {arma::zeros<arma::cube>(dimMat_AUX,dimMat_SCF,nR_star)};
 
     #pragma omp parallel for
-    for(uint64_t s = 0; s < total_elem; s++){ //Spans all the elements of all the nR matrices <P,0|mu,R>
+    for(uint64_t s = 0; s < total_elem; s++){ //Spans all the elements of all the nR_star matrices <P,0|mu,R>
         uint64_t sind {s % nelem_rectang};   //Index for the corresponding entry in the overlap matrix, irrespective of the specific R
-        int Rind {s / nelem_rectang};   //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
+        uint32_t Rind {s / nelem_rectang};   //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
         uint32_t orb_bra {sind % dimMat_AUX};  //Orbital number (<dimMat_AUX) of the bra corresponding to the index s
         uint32_t orb_ket {sind / dimMat_AUX};  //Orbital number (<dimMat_SCF) of the ket corresponding to the index s
         // arma::colvec R {RlistAU.col(Rind)};  //Bravais vector (a.u.) corresponding to the "s" matrix element

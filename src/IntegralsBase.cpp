@@ -38,12 +38,14 @@ void IntegralsBase::initializeBasesAttributes(const GTFConfiguration& GTFconfig)
     ndim_                    = GTFconfig.ndim;	
     nspecies_                = GTFconfig.nspecies;
     motif_                   = GTFconfig.motif;
-    RlistAU_                 = ANG2AU*(GTFconfig.Rlist);   //conversion from Angstrom to atomic units
-    RlistOpposites_          = GTFconfig.RlistOpposites;
-    R_unpaired_              = GTFconfig.R_unpaired;
+    bravaisLattice_          = GTFconfig.bravaisLattice;
+    natoms_                  = motif.n_rows;
+
+    // RlistAU_                 = ANG2AU*(GTFconfig.Rlist);   //conversion from Angstrom to atomic units
+    // RlistOpposites_          = GTFconfig.RlistOpposites;
+    // R_unpaired_              = GTFconfig.R_unpaired;
     
-    natoms_ = motif.n_rows;
-	ncells_ = RlistAU.n_cols;
+	// ncells_ = RlistAU.n_cols;
 
 }
 
@@ -118,10 +120,10 @@ void IntegralsBase::buildOrbitalsInfo(const GTFConfiguration& GTFconfig){
 
 /**
 * Method to create the matrix of the first nR (at least) Bravais vectors, stored by columns and ordered by ascending norm.
-* The number of returned vectors is at least nR because full stars are given. bravaisLattice contains R1,R2,R3 by columns.
+* The number of returned vectors is at least nR because full stars are given. bravaisLattice is (ndim x 3) and contains R1,R2,R3 by columns.
 * It basically substitutes RlistAU for the integrals when more R-vectors are requested than contained in the .outp.
 */
-arma::mat IntegralsBase::generateRlist(const arma::mat& bravaisLattice, const int nR){
+arma::mat IntegralsBase::generateRlist(const arma::mat& bravaisLattice, const uint32_t nR){
 
     arma::rowvec norms_Ri = arma::sqrt(arma::sum(bravaisLattice % bravaisLattice));
     // Automatic correction accounting for possibly large differences of norms in the lattice vectors
@@ -159,7 +161,7 @@ arma::mat IntegralsBase::generateRlist(const arma::mat& bravaisLattice, const in
     generated_Rlist = generated_Rlist.rows(indices); // Order the lattice vectors (stored as rows still) according to the norms 
 
     double requested_norm = generated_norms(nR - 1);
-    int countr = nR;
+    uint32_t countr = nR;
     double current_norm = generated_norms(countr);
     std::cout << "Requested direct lattice vectors maximum norm: " << requested_norm << " Angstrom (IntegralsBase::generateRlist)" << std::endl;
 
@@ -171,6 +173,25 @@ arma::mat IntegralsBase::generateRlist(const arma::mat& bravaisLattice, const in
 
 }
 
+/**
+ * Returns a map where each entry is the index of the direct lattice vector in Rlist opposite to the lattice vector whose index is 
+ * the corresponding map's key. 
+ */
+std::map<uint32_t,uint32_t> IntegralsBase::generateRlistOpposite(const arma::mat& Rlist){
+
+    uint32_t nRlist = Rlist.n_cols; 
+    std::map<uint32_t,uint32_t> RlistOpposites;
+    for(uint32_t RindOpp = 0; RindOpp < nRlist; RindOpp++){
+        for(uint32_t Rind = 0; Rind < nRlist; Rind++){
+            arma::colvec Rsum = Rlist.col(Rind) + Rlist.col(RindOpp);
+            if( Rsum.is_zero(0.001) ){
+                RlistOpposites[RindOpp] = Rind;
+            }
+        }
+
+    }
+    return RlistOpposites;
+}
 
 /**
  * Method to build the matrix of the normalization prefactor FAC1(m,l)->FAC1[l][m]. 

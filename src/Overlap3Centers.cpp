@@ -10,8 +10,8 @@ namespace xatu {
  * @param o3Mat_name Name of the file where the 3-center overlap matrices will be stored as a cube (o3Mat_name.o3c).
  * @param o2Mat_name Name of the file where the 2-center overlap matrices in the AUX basis will be stored as a cube (o2Mat_name.o2c).
  */
-Overlap3Centers::Overlap3Centers(const GTFConfiguration& GTFConfig, const int tol, const int nR2, const std::string& o3Mat_name, const std::string& o2Mat_name) 
-    : Overlap2Centers{GTFConfig, o2Mat_name, false}, IntegralsBase{GTFConfig} {
+Overlap3Centers::Overlap3Centers(const GTFConfiguration& GTFConfig, const int tol, const uint32_t nR2, const std::string& o3Mat_name, const std::string& o2Mat_name) 
+    : Overlap2Centers{GTFConfig, nR2, o2Mat_name, false}, IntegralsBase{GTFConfig} {
 
     overlap3Cfun(nR2, tol, o3Mat_name);
 
@@ -25,37 +25,30 @@ Overlap3Centers::Overlap3Centers(const GTFConfiguration& GTFConfig, const int to
  * @param o3Mat_name Name of the file where the 3-center overlap matrices will be stored as a cube (o3Mat_name.o3c).
  * @param o2Mat_name Name of the file where the 2-center overlap matrices in the AUX basis will be stored as a cube (o2Mat_name.o2c).
  */
-Overlap3Centers::Overlap3Centers(const IntegralsBase& IntBase, const int tol, const std::string& o3Mat_name, const std::string& o2Mat_name) 
-    : Overlap2Centers{IntBase, o2Mat_name, false}, IntegralsBase{IntBase} {
+Overlap3Centers::Overlap3Centers(const IntegralsBase& IntBase, const int tol, const uint32_t nR2, const std::string& o3Mat_name, const std::string& o2Mat_name) 
+    : Overlap2Centers{IntBase, nR2, o2Mat_name, false}, IntegralsBase{IntBase} {
 
-    overlap3Cfun(ncells, tol, o3Mat_name);
-
-}
-Overlap3Centers::Overlap3Centers(const IntegralsBase& IntBase, const int tol, const int nR2, const std::string& o3Mat_name, const std::string& o2Mat_name) 
-    : Overlap2Centers{IntBase, o2Mat_name, false}, IntegralsBase{IntBase} {
-
-    if(nR2 > ncells){
-        throw std::invalid_argument("WARNING! More lattice vectors for the 3-center overlap integrals were requested than for initializing GTFConfiguration");
-    } else {
-        overlap3Cfun(nR2, tol, o3Mat_name);
-    }
+    overlap3Cfun(nR2, tol, o3Mat_name);
 
 }
 
 /**
  * Method to compute the rectangular overlap matrices <P,0|mu,R;mu',R'> in the mixed SCF and auxiliary basis sets for the first nR Bravais
- * vectors R and R' (nR^2 in total), where nR <= ncells (attribute of IntegralsBase and third argument of GTFConfiguration 's
- * constructor). The resulting cube (third dimension spans auxiliary basis {P}, while the Bravais lattice vectors R and R' vary by rows and columns
+ * vectors R and R' (nR2^2 pairs of vectors). These first nR (at least, until the star of vectors is completed) are generated with IntegralsBase::generateRlist.
+ * The resulting cube (third dimension spans auxiliary basis {P}, while the Bravais lattice vectors R and R' vary by rows and columns
  * (respectively) once the block for {mu,mu'} has been completed, i.e., each slice is kron({mu,mu'},{R,R'}) ) is saved in the o3Mat_name.o2c file.
  */
-void Overlap3Centers::overlap3Cfun(const int nR2, const int tol, const std::string& o3Mat_name){
+void Overlap3Centers::overlap3Cfun(const uint32_t nR2, const int tol, const std::string& o3Mat_name){
 
 // openmp directive to define std::vector insert as a reduction. SEE https://stackoverflow.com/questions/18669296/c-openmp-parallel-for-loop-alternatives-to-stdvector
 #pragma omp declare reduction (merge : std::vector<double> : omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end()))
 #pragma omp declare reduction (merge2 : std::vector<std::array<uint32_t,5>> : omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end()))
 
+arma::mat RlistAU = ANG2AU*generateRlist(bravaisLattice, nR2);
+uint32_t nR2_star = RlistAU.n_cols;
+
 double etol = std::pow(10.,-tol);
-uint64_t dim_Slice = dimMat_SCF*nR2;
+uint64_t dim_Slice = dimMat_SCF*nR2_star;
 uint64_t nelems_slice = dim_Slice*dim_Slice;
 uint64_t total_elem = nelems_slice*dimMat_AUX;
 std::cout << "Computing " << dimMat_AUX << " " << dim_Slice << "x" << dim_Slice << " 3-center overlap matrices..." << std::endl;
@@ -71,10 +64,10 @@ auto begin = std::chrono::high_resolution_clock::now();
         uint32_t Pind {s / nelems_slice};     //Slice of the cube (or AUX basis component P, <dimMat_AUX) corresponding to loop index s 
         uint64_t muRind1 {sind % dim_Slice};  //Row in the slice matrix (single index for {mu,R})
         uint32_t muind1 {muRind1 % dimMat_SCF};    //Orbital number mu (<dimMat_SCF) corresponding to loop index s
-        uint32_t Rind1  {muRind1 / dimMat_SCF};    //Direct lattice vector index (<nR) corresponding to loop index s
+        uint32_t Rind1  {muRind1 / dimMat_SCF};    //Direct lattice vector index (<nR2_star) corresponding to loop index s
         uint64_t muRind2 {sind / dim_Slice};  //Column in the slice matrix (single index for {mu',R'}) 
         uint32_t muind2 {muRind2 % dimMat_SCF};    //Orbital number mu' (<dimMat_SCF) corresponding to loop index s 
-        uint32_t Rind2  {muRind2 / dimMat_SCF};    //Direct lattice vector R' (<nR) corresponding to loop index s
+        uint32_t Rind2  {muRind2 / dimMat_SCF};    //Direct lattice vector R' (<nR2_star) corresponding to loop index s
 
         int L_P  {orbitals_info_int_AUX[Pind][2]};
         int m_P  {orbitals_info_int_AUX[Pind][3]};

@@ -9,14 +9,14 @@ class Overlap2MixCenters : public virtual Overlap2Centers {
 
     //// Methods
     public:
-        Overlap2MixCenters(const IntegralsBase&, const std::string& o2MixMat_name = "o2MixMat", const std::string& o2Mat_name = "o2Mat_SCF"); 
+        Overlap2MixCenters(const IntegralsBase&, const uint32_t nR, const std::string& o2MixMat_name = "o2MixMat", const std::string& o2Mat_name = "o2Mat_SCF"); 
         ~Overlap2MixCenters(){};
 
     protected:
-    // Method to compute the overlap matrices in the mixed SCF and auxiliary basis sets (<P,0|mu,R>) for the first nR Bravais vectors R, 
-    // where nR <= ncells (attribute of IntegralsBase and third argument of GTFConfiguration 's constructor).
+    // Method to compute the overlap matrices in the mixed SCF and auxiliary basis sets (<P,0|mu,R>) for the first nR Bravais vectors R. 
+    // These first nR (at least, until the star of vectors is completed) are generated with IntegralsBase::generateRlist.
     // The resulting cube (third dimension spans the Bravais vectors) is saved in the o2MixMat_name.o2mc file.
-    void overlap2MixCfun(const int nR, const std::string& o2MixMat_name);
+    void overlap2MixCfun(const uint32_t nR, const std::string& o2MixMat_name);
 
 };
 

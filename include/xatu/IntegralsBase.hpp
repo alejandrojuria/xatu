@@ -25,10 +25,12 @@ class IntegralsBase {
 
     //// Attributes copied from GTFConfiguration
     protected:
-        int ndim_, natoms_, nspecies_, ncells_;
-        arma::mat motif_, RlistAU_;
-        std::map<int,int> RlistOpposites_;
-        std::vector<int> R_unpaired_;
+        int ndim_, natoms_, nspecies_;
+        arma::mat motif_, bravaisLattice_;
+        // int ncells_;
+        // arma::mat RlistAU_;
+        // std::map<int,int> RlistOpposites_;
+        // std::vector<int> R_unpaired_;
 
         // Const references to attributes (read-only)
     public:
@@ -39,17 +41,19 @@ class IntegralsBase {
         // Number of atomic species in the motif (unit cell).
         const int& nspecies = nspecies_;
         // Number of lattice vectors in which the integrals will be computed.
-        const int& ncells = ncells_;
+        // const int& ncells = ncells_;
         // Matrix containing the positions of the atoms of the motif.
         // by rows. Each row has the format {x,y,z; species}, where x,y,z are in Angstrom and
         // the last element is an index representing the atomic species.
         const arma::mat& motif = motif_;
+        // Basis of Bravais vectors (R1,R2,R3) in Angstrom, stored by columns: (ndim x 3)
+        const arma::mat& bravaisLattice = bravaisLattice_;
         // (3 x ncells) matrix of Bravais vectors in atomic units, stored by columns.
-        const arma::mat& RlistAU = RlistAU_;
+        // const arma::mat& RlistAU = RlistAU_;
         // Map of ncells entries, the n-th (n=0,..,ncells-1) of which is the index of -R_{n} (minus the n-th Bravais vector in Rlist).
-        const std::map<int,int>& RlistOpposites = RlistOpposites_;
+        // const std::map<int,int>& RlistOpposites = RlistOpposites_;
         // Vector with the indices of the unpaired Bravais vectors, i.e. those with their opposites not present in Rlist.
-        const std::vector<int>& R_unpaired = R_unpaired_;
+        // const std::vector<int>& R_unpaired = R_unpaired_;
  
     //// Attributes from this class
     public:
@@ -93,9 +97,12 @@ class IntegralsBase {
         int factorial(int);
         int doubleFactorial(int);
         // Method to create the matrix of the first nR (at least) Bravais vectors, stored by columns and ordered by ascending norm.
-        // The number of returned vectors is at least nR because full stars are given. bravaisLattice contains R1,R2,R3 by columns.
+        // The number of returned vectors is at least nR because full stars are given. bravaisLattice is (ndim x 3) and contains R1,R2,R3 by columns.
         // It basically substitutes RlistAU for the integrals when more R-vectors are requested than contained in the .outp.
-        arma::mat generateRlist(const arma::mat& bravaisLattice, const int nR);
+        arma::mat generateRlist(const arma::mat& bravaisLattice, const uint32_t nR);
+        // Returns a map where each entry is the index of the direct lattice vector in Rlist opposite to the lattice vector whose index is 
+        // the corresponding map's key.
+        std::map<uint32_t,uint32_t> generateRlistOpposite(const arma::mat& Rlist);
         // Method to build the matrix of the normalization prefactor FAC1(m,l)->FAC1[l][m], used in FAC12fun.
         std::vector<std::vector<double>> FAC1fun(const int maxL);
         // Method to build the vector of the normalization prefactor FAC2(shell,l)->FAC2[shell], used in FAC12fun.
