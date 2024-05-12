@@ -347,7 +347,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
             case 6:  {
                 double X2 = X*X;
                 double Y2 = Y*Y;
-                return 15*Rn000(4,p,arg) + 15*(3*X2 + Y2)*Rn000(5,p,arg) + 15*X2*((X2 + 3*Y2)*Rn000(6,p,arg) + X2*((X2 + 15*Y2)*Rn000(7,p,arg) + X2*Y2*Rn000(8,p,arg)));
+                return 15*Rn000(4,p,arg) + 15*(3*X2 + Y2)*Rn000(5,p,arg) + X2*(15*(X2 + 3*Y2)*Rn000(6,p,arg) + X2*((X2 + 15*Y2)*Rn000(7,p,arg) + X2*Y2*Rn000(8,p,arg)));
             }
             default: {
                 throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=2,v=0)");
@@ -381,7 +381,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
             case 4:  {
                 double X2 = X*X;
                 double Y2 = Y*Y;
-                return 9*Rn000(4,p,arg) + 18*(X2 + Y2)*Rn000(5,p,arg) + (3*(X2*X2 + Y2*Y2) + 36*X2*Y2)*Rn000(6,p,arg) + 6*X2*Y2*(X2 + Y2)*Rn000(7,p,arg) + X2*X2*Y2*Y2*Rn000(8,p,arg);
+                return 9*Rn000(4,p,arg) + 18*(X2 + Y2)*Rn000(5,p,arg) + 3*(X2*X2 + Y2*Y2 + 12*X2*Y2)*Rn000(6,p,arg) + 6*X2*Y2*(X2 + Y2)*Rn000(7,p,arg) + X2*X2*Y2*Y2*Rn000(8,p,arg);
             }
             default: {
                 throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=4,v=0)");
@@ -457,7 +457,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
             case 4:  {
                 double X2 = X*X;
                 double Y2 = Y*Y;
-                return Y*Z*(9*Rn000(5,p,arg) + 3*(6*X2 + Y2)*Rn000(6,p,arg) + 3*X2*((X2 + Y2)*Rn000(7,p,arg) + X2*Y2*Rn000(8,p,arg)));
+                return Y*Z*(9*Rn000(5,p,arg) + 3*(6*X2 + Y2)*Rn000(6,p,arg) + X2*(3*(X2 + 2*Y2)*Rn000(7,p,arg) + X2*Y2*Rn000(8,p,arg)));
             }
             default: {
                 throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=3,v=1)");
