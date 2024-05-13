@@ -125,8 +125,7 @@ void Lattice::computeUnitCellArea(){
 		this->unitCellArea_ = arma::norm(crossProduct);
 	}
 	else if(ndim == 3){
-		arma::rowvec crossProduct = arma::cross(bravaisLattice.row(0), bravaisLattice.row(1));
-		this->unitCellArea_ = arma::dot(crossProduct, bravaisLattice.row(2));
+		this->unitCellArea_ = std::abs(arma::det(bravaisLattice));
 	}
 }
 
