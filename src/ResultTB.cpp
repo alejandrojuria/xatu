@@ -31,10 +31,10 @@ arma::cx_vec ResultTB::spinX(const arma::cx_vec& coefs){
     int vecIterator = 0;
     for(int atomIndex = 0; atomIndex < system->natoms; atomIndex++){
         int species = system->motif.row(atomIndex)(3);
-        int norbitals = system->orbitals(species);
-        spinVector.subvec(vecIterator, vecIterator + norbitals - 1) = 
-                          arma::kron(arma::ones(norbitals/2), spinEigvalues);
-        vecIterator += system->orbitals(species);
+        int norb = system->orbitalsPerSpecies(species);
+        spinVector.subvec(vecIterator, vecIterator + norb - 1) = 
+                          arma::kron(arma::ones(norb/2), spinEigvalues);
+        vecIterator += system->orbitalsPerSpecies(species);
     }
     
 	arma::cx_vec eigvec, spinEigvec;
@@ -199,10 +199,10 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
     arma::cx_mat extendedMotif = arma::zeros<arma::cx_mat>(system->basisdim, 3);
     int currentIndex = 0;
     for (int i = 0; i < system->natoms; i++){
-        int norbitals = system->orbitals(system->motif.row(i)(3));
-        extendedMotif.rows(currentIndex, currentIndex + norbitals - 1) = arma::kron(system->motif.row(i).subvec(0, 2),
-                                                                         arma::ones<arma::cx_vec>(norbitals));
-        currentIndex += norbitals;
+        int norb = system->orbitalsPerSpecies(system->motif.row(i)(3));
+        extendedMotif.rows(currentIndex, currentIndex + norb - 1) = arma::kron(system->motif.row(i).subvec(0, 2),
+                                                                         arma::ones<arma::cx_vec>(norb));
+        currentIndex += norb;
     }
 
     arma::cx_mat blochHamiltonian = system->hamiltonian(k + Q);
@@ -261,7 +261,7 @@ arma::cx_mat ResultTB::excitonOscillatorStrength(){
     for(int i = 0; i < system->natoms; i++){
         arma::rowvec atom = system->motif.row(i).subvec(0, 2);
         int species = system->motif.row(i)(3);
-        for(int j = 0; j < system->orbitals(species); j++){
+        for(int j = 0; j < system->orbitalsPerSpecies(species); j++){
             extendedMotif.row(it) = atom; 
             it++;
         }
@@ -313,17 +313,17 @@ double ResultTB::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electro
     std::complex<double> imag(0, 1);
     double totalAmplitude = 0;
     arma::cx_vec eigvec = arma::cx_vec(BSEcoefs);
-    int eOrbitals = system->orbitals(system->motif.row(electronIndex)(3));
-    int hOrbitals = system->orbitals(system->motif.row(holeIndex)(3));
+    int eOrbitals = system->orbitalsPerSpecies(system->motif.row(electronIndex)(3));
+    int hOrbitals = system->orbitalsPerSpecies(system->motif.row(holeIndex)(3));
 
     // Compute index corresponding to electron and hole
     int eIndex = 0;
     int hIndex = 0;
     for(unsigned int i = 0; i < electronIndex; i++){
-        eIndex += system->orbitals(system->motif.row(i)(3));
+        eIndex += system->orbitalsPerSpecies(system->motif.row(i)(3));
     }
     for(unsigned int i = 0; i < holeIndex; i++){
-        hIndex += system->orbitals(system->motif.row(i)(3));
+        hIndex += system->orbitalsPerSpecies(system->motif.row(i)(3));
     }
     eigvec = addExponential(eigvec, eCell - hCell);
 
@@ -431,7 +431,7 @@ void ResultTB::writeAbsorptionSpectrum(){
     for(int i = 0; i < system->natoms; i++){
         arma::rowvec atom = system->motif.row(i).subvec(0, 2);
         int species = system->motif.row(i)(3);
-        for(int j = 0; j < system->orbitals(species); j++){
+        for(int j = 0; j < system->orbitalsPerSpecies(species); j++){
             extendedMotif.row(it) = atom; 
             it++;
         }

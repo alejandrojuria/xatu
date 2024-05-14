@@ -170,7 +170,7 @@ arma::cx_vec SystemTB::latticeToAtomicGauge(const arma::cx_vec& coefs, const arm
     int it = 0;
     for(int atomIndex = 0; atomIndex < natoms; atomIndex++){
         int species = motif.row(atomIndex)(3);
-        for(int orbIndex = 0; orbIndex < orbitals(species); orbIndex++){
+        for(int orbIndex = 0; orbIndex < orbitalsPerSpecies(species); orbIndex++){
             arma::rowvec atomPosition = motif.row(atomIndex).subvec(0, 2);
             phases(it) = exp(-imag*arma::dot(k, atomPosition));
             it++;
@@ -194,7 +194,7 @@ arma::cx_vec SystemTB::atomicToLatticeGauge(const arma::cx_vec& coefs, const arm
     int it = 0;
     for(int atomIndex = 0; atomIndex < natoms; atomIndex++){
         int species = motif.row(atomIndex)(3);
-        for(int orbIndex = 0; orbIndex < orbitals(species); orbIndex++){
+        for(int orbIndex = 0; orbIndex < orbitalsPerSpecies(species); orbIndex++){
             arma::rowvec atomPosition = motif.row(atomIndex).subvec(0, 2);
             phases(it) = exp(-imag*arma::dot(k, atomPosition));
             it++;
@@ -292,10 +292,10 @@ arma::cx_vec SystemTB::velocity(const arma::rowvec k, int fBand, int sBand) cons
     arma::cx_mat extendedMotif = arma::zeros<arma::cx_mat>(basisdim, 3);
     int currentIndex = 0;
     for (int i = 0; i < natoms; i++){
-        int norbitals = orbitals(motif.row(i)(3));
-        extendedMotif.rows(currentIndex, currentIndex + norbitals - 1) = arma::kron(motif.row(i).subvec(0, 2),
-                                                                         arma::ones<arma::cx_vec>(norbitals));
-        currentIndex += norbitals;
+        int norb = orbitalsPerSpecies(motif.row(i)(3));
+        extendedMotif.rows(currentIndex, currentIndex + norb - 1) = arma::kron(motif.row(i).subvec(0, 2),
+                                                                         arma::ones<arma::cx_vec>(norb));
+        currentIndex += norb;
     }
 
     arma::cx_mat blochHamiltonian = hamiltonian(k);

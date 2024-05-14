@@ -45,7 +45,7 @@ void BiRibbon::initializeConstants(){
 
     // System class attributes
 	this->ndim_      = 1;
-    this->orbitals_  = arma::urowvec{8};
+    this->orbitalsPerSpecies_  = arma::urowvec{8};
     this->filling_   = 5;
 
 	//// Lattice parameters
@@ -137,7 +137,7 @@ void BiRibbon::createMotif(){
     int basisdim = 0;
     for(int i = 0; i < natoms; i++){
         int species = this->motif.row(i)(3);
-        basisdim += orbitals(species);
+        basisdim += orbitalsPerSpecies(species);
     }
     this->basisdim_   = basisdim;
     this->filling_ = (int)natoms*filling;

@@ -487,11 +487,11 @@ arma::cx_mat ExcitonTB::extendMotifFT(const arma::cx_mat& motifFT){
     int colIterator = 0;
     for(unsigned int atom_index_r = 0; atom_index_r < system->motif.n_rows; atom_index_r++){
         int species_r = system->motif.row(atom_index_r)(3);
-        int norbitals_r = system->orbitals(species_r);
+        int norbitals_r = system->orbitalsPerSpecies(species_r);
         colIterator = 0;
         for(unsigned int atom_index_c = 0; atom_index_c < system->motif.n_rows; atom_index_c++){
             int species_c = system->motif.row(atom_index_c)(3);
-            int norbitals_c = system->orbitals(species_c);
+            int norbitals_c = system->orbitalsPerSpecies(species_c);
             extendedMFT.submat(rowIterator, colIterator, 
                                rowIterator + norbitals_r - 1, colIterator + norbitals_c - 1) = 
                           motifFT(atom_index_r, atom_index_c) * arma::ones(norbitals_r, norbitals_c);
@@ -534,12 +534,12 @@ std::complex<double> ExcitonTB::realSpaceInteractionTerm(const arma::cx_vec& coe
 
     int iterator = 0;
     for(unsigned int atom_index = 0; atom_index < system->motif.n_rows; atom_index++){
-        int norbitals = system->orbitals(system->motif.row(atom_index)(3));
+        int norb = system->orbitalsPerSpecies(system->motif.row(atom_index)(3));
 
-        reducedFirstCoefArray(atom_index) = arma::sum(firstCoefArray.subvec(iterator, iterator + norbitals - 1));
-        reducedSecondCoefArray(atom_index) = arma::sum(secondCoefArray.subvec(iterator, iterator + norbitals - 1));
+        reducedFirstCoefArray(atom_index) = arma::sum(firstCoefArray.subvec(iterator, iterator + norb - 1));
+        reducedSecondCoefArray(atom_index) = arma::sum(secondCoefArray.subvec(iterator, iterator + norb - 1));
 
-        iterator += norbitals;
+        iterator += norb;
     }
 
     std::complex<double> term = arma::dot(reducedFirstCoefArray, motifFT * reducedSecondCoefArray);
@@ -605,7 +605,7 @@ std::complex<double> ExcitonTB::blochCoherenceFactor(const arma::cx_vec& coefs1,
     for(int i = 0; i < system->natoms; i++){
         int species = system->motif.row(i)(3);
         arma::rowvec atomPosition = system->motif.row(i).subvec(0, 2);
-        phases.subvec(i*system->orbitals(species), (i+1)*system->orbitals(species) - 1) *= 
+        phases.subvec(i*system->orbitalsPerSpecies(species), (i+1)*system->orbitalsPerSpecies(species) - 1) *= 
         exp(imag*arma::dot(k1 - k2 + G, atomPosition));
     }
 

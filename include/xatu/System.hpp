@@ -20,17 +20,17 @@ class System : public Lattice {
         int basisdim_, filling_, fermiLevel_;
         std::string systemName;
 
-        arma::urowvec orbitals_;
+        arma::urowvec orbitalsPerSpecies_;
         arma::cx_cube hamiltonianMatrices_;
         arma::cx_cube overlapMatrices_;
 
     // Const references to expose relevant attributes in a read-only way
     public:
-        // Returns vector with orbitals per chemical species
-        const arma::urowvec& orbitals = orbitals_;
+        // Vector where each entry is a chemical species, and the value is its number of orbitals. To be used only in TB mode
+        const arma::urowvec& orbitalsPerSpecies = orbitalsPerSpecies_;
         // Returns size of basis used/hamiltonian dimension
         const int& basisdim = basisdim_;
-        // Returns value of system filling (total number of electrons)
+        // Returns the number of filled bands (spin degenerated count as 1)
         const int& filling = filling_;
         // Returns index of band corresponding to Fermi level
         const int& fermiLevel = fermiLevel_;

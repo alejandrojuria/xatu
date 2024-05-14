@@ -15,13 +15,13 @@ namespace xatu {
  */
 System::System(const System& system) : Lattice(system){
 
-	systemName			 = system.systemName;
-	orbitals_            = system.orbitals;
-	hamiltonianMatrices_ = system.hamiltonianMatrices;
-	overlapMatrices_     = system.overlapMatrices;
-	filling_			 = system.filling;
-	fermiLevel_			 = filling_ - 1;
-	basisdim_ 			 = system.basisdim;
+	systemName			  = system.systemName;
+	orbitalsPerSpecies_   = system.orbitalsPerSpecies;
+	hamiltonianMatrices_  = system.hamiltonianMatrices;
+	overlapMatrices_      = system.overlapMatrices;
+	filling_			  = system.filling;
+	fermiLevel_			  = filling_ - 1;
+	basisdim_ 			  = system.basisdim;
 }
 
 /**
@@ -39,22 +39,22 @@ System::System(const SystemConfiguration& configuration) : Lattice(){
 // --------------------------------- Methods ---------------------------------
 /**
  * Routine to extract the information contained in the SystemConfiguration object from
- * parsing the input text file.
+ * parsing the input text file. To be used in the TB mode.
  * @details To be called from the configuration constructor.
  * @param configuration SystemConfiguration object.
  */
 void System::initializeSystemAttributes(const SystemConfiguration& configuration){
 	
-	orbitals_            = configuration.systemInfo.norbitals;
-	hamiltonianMatrices_ = configuration.systemInfo.hamiltonian;
-	overlapMatrices_     = configuration.systemInfo.overlap;
-	filling_			 = configuration.systemInfo.filling;
-	fermiLevel_			 = filling_ - 1;
+	orbitalsPerSpecies_   = configuration.systemInfo.orbitalsPerSpecies;
+	hamiltonianMatrices_  = configuration.systemInfo.hamiltonian;
+	overlapMatrices_      = configuration.systemInfo.overlap;
+	filling_			  = configuration.systemInfo.filling;
+	fermiLevel_			  = filling_ - 1;
 
     int basisdim = 0;
     for(int i = 0; i < natoms; i++){
         int species = this->motif.row(i)(3);
-        basisdim += orbitals(species);
+        basisdim += orbitalsPerSpecies(species);
     }
 	basisdim_   = basisdim;
 }

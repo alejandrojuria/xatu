@@ -157,17 +157,17 @@ std::complex<double> motifFourierTransform(const arma::rowvec& firstAtom, const 
  * @param motifFT Matrix storing the motif Fourier transform to be extended.
  * @return Extended matrix.
  */
-arma::cx_mat extendMotifFT(const arma::cx_mat& motifFT, int basisdim, const arma::mat& motif, const arma::urowvec& orbitals){
+arma::cx_mat extendMotifFT(const arma::cx_mat& motifFT, int basisdim, const arma::mat& motif, const arma::urowvec& orbitalsPerSpecies){
     arma::cx_mat extendedMFT = arma::zeros<arma::cx_mat>(basisdim, basisdim);
     int rowIterator = 0;
     int colIterator = 0;
     for(unsigned int atom_index_r = 0; atom_index_r < motif.n_rows; atom_index_r++){
         int species_r = motif.row(atom_index_r)(3);
-        int norbitals_r = orbitals(species_r);
+        int norbitals_r = orbitalsPerSpecies(species_r);
         colIterator = 0;
         for(unsigned int atom_index_c = 0; atom_index_c < motif.n_rows; atom_index_c++){
             int species_c = motif.row(atom_index_c)(3);
-            int norbitals_c = orbitals(species_c);
+            int norbitals_c = orbitalsPerSpecies(species_c);
             extendedMFT.submat(rowIterator, colIterator, 
                                rowIterator + norbitals_r - 1, colIterator + norbitals_c - 1) = 
                           motifFT(atom_index_r, atom_index_c) * arma::ones(norbitals_r, norbitals_c);
