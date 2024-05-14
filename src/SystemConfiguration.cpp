@@ -54,7 +54,7 @@ void SystemConfiguration::parseContent(){
             systemInfo.motif = parseMotif(content);
         }
         else if (arg == "norbitals"){
-            systemInfo.norbitals = parseOrbitals(content);
+            systemInfo.orbitalsPerSpecies = parseOrbitals(content);
         }
         else if (arg == "filling"){
             if(content.size() != 1){
@@ -141,12 +141,12 @@ arma::urowvec SystemConfiguration::parseOrbitals(std::vector<std::string>& conte
         throw std::invalid_argument("Error: Orbital information must be one line only");
     }
     std::vector<int> orbitalVec = parseLine<int>(content[0]);
-    arma::urowvec orbitals = arma::zeros<arma::urowvec>(orbitalVec.size());
+    arma::urowvec orbitalsPerSpecies = arma::zeros<arma::urowvec>(orbitalVec.size());
     for (int i = 0; i < orbitalVec.size(); i++){
-        orbitals(i) = orbitalVec[i];
+        orbitalsPerSpecies(i) = orbitalVec[i];
     }
 
-    return orbitals;
+    return orbitalsPerSpecies;
 }
 
 /**
@@ -252,7 +252,7 @@ void SystemConfiguration::checkContentCoherence() {
     }
     int nspecies = species_vec.size();
 
-    if (systemInfo.norbitals.size() != nspecies) {
+    if (systemInfo.orbitalsPerSpecies.size() != nspecies) {
         throw std::invalid_argument("Error: Number of different species must match be consistent in motif and orbitals");
     }
 }
@@ -272,7 +272,7 @@ void SystemConfiguration::printConfiguration(std::ostream& stream) const {
     stream << systemInfo.motif << "\n" << std::endl;
 
     stream << "Orbitals: " << std::endl;
-    stream << systemInfo.norbitals << "\n" << std::endl;
+    stream << systemInfo.orbitalsPerSpecies << "\n" << std::endl;
 
     stream << "Filling: " << std::endl;
     stream << systemInfo.filling << "\n" << std::endl;

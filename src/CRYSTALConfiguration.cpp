@@ -255,8 +255,8 @@ void CRYSTALConfiguration::parseAtoms(){
 void CRYSTALConfiguration::parseAtomicBasis(){
     std::string line, chemical_species;
     int natom, nspecies = 0;
-    int64_t norbitals; 
-    int64_t totalOrbitals = 0;
+    int norb; 
+    int cumOrbitals = 0;
     std::string shellType;
     // std::vector<std::string> shellTypes;
     double exponent, sCoef, pCoef, dCoef;
@@ -279,7 +279,7 @@ void CRYSTALConfiguration::parseAtomicBasis(){
             species.push_back(chemical_species);
         }
         else{
-            totalOrbitals += orbitalsPerSpecies[motif.row(atomIndex)(3)]; // Track total num. orbitals
+            cumOrbitals += orbitalsPerSpecies[motif.row(atomIndex)(3)]; // Track cumulative num. orbitals
             continue; // Skip already parsed
         }
 
@@ -291,9 +291,9 @@ void CRYSTALConfiguration::parseAtomicBasis(){
             std::getline(m_file, line);
             std::istringstream iss(line);
             
-            iss >> norbitals >> shellType;
+            iss >> norb >> shellType;
             if(shellType == "-"){
-                iss >> norbitals >> shellType;
+                iss >> norb >> shellType;
             }
 
             // shellTypes.push_back(shellType);
@@ -320,10 +320,9 @@ void CRYSTALConfiguration::parseAtomicBasis(){
 
             this->gaussianCoefficients[nspecies] = gaussianCoefficients;
         }
-        this->orbitalsPerSpecies.push_back(norbitals - totalOrbitals);
-        totalOrbitals = norbitals;
+        this->orbitalsPerSpecies.push_back(norb - cumOrbitals);
+        cumOrbitals = norb;
 
-        // this->shellTypesPerSpecies[nspecies] = shellTypes;
         nspecies++;
     }
 
@@ -372,27 +371,21 @@ arma::cx_mat CRYSTALConfiguration::parseMatrix(){
  */
 void CRYSTALConfiguration::mapContent(bool debug){
 
-    systemInfo.ndim           = ndim;
-    systemInfo.bravaisLattice = bravaisLattice;
-    systemInfo.motif          = motif;
-    systemInfo.filling        = totalElectrons/2;
-    systemInfo.bravaisVectors = bravaisVectors;
-    systemInfo.overlap        = overlapMatrices;
-
-    arma::urowvec norbitals = arma::zeros<arma::urowvec>(orbitalsPerSpecies.size());
-    for (int i = 0; i < orbitalsPerSpecies.size(); i++){
-        norbitals(i) = orbitalsPerSpecies[i];
-    }
-    systemInfo.norbitals      = norbitals;
+    systemInfo.ndim               = ndim;
+    systemInfo.bravaisLattice     = bravaisLattice;
+    systemInfo.motif              = motif;
+    systemInfo.bravaisVectors     = bravaisVectors;
+    systemInfo.overlap            = overlapMatrices;
+    systemInfo.orbitalsPerSpecies = arma::conv_to<arma::urowvec>::from(orbitalsPerSpecies);
 
     if (SOC_FLAG) {
-        systemInfo.filling   *= 2; 
-        systemInfo.norbitals *= 2;
+        systemInfo.filling    = totalElectrons; 
+        systemInfo.orbitalsPerSpecies *= 2;
         // Pending Hamiltonian initialization; for future CRYSTAL releases
     }
-    else if(MAGNETIC_FLAG){
-        systemInfo.filling   *= 2;
-        systemInfo.norbitals *= 2;
+    else if(MAGNETIC_FLAG) {
+        systemInfo.filling    = totalElectrons;
+        systemInfo.orbitalsPerSpecies *= 2;
 
         arma::mat spinUpBlock = {{1, 0}, {0, 0}};
         arma::mat spinDownBlock = {{0, 0}, {0, 1}};
@@ -407,6 +400,15 @@ void CRYSTALConfiguration::mapContent(bool debug){
         }
         systemInfo.overlap    = newOverlapMatrices;
     }
+    else {
+        if(totalElectrons % 2 == 1){
+            throw std::logic_error("CRYSTALConfiguration error: the system is a metal (odd number of electrons per cell and spin-independent Hamiltonian)");
+        }
+        else {
+            systemInfo.filling = totalElectrons/2;
+        }
+    }
+    this->filling = systemInfo.filling;
     systemInfo.hamiltonian    = fockMatrices;
 
     if (debug){
@@ -415,15 +417,16 @@ void CRYSTALConfiguration::mapContent(bool debug){
         std::cout << systemInfo.ndim << "\n" << std::endl;
 
         std::cout << "Bravais lattice: " << std::endl;
-        std::cout << bravaisLattice << "\n" << std::endl;
+        std::cout << systemInfo.bravaisLattice << "\n" << std::endl;
 
         std::cout << "Motif: " << std::endl;
-        std::cout << motif << "\n" << std::endl;
+        std::cout << systemInfo.motif << "\n" << std::endl;
 
         std::cout << "Orbitals: " << std::endl;
-        std::cout << norbitals << "\n" << std::endl;
+        std::cout << systemInfo.orbitalsPerSpecies << "\n" << std::endl;
 
         std::cout << "Filling: " << systemInfo.filling << "\n" << std::endl;
+        std::cout << systemInfo.filling << "\n" << std::endl;
 
         std::cout << "Hamiltonian: " << std::endl;
         std::cout << systemInfo.hamiltonian << "\n" << std::endl;

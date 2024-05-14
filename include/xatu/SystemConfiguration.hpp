@@ -14,7 +14,7 @@ class SystemConfiguration : public virtual ConfigurationBase {
         /// Dimension of the system. Given by the number of bravais basis vectors.
         int ndim;
         /// Number of electrons of the system.
-        double filling;
+        int filling;
         /// Bravais basis vectors, ordered by rows.
         arma::mat bravaisLattice;
         /// Matrix containing the positions of the atoms of the motif by rows. 
@@ -28,7 +28,7 @@ class SystemConfiguration : public virtual ConfigurationBase {
         /// Note that the Fock (overlap) matrices are stored in the same order as this vectors.
         arma::mat bravaisVectors;
         /// Vector storing the number of orbitals for each chemical species.
-        arma::urowvec norbitals;
+        arma::urowvec orbitalsPerSpecies;
     };
         
     public:
