@@ -25,9 +25,9 @@ Result<T>::Result(Exciton<T>* exciton, arma::vec& eigval, arma::cx_mat& eigvec) 
 template <typename T>
 double Result<T>::kineticEnergy(int stateindex){
     arma::cx_vec coefs = eigvec.col(stateindex);
-    arma::vec HK = arma::zeros(exciton->excitonbasisdim);
+    arma::vec HK = arma::zeros(exciton->dimBSE);
 
-    for (uint32_t n = 0; n < exciton->excitonbasisdim; n++){
+    for (uint32_t n = 0; n < exciton->dimBSE; n++){
         int v = exciton_->bandToIndex[exciton->basisStates(n, 0)];
         int c = exciton_->bandToIndex[exciton->basisStates(n, 1)];
         uint32_t k_index = exciton->basisStates(n, 2);
@@ -119,7 +119,7 @@ double Result<T>::ftExcitonEnvelope(int stateindex, const arma::rowvec& electron
 
     for (int i = 0; i < nk; i++){
 
-        kBlockEnd += (exciton->excitonbasisdim/nk);
+        kBlockEnd += (exciton->dimBSE/nk);
         
         arma::cx_vec A = coefs(arma::span(kBlock, kBlockEnd - 1));
         //arma::cx_vec v = exciton->eigvecKStack.slice(i).col();
@@ -403,12 +403,12 @@ void Result<T>::writeRealspaceAmplitude(int stateindex, int holeIndex,
 template <typename T>
 void Result<T>::writeEigenvalues(FILE* textfile, int n){
 
-    if(n > exciton->excitonbasisdim || n < 0){
+    if(n > exciton->dimBSE || n < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
 
-    fprintf(textfile, "%d\t", exciton->excitonbasisdim);
-    int maxEigval = (n == 0) ? exciton->excitonbasisdim : n;  
+    fprintf(textfile, "%d\t", exciton->dimBSE);
+    int maxEigval = (n == 0) ? exciton->dimBSE : n;  
     for(unsigned int i = 0; i < maxEigval; i++){
         fprintf(textfile, "%11.7lf\t", eigval(i));
     }
@@ -423,12 +423,12 @@ void Result<T>::writeEigenvalues(FILE* textfile, int n){
  */
 template <typename T>
 void Result<T>::writeStates(FILE* textfile, int n){
-    if(n > exciton->excitonbasisdim || n < 0){
+    if(n > exciton->dimBSE || n < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
     // First write basis
-    fprintf(textfile, "%d\n", exciton->excitonbasisdim);
-    for(unsigned int i = 0; i < exciton->excitonbasisdim; i++){
+    fprintf(textfile, "%d\n", exciton->dimBSE);
+    for(unsigned int i = 0; i < exciton->dimBSE; i++){
         arma::irowvec state = exciton->basisStates.row(i);
         arma::rowvec kpoint = system->kpoints.row(state(2));
         int v = state(0);
@@ -437,9 +437,9 @@ void Result<T>::writeStates(FILE* textfile, int n){
                 kpoint(0), kpoint(1), kpoint(2), v, c);
     }
 
-    int nstates = (n == 0) ? exciton->excitonbasisdim : n;  
+    int nstates = (n == 0) ? exciton->dimBSE : n;  
     for(unsigned int i = 0; i < nstates; i++){
-        for(unsigned int j = 0; j < exciton->excitonbasisdim; j++){
+        for(unsigned int j = 0; j < exciton->dimBSE; j++){
             fprintf(textfile, "%11.7lf\t%11.7lf\t", 
                     real(eigvec.col(i)(j)), imag(eigvec.col(i)(j)));
         }
@@ -455,11 +455,11 @@ void Result<T>::writeStates(FILE* textfile, int n){
 template <typename T>
 void Result<T>::writeSpin(int n, FILE* textfile){
 
-    if(n > exciton->excitonbasisdim || n < 0){
+    if(n > exciton->dimBSE || n < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
 
-    int maxState = (n == 0) ? exciton->excitonbasisdim : n;  
+    int maxState = (n == 0) ? exciton->dimBSE : n;  
     fprintf(textfile, "n\tSt\tSe\tSh\n");
     for(unsigned int i = 0; i < maxState; i++){
         auto spin = spinX(i);

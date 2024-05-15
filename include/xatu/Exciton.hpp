@@ -30,7 +30,7 @@ class Exciton {
 
         // General Exciton attributes
         int ncell_, nbands_, nrmbands_;
-        uint32_t totalCells_, excitonbasisdim_;
+        uint32_t totalCells_, dimBSE_;
         double scissor_;
         arma::ivec bands_, valenceBands_, conductionBands_;
         arma::uvec bandList_;
@@ -53,7 +53,7 @@ class Exciton {
         // Total number of unit cells
         const uint32_t& totalCells = totalCells_;
         // Dimension of electron-hole pair basis used to build excitons
-        const uint32_t& excitonbasisdim = excitonbasisdim_;
+        const uint32_t& dimBSE = dimBSE_;
         // Number of bands participating in exciton formation, starting from the Fermi level
         const int& nbands = nbands_;
         // Remove bands starting from the Fermi level to build excited excitons directly

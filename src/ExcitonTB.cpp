@@ -95,7 +95,7 @@ ExcitonTB::ExcitonTB(const SystemConfiguration& config, int ncell, const arma::i
 
     initializeExcitonAttributes(ncell, bands, parameters, Q);
 
-    if (bands.n_elem > excitonbasisdim){
+    if (bands.n_elem > dimBSE){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
         exit(1);
     }
@@ -798,7 +798,7 @@ void ExcitonTB::initializeHamiltonian(){
         regularization_ = system->a;
     }
 
-    this->excitonbasisdim_ = system->nk*valenceBands.n_elem*conductionBands.n_elem;
+    this->dimBSE_ = system->nk*valenceBands.n_elem*conductionBands.n_elem;
     this->totalCells_ = pow(ncell*system->factor, system->ndim);
 
     std::cout << "Initializing basis for BSE... " << std::flush;
