@@ -20,7 +20,7 @@ System::System(const System& system) : Lattice(system){
 	hamiltonianMatrices_  = system.hamiltonianMatrices;
 	overlapMatrices_      = system.overlapMatrices;
 	filling_			  = system.filling;
-	fermiLevel_			  = filling_ - 1;
+	highestValenceBand_	  = filling_ - 1;
 	norbitals_ 			  = system.norbitals;
 }
 
@@ -49,7 +49,7 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	hamiltonianMatrices_  = configuration.systemInfo.hamiltonian;
 	overlapMatrices_      = configuration.systemInfo.overlap;
 	filling_			  = configuration.systemInfo.filling;
-	fermiLevel_			  = filling_ - 1;
+	highestValenceBand_	  = filling_ - 1;
 
     int norbitals = 0;
     for(int i = 0; i < natoms; i++){
@@ -69,7 +69,7 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 void System::setFilling(int filling){
 	if (filling > 0){
 		filling_ = filling;
-		fermiLevel_ = filling_ - 1;
+		highestValenceBand_ = filling_ - 1;
 	}
 	else{
 		std::cout << "Filling must be a positive integer" << std::endl;

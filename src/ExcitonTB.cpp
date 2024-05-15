@@ -56,10 +56,10 @@ void ExcitonTB::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     std::vector<arma::s64> valence, conduction;
     for(int i = 0; i < bands.n_elem; i++){
         if (bands(i) <= 0){
-            valence.push_back(bands(i) + system->fermiLevel);
+            valence.push_back(bands(i) + system->highestValenceBand);
         }
         else{
-            conduction.push_back(bands(i) + system->fermiLevel);
+            conduction.push_back(bands(i) + system->highestValenceBand);
         }
     }
     this->valenceBands_ = arma::ivec(valence);
@@ -104,10 +104,10 @@ ExcitonTB::ExcitonTB(const SystemConfiguration& config, int ncell, const arma::i
     std::vector<arma::s64> valence, conduction;
     for(int i = 0; i < bands.n_elem; i++){
         if (bands(i) <= 0){
-            valence.push_back(bands(i) + system->fermiLevel);
+            valence.push_back(bands(i) + system->highestValenceBand);
         }
         else{
-            conduction.push_back(bands(i) + system->fermiLevel);
+            conduction.push_back(bands(i) + system->highestValenceBand);
         }
     }
     this->valenceBands_ = arma::ivec(valence);
@@ -134,12 +134,12 @@ ExcitonTB::ExcitonTB(const SystemConfiguration& config, int ncell, int nbands, i
         exit(1);
     }
 
-    int fermiLevel = system->fermiLevel;
-    this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands - nrmbands + 1, 
-                                                     fermiLevel - nrmbands);
-    this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, 
-                                                        fermiLevel + nbands + nrmbands);
-    this->bands_ = arma::join_cols(valenceBands, conductionBands) - fermiLevel;
+    int highestValenceBand = system->highestValenceBand;
+    this->valenceBands_ = arma::regspace<arma::ivec>(highestValenceBand - nbands - nrmbands + 1, 
+                                                     highestValenceBand - nrmbands);
+    this->conductionBands_ = arma::regspace<arma::ivec>(highestValenceBand + 1 + nrmbands, 
+                                                        highestValenceBand + nbands + nrmbands);
+    this->bands_ = arma::join_cols(valenceBands, conductionBands) - highestValenceBand;
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 };
 
@@ -171,10 +171,10 @@ ExcitonTB::ExcitonTB(std::shared_ptr<SystemTB> sys, int ncell, const arma::ivec&
     std::vector<arma::s64> valence, conduction;
     for(int i = 0; i < bands.n_elem; i++){
         if (bands(i) <= 0){
-            valence.push_back(bands(i) + system->fermiLevel);
+            valence.push_back(bands(i) + system->highestValenceBand);
         }
         else{
-            conduction.push_back(bands(i) + system->fermiLevel);
+            conduction.push_back(bands(i) + system->highestValenceBand);
         }
     }
     this->valenceBands_ = arma::ivec(valence);
@@ -200,12 +200,12 @@ ExcitonTB::ExcitonTB(std::shared_ptr<SystemTB> sys, int ncell, int nbands, int n
         exit(1);
     }
 
-    int fermiLevel = system->fermiLevel;
-    this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands - nrmbands + 1, 
-                                                     fermiLevel - nrmbands);
-    this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, 
-                                                        fermiLevel + nbands + nrmbands);
-    this->bands_ = arma::join_cols(valenceBands, conductionBands) - fermiLevel;
+    int highestValenceBand = system->highestValenceBand;
+    this->valenceBands_ = arma::regspace<arma::ivec>(highestValenceBand - nbands - nrmbands + 1, 
+                                                     highestValenceBand - nrmbands);
+    this->conductionBands_ = arma::regspace<arma::ivec>(highestValenceBand + 1 + nrmbands, 
+                                                        highestValenceBand + nbands + nrmbands);
+    this->bands_ = arma::join_cols(valenceBands, conductionBands) - highestValenceBand;
     this->bandList_ = arma::conv_to<arma::uvec>::from(arma::join_cols(valenceBands, conductionBands));
 };
 
@@ -630,7 +630,7 @@ arma::imat ExcitonTB::specifyBasisSubset(const arma::ivec& bands){
     try{
         for (const auto& band : bands){
             for (const auto& reference_band : bandList){
-                if ((band + system->fermiLevel - reference_band) == 0) {
+                if ((band + system->highestValenceBand - reference_band) == 0) {
                     continue;
                 }
             }
@@ -645,10 +645,10 @@ arma::imat ExcitonTB::specifyBasisSubset(const arma::ivec& bands){
     std::vector<arma::s64> valence, conduction;
     for(int i = 0; i < bands.n_elem; i++){
         if (bands(i) <= 0){
-            valence.push_back(bands(i) + system->fermiLevel);
+            valence.push_back(bands(i) + system->highestValenceBand);
         }
         else{
-            conduction.push_back(bands(i) + system->fermiLevel);
+            conduction.push_back(bands(i) + system->highestValenceBand);
         }
     }
     arma::ivec valenceBands = arma::ivec(valence);

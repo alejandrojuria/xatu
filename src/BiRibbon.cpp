@@ -141,7 +141,7 @@ void BiRibbon::createMotif(){
     }
     this->norbitals_   = norbitals;
     this->filling_ = (int)natoms*filling;
-	this->fermiLevel_  = fermiLevel - 1; // Overwrite filling to match fermiLevel
+	this->highestValenceBand_  = highestValenceBand - 1; // Overwrite filling to match highestValenceBand
 };
 
 

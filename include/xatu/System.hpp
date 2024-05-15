@@ -17,7 +17,7 @@ class System : public Lattice {
     
     //// Attributes
     protected:
-        int norbitals_, filling_, fermiLevel_;
+        int norbitals_, filling_, highestValenceBand_;
         std::string systemName;
 
         arma::urowvec orbitalsPerSpecies_;
@@ -30,10 +30,10 @@ class System : public Lattice {
         const arma::urowvec& orbitalsPerSpecies = orbitalsPerSpecies_;
         // Single-particle matrix dimension, which equals the number of orbitals (with fixed l,m in the SCF basis for Gaussian mode)
         const int& norbitals = norbitals_;
-        // Returns the number of filled bands (spin degenerated count as 1)
+        // Number of occupied bands (spin-degenerated count as 1)
         const int& filling = filling_;
-        // Returns index of band corresponding to Fermi level
-        const int& fermiLevel = fermiLevel_;
+        // Index of the highest occupied band, starting at 0 
+        const int& highestValenceBand = highestValenceBand_;
         // Fock matrices
         const arma::cx_cube& hamiltonianMatrices = hamiltonianMatrices_;
         // Overlap matrices

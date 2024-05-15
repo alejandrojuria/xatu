@@ -33,10 +33,10 @@ void Exciton<T>::setBands(const arma::ivec& bands){
     std::vector<arma::s64> valence, conduction;
     for(int i = 0; i < bands.n_elem; i++){
         if (bands(i) <= 0){
-            valence.push_back(bands(i) + system->fermiLevel);
+            valence.push_back(bands(i) + system->highestValenceBand);
         }
         else{
-            conduction.push_back(bands(i) + system->fermiLevel);
+            conduction.push_back(bands(i) + system->highestValenceBand);
         }
     }
     this->valenceBands_ = arma::ivec(valence);
@@ -51,10 +51,10 @@ void Exciton<T>::setBands(const arma::ivec& bands){
  */
 template <typename T>
 void Exciton<T>::setBands(int nbands, int nrmbands){
-    int fermiLevel = system->fermiLevel;
+    int highestValenceBand = system->highestValenceBand;
     if(nbands > 0 && nrmbands > 0){
-        this->valenceBands_ = arma::regspace<arma::ivec>(fermiLevel - nbands + 1, fermiLevel - nrmbands);
-        this->conductionBands_ = arma::regspace<arma::ivec>(fermiLevel + 1 + nrmbands, fermiLevel + nbands);
+        this->valenceBands_ = arma::regspace<arma::ivec>(highestValenceBand - nbands + 1, highestValenceBand - nrmbands);
+        this->conductionBands_ = arma::regspace<arma::ivec>(highestValenceBand + 1 + nrmbands, highestValenceBand + nbands);
         this->bands_ = arma::join_rows(valenceBands, conductionBands);
     }
     else{
