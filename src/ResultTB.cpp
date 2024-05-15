@@ -27,7 +27,7 @@ arma::cx_vec ResultTB::spinX(const arma::cx_vec& coefs){
     int dimX = exciton->basisStates.n_rows;
 
     arma::cx_vec spinEigvalues = {1./2, -1./2};
-    arma::cx_vec spinVector = arma::zeros<arma::cx_vec>(system->basisdim);
+    arma::cx_vec spinVector = arma::zeros<arma::cx_vec>(system->norbitals);
     int vecIterator = 0;
     for(int atomIndex = 0; atomIndex < system->natoms; atomIndex++){
         int species = system->motif.row(atomIndex)(3);
@@ -174,8 +174,8 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
         throw std::invalid_argument("bandType must be either 'valence' or 'conduction'");
     }
 
-    arma::cx_cube hkDerivative = arma::zeros<arma::cx_cube>(system->basisdim, system->basisdim, 3);
-    arma::cx_cube iHt = arma::zeros<arma::cx_cube>(system->basisdim, system->basisdim, 3);
+    arma::cx_cube hkDerivative = arma::zeros<arma::cx_cube>(system->norbitals, system->norbitals, 3);
+    arma::cx_cube iHt = arma::zeros<arma::cx_cube>(system->norbitals, system->norbitals, 3);
 
     arma::rowvec k = system->kpoints.row(kIndex);
     std::complex<double> imag(0, 1);
@@ -195,8 +195,8 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
     }
 
     // Next compute iH(t-t') matrix
-    arma::cx_cube motifDifference = arma::zeros<arma::cx_cube>(system->basisdim, system->basisdim, 3);
-    arma::cx_mat extendedMotif = arma::zeros<arma::cx_mat>(system->basisdim, 3);
+    arma::cx_cube motifDifference = arma::zeros<arma::cx_cube>(system->norbitals, system->norbitals, 3);
+    arma::cx_mat extendedMotif = arma::zeros<arma::cx_mat>(system->norbitals, 3);
     int currentIndex = 0;
     for (int i = 0; i < system->natoms; i++){
         int norb = system->orbitalsPerSpecies(system->motif.row(i)(3));
@@ -207,8 +207,8 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
 
     arma::cx_mat blochHamiltonian = system->hamiltonian(k + Q);
     for (int j = 0; j < 3; j++){
-        motifDifference.slice(j) = arma::kron(extendedMotif.col(j), arma::ones<arma::cx_rowvec>(system->basisdim)) -
-                                   arma::kron(extendedMotif.col(j).t(), arma::ones<arma::cx_vec>(system->basisdim));
+        motifDifference.slice(j) = arma::kron(extendedMotif.col(j), arma::ones<arma::cx_rowvec>(system->norbitals)) -
+                                   arma::kron(extendedMotif.col(j).t(), arma::ones<arma::cx_vec>(system->norbitals));
         iHt.slice(j) = imag * blochHamiltonian % motifDifference.slice(j).t();
     }
 
@@ -242,7 +242,7 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
 arma::cx_mat ResultTB::excitonOscillatorStrength(){
 
     int nR = system->unitCellList.n_rows;
-    int norb = system->basisdim;
+    int norb = system->norbitals;
     int norb_ex = exciton->excitonbasisdim;
     int filling = system->filling;
     int nv = exciton->valenceBands.n_elem;
@@ -256,7 +256,7 @@ arma::cx_mat ResultTB::excitonOscillatorStrength(){
     }
 
     // arma::mat B = system->motif.cols(0, 2);
-    arma::mat extendedMotif = arma::zeros(system->basisdim, 3);
+    arma::mat extendedMotif = arma::zeros(system->norbitals, 3);
     int it = 0;
     for(int i = 0; i < system->natoms; i++){
         arma::rowvec atom = system->motif.row(i).subvec(0, 2);
@@ -412,7 +412,7 @@ void ResultTB::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeI
 void ResultTB::writeAbsorptionSpectrum(){
 
     int nR = system->unitCellList.n_rows;
-    int norb = system->basisdim;
+    int norb = system->norbitals;
     int norb_ex = exciton->excitonbasisdim;
     int filling = system->filling;
     int nv = exciton->valenceBands.n_elem;
@@ -426,7 +426,7 @@ void ResultTB::writeAbsorptionSpectrum(){
     }
 
     // arma::mat B = system->motif.cols(0, 2);
-    arma::mat extendedMotif = arma::zeros(system->basisdim, 3);
+    arma::mat extendedMotif = arma::zeros(system->norbitals, 3);
     int it = 0;
     for(int i = 0; i < system->natoms; i++){
         arma::rowvec atom = system->motif.row(i).subvec(0, 2);

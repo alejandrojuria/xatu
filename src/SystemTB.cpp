@@ -59,7 +59,7 @@ void SystemTB::setAU(bool isAU){
  */
 arma::cx_mat SystemTB::hamiltonian(arma::rowvec k) const{
 
-	arma::cx_mat h = arma::zeros<arma::cx_mat>(basisdim, basisdim);
+	arma::cx_mat h = arma::zeros<arma::cx_mat>(norbitals, norbitals);
 	std::complex<double> imag(0, 1);
 	for (int i = 0; i < ncells; i++){
 		arma::rowvec cell = unitCellList.row(i);
@@ -85,7 +85,7 @@ arma::cx_mat SystemTB::hamiltonian(arma::rowvec k) const{
  */
 arma::cx_mat SystemTB::overlap(arma::rowvec k) const{
 
-	arma::cx_mat s = arma::zeros<arma::cx_mat>(basisdim, basisdim);
+	arma::cx_mat s = arma::zeros<arma::cx_mat>(norbitals, norbitals);
 	std::complex<double> imag(0, 1);
 	for (int i = 0; i < ncells; i++){
 		arma::rowvec cell = unitCellList.row(i);
@@ -165,7 +165,7 @@ void SystemTB::orthogonalize_hamiltonian(const arma::rowvec& k, arma::cx_mat& ha
  */
 arma::cx_vec SystemTB::latticeToAtomicGauge(const arma::cx_vec& coefs, const arma::rowvec& k){
 
-    arma::cx_vec phases(basisdim);
+    arma::cx_vec phases(norbitals);
     std::complex<double> imag(0, 1);
     int it = 0;
     for(int atomIndex = 0; atomIndex < natoms; atomIndex++){
@@ -189,7 +189,7 @@ arma::cx_vec SystemTB::latticeToAtomicGauge(const arma::cx_vec& coefs, const arm
  */
 arma::cx_vec SystemTB::atomicToLatticeGauge(const arma::cx_vec& coefs, const arma::rowvec& k){
 
-    arma::cx_vec phases(basisdim);
+    arma::cx_vec phases(norbitals);
     std::complex<double> imag(0, 1);
     int it = 0;
     for(int atomIndex = 0; atomIndex < natoms; atomIndex++){
@@ -216,7 +216,7 @@ arma::cx_vec SystemTB::atomicToLatticeGauge(const arma::cx_vec& coefs, const arm
 double SystemTB::expectedSpinZValue(const arma::cx_vec& eigvec){
 
 	arma::cx_vec spinEigvalues = {1./2, -1./2};
-    arma::cx_vec spinVector = arma::kron(arma::ones(basisdim/2), spinEigvalues);
+    arma::cx_vec spinVector = arma::kron(arma::ones(norbitals/2), spinEigvalues);
 	arma::cx_vec spinEigvec = eigvec % spinVector;
 
 	return real(arma::cdot(eigvec, spinEigvec));
@@ -231,7 +231,7 @@ double SystemTB::expectedSpinZValue(const arma::cx_vec& eigvec){
 double SystemTB::expectedSpinYValue(const arma::cx_vec& eigvec){
 
 	std::complex<double> i(0,1);
-	arma::cx_mat operatorSy = arma::zeros<arma::cx_mat>(basisdim, basisdim);
+	arma::cx_mat operatorSy = arma::zeros<arma::cx_mat>(norbitals, norbitals);
 	operatorSy(0,1) = -i;
 	operatorSy(1,0) = i;
 	operatorSy.submat(2,5, 4,7) = -i*arma::eye<arma::cx_mat>(3,3);
@@ -247,7 +247,7 @@ double SystemTB::expectedSpinYValue(const arma::cx_vec& eigvec){
  */
 double SystemTB::expectedSpinXValue(const arma::cx_vec& eigvec){
 
-	arma::cx_mat operatorSx = arma::zeros<arma::cx_mat>(basisdim, basisdim);
+	arma::cx_mat operatorSx = arma::zeros<arma::cx_mat>(norbitals, norbitals);
 	operatorSx(0,1) = 1;
 	operatorSx(1,0) = 1;
 	operatorSx.submat(2,5, 4,7) = arma::eye<arma::cx_mat>(3,3);
@@ -273,8 +273,8 @@ arma::cx_vec SystemTB::velocity(const arma::rowvec k, int fBand, int sBand) cons
 	arma::cx_vec fBandEigvec = eigvec.col(fBand);
 	arma::cx_vec sBandEigvec = eigvec.col(sBand);
 
-    arma::cx_cube hkDerivative = arma::zeros<arma::cx_cube>(basisdim, basisdim, 3);
-    arma::cx_cube iHt = arma::zeros<arma::cx_cube>(basisdim, basisdim, 3);
+    arma::cx_cube hkDerivative = arma::zeros<arma::cx_cube>(norbitals, norbitals, 3);
+    arma::cx_cube iHt = arma::zeros<arma::cx_cube>(norbitals, norbitals, 3);
 
     std::complex<double> imag(0, 1);
 
@@ -288,8 +288,8 @@ arma::cx_vec SystemTB::velocity(const arma::rowvec k, int fBand, int sBand) cons
     }
 
     // Next compute iH(t-t') matrix
-    arma::cx_cube motifDifference = arma::zeros<arma::cx_cube>(basisdim, basisdim, 3);
-    arma::cx_mat extendedMotif = arma::zeros<arma::cx_mat>(basisdim, 3);
+    arma::cx_cube motifDifference = arma::zeros<arma::cx_cube>(norbitals, norbitals, 3);
+    arma::cx_mat extendedMotif = arma::zeros<arma::cx_mat>(norbitals, 3);
     int currentIndex = 0;
     for (int i = 0; i < natoms; i++){
         int norb = orbitalsPerSpecies(motif.row(i)(3));
@@ -300,8 +300,8 @@ arma::cx_vec SystemTB::velocity(const arma::rowvec k, int fBand, int sBand) cons
 
     arma::cx_mat blochHamiltonian = hamiltonian(k);
     for (int j = 0; j < 3; j++){
-        motifDifference.slice(j) = arma::kron(extendedMotif.col(j), arma::ones<arma::cx_rowvec>(basisdim)) -
-                                   arma::kron(extendedMotif.col(j).t(), arma::ones<arma::cx_vec>(basisdim));
+        motifDifference.slice(j) = arma::kron(extendedMotif.col(j), arma::ones<arma::cx_rowvec>(norbitals)) -
+                                   arma::kron(extendedMotif.col(j).t(), arma::ones<arma::cx_vec>(norbitals));
         iHt.slice(j) = imag * blochHamiltonian % motifDifference.slice(j).t();
     }
 

@@ -129,7 +129,7 @@ ExcitonTB::ExcitonTB(const SystemConfiguration& config, int ncell, int nbands, i
                      const arma::rowvec& parameters, const arma::rowvec& Q) : 
                      ExcitonTB(config, ncell, {}, parameters, Q){
     
-    if (2*nbands > system->basisdim){
+    if (2*nbands > system->norbitals){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
         exit(1);
     }
@@ -162,7 +162,7 @@ ExcitonTB::ExcitonTB(std::shared_ptr<SystemTB> sys, int ncell, const arma::ivec&
     system_ = sys;
     initializeExcitonAttributes(ncell, bands, parameters, Q);
 
-    if (bands.n_elem > system->basisdim){
+    if (bands.n_elem > system->norbitals){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
         exit(1);
     }
@@ -195,7 +195,7 @@ ExcitonTB::ExcitonTB(std::shared_ptr<SystemTB> sys, int ncell, int nbands, int n
                      const arma::rowvec& parameters, const arma::rowvec& Q) : 
                      ExcitonTB(sys, ncell, {}, parameters, Q) {
     
-    if (2*nbands > system->basisdim){
+    if (2*nbands > system->norbitals){
         cout << "Error: Number of bands cannot be higher than actual material bands" << endl;
         exit(1);
     }
@@ -482,7 +482,7 @@ arma::cx_mat ExcitonTB::motifFTMatrix(const arma::rowvec& k, const arma::mat& ce
  * @return Extended matrix.
  */
 arma::cx_mat ExcitonTB::extendMotifFT(const arma::cx_mat& motifFT){
-    arma::cx_mat extendedMFT = arma::zeros<arma::cx_mat>(system->basisdim, system->basisdim);
+    arma::cx_mat extendedMFT = arma::zeros<arma::cx_mat>(system->norbitals, system->norbitals);
     int rowIterator = 0;
     int colIterator = 0;
     for(unsigned int atom_index_r = 0; atom_index_r < system->motif.n_rows; atom_index_r++){
@@ -601,7 +601,7 @@ std::complex<double> ExcitonTB::blochCoherenceFactor(const arma::cx_vec& coefs1,
 
     std::complex<double> imag(0, 1);
     arma::cx_vec coefs = arma::conj(coefs1) % coefs2;
-    arma::cx_vec phases = arma::ones<arma::cx_vec>(system->basisdim);
+    arma::cx_vec phases = arma::ones<arma::cx_vec>(system->norbitals);
     for(int i = 0; i < system->natoms; i++){
         int species = system->motif.row(i)(3);
         arma::rowvec atomPosition = system->motif.row(i).subvec(0, 2);
@@ -706,17 +706,17 @@ void ExcitonTB::initializeResultsH0(){
 
     int nk = system->nk;
     int natoms = system->natoms;
-    int basisdim = system->basisdim;
+    int norbitals = system->norbitals;
 
-    this->eigvecKStack_  = arma::cx_cube(basisdim, nTotalBands, nk);
-    this->eigvecKQStack_ = arma::cx_cube(basisdim, nTotalBands, nk);
+    this->eigvecKStack_  = arma::cx_cube(norbitals, nTotalBands, nk);
+    this->eigvecKQStack_ = arma::cx_cube(norbitals, nTotalBands, nk);
     this->eigvalKStack_  = arma::mat(nTotalBands, nk);
     this->eigvalKQStack_ = arma::mat(nTotalBands, nk);
     this->ftMotifStack   = arma::cx_cube(natoms, natoms, system->meshBZ.n_rows);
     this->ftMotifQ       = arma::cx_mat(natoms, natoms);
 
-    vec auxEigVal(basisdim);
-    arma::cx_mat auxEigvec(basisdim, basisdim);
+    vec auxEigVal(norbitals);
+    arma::cx_mat auxEigvec(norbitals, norbitals);
     arma::cx_mat h;
 
     // Progress bar variables
@@ -1262,7 +1262,7 @@ double ExcitonTB::edgeFermiGoldenRule(const ExcitonTB& targetExciton,
     bool computeOccupations = true;
     if (computeOccupations){
         //////// Specific for Bi ribbon; must be deleted afterwards.
-        int N = targetExciton.system->basisdim;
+        int N = targetExciton.system->norbitals;
         double l_e_edge_occ = arma::norm(coefsKQ.subvec(0, 15));
         double r_e_edge_occ = arma::norm(coefsKQ.subvec(N - 16, N - 1));
         double l_h_edge_occ = arma::norm(coefsK.subvec(0, 15));

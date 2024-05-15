@@ -21,7 +21,7 @@ System::System(const System& system) : Lattice(system){
 	overlapMatrices_      = system.overlapMatrices;
 	filling_			  = system.filling;
 	fermiLevel_			  = filling_ - 1;
-	basisdim_ 			  = system.basisdim;
+	norbitals_ 			  = system.norbitals;
 }
 
 /**
@@ -51,12 +51,12 @@ void System::initializeSystemAttributes(const SystemConfiguration& configuration
 	filling_			  = configuration.systemInfo.filling;
 	fermiLevel_			  = filling_ - 1;
 
-    int basisdim = 0;
+    int norbitals = 0;
     for(int i = 0; i < natoms; i++){
         int species = this->motif.row(i)(3);
-        basisdim += orbitalsPerSpecies(species);
+        norbitals += orbitalsPerSpecies(species);
     }
-	basisdim_   = basisdim;
+	norbitals_   = norbitals;
 }
 
 

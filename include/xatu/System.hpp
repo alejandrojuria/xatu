@@ -17,7 +17,7 @@ class System : public Lattice {
     
     //// Attributes
     protected:
-        int basisdim_, filling_, fermiLevel_;
+        int norbitals_, filling_, fermiLevel_;
         std::string systemName;
 
         arma::urowvec orbitalsPerSpecies_;
@@ -28,8 +28,8 @@ class System : public Lattice {
     public:
         // Vector where each entry is a chemical species, and the value is its number of orbitals. To be used only in TB mode
         const arma::urowvec& orbitalsPerSpecies = orbitalsPerSpecies_;
-        // Returns size of basis used/hamiltonian dimension
-        const int& basisdim = basisdim_;
+        // Single-particle matrix dimension, which equals the number of orbitals (with fixed l,m in the SCF basis for Gaussian mode)
+        const int& norbitals = norbitals_;
         // Returns the number of filled bands (spin degenerated count as 1)
         const int& filling = filling_;
         // Returns index of band corresponding to Fermi level

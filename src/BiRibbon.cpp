@@ -134,12 +134,12 @@ void BiRibbon::createMotif(){
     // Initiallize remaining System attributes
     this->motif_      = motif;
     this->natoms_     = motif.n_rows;
-    int basisdim = 0;
+    int norbitals = 0;
     for(int i = 0; i < natoms; i++){
         int species = this->motif.row(i)(3);
-        basisdim += orbitalsPerSpecies(species);
+        norbitals += orbitalsPerSpecies(species);
     }
-    this->basisdim_   = basisdim;
+    this->norbitals_   = norbitals;
     this->filling_ = (int)natoms*filling;
 	this->fermiLevel_  = fermiLevel - 1; // Overwrite filling to match fermiLevel
 };
@@ -322,7 +322,7 @@ void BiRibbon::prepareHamiltonian() {
 	this->unitCellList_ = arma::zeros(ncells, 3);
 	this->unitCellList_.row(1) = bravaisLattice.row(0);
 	this->unitCellList_.row(2) = -bravaisLattice.row(0);
-    this->hamiltonianMatrices_ = arma::zeros<arma::cx_cube>(basisdim, basisdim, ncells);
+    this->hamiltonianMatrices_ = arma::zeros<arma::cx_cube>(norbitals, norbitals, ncells);
     this->hamiltonianMatrices_.slice(0) = H0 + Hsoc + Hzeeman;
     this->hamiltonianMatrices_.slice(1) = Ha;
 	this->hamiltonianMatrices_.slice(2) = Ha.t();
