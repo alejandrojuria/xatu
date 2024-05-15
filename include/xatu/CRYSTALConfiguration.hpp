@@ -14,7 +14,6 @@ class CRYSTALConfiguration : public SystemConfiguration {
         int totalElectrons, coreElectrons;
         bool SOC_FLAG = false;
         bool MAGNETIC_FLAG = false;
-        bool alpha_electrons = true;
         arma::mat motif;
         // Basis of Bravais vectors (R1,R2,R3) in Angstrom, stored by columns: (ndim x 3)
         arma::mat bravaisLattice;

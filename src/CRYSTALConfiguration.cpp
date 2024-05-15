@@ -21,7 +21,7 @@ CRYSTALConfiguration::CRYSTALConfiguration(std::string file, int ncells) : Confi
 }
 
 /**
- * Method to extract all the content from the file.
+ * Method to extract all the content from CRYSTAL's .outp file.
  * @details The lattice dimensionality is determined according to CRYSTAL's criterion for the 
  * direct lattice vectors: in 2D, R3 == [0 0 500]; and in 1D, in addition R2 = [0 0 500]. The 
  * hypothetical case of R3 and/or R2 == [0 0 0] is also assumed to lower the dimensionality.
@@ -29,8 +29,8 @@ CRYSTALConfiguration::CRYSTALConfiguration(std::string file, int ncells) : Confi
  * @return void
  */
 void CRYSTALConfiguration::parseContent(int ncells){
-    // Parse Crystal output file
 
+    bool alpha_electrons = true;
     int countr = 0;
     std::string line;
     while(std::getline(m_file, line)){
