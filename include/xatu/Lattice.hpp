@@ -22,7 +22,7 @@ class Lattice {
         int ndim_, natoms_, ncells_;
         uint32_t nk_;
         int factor_ = 1;
-        double a_, c_, unitCellArea_;
+        double a_, c_, unitCellVolume_;
         arma::mat bravaisLattice_, motif_, unitCellList_;
         arma::mat reciprocalLattice_, kpoints_, meshBZ_;
         std::map<std::string, int> atomToIndex;
@@ -55,8 +55,8 @@ class Lattice {
         const double& a = a_;
         // Lattice parameters
         const double& c = c_;
-        // Unit cell area
-        const double& unitCellArea = unitCellArea_;
+        // Unit cell volume
+        const double& unitCellVolume = unitCellVolume_;
         // Number of unit cells connected to the origin
         const int& ncells = ncells_;
         // Reduction factor of Brillouin zone mesh
@@ -87,7 +87,7 @@ class Lattice {
     protected:
         void initializeLatticeAttributes(const SystemConfiguration&);
         void extractLatticeParameters();
-        void computeUnitCellArea();
+        void computeUnitCellVolume();
         void calculateReciprocalLattice();
 
 };

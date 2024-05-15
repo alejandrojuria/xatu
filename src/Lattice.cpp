@@ -43,7 +43,7 @@ void Lattice::initializeLatticeAttributes(const SystemConfiguration& configurati
 
     calculateReciprocalLattice();
     extractLatticeParameters();
-	computeUnitCellArea();
+	computeUnitCellVolume();
 }
 
 /**
@@ -111,21 +111,21 @@ void Lattice::extractLatticeParameters(){
 }
 
 /**
- * Method to compute the unit cell area of the crystal.
+ * Method to compute the unit cell volume, area or length of the crystal.
  * @details Method adapted to compute the relevant quantity depending on the dimensionality
- * of the problem (1d = length, 2d = area, 3d = volume).
+ * of the problem (1D = length, 2D = area, 3D = volume).
  * @return void
  */
-void Lattice::computeUnitCellArea(){
+void Lattice::computeUnitCellVolume(){
 	if(ndim == 1){
-		this->unitCellArea_ = arma::norm(bravaisLattice.row(0));
+		this->unitCellVolume_ = arma::norm(bravaisLattice.row(0));
 	}
 	else if(ndim == 2){
 		arma::rowvec crossProduct = arma::cross(bravaisLattice.row(0), bravaisLattice.row(1));
-		this->unitCellArea_ = arma::norm(crossProduct);
+		this->unitCellVolume_ = arma::norm(crossProduct);
 	}
 	else if(ndim == 3){
-		this->unitCellArea_ = std::abs(arma::det(bravaisLattice));
+		this->unitCellVolume_ = std::abs(arma::det(bravaisLattice));
 	}
 }
 

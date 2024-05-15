@@ -90,11 +90,11 @@ void STVH0(double X, double *SH0) {
  * @param r0 Screening distance.
  * @param eps_s Dielectric constant of substrate.
  * @param eps_m Dielectric constant of embedding medium.
- * @param unitCellArea Area of unit cell.
+ * @param unitCellVolume Volume, area or length of the unit cell; depending on the lattice dimensionality.
  * @param totalCells Number of unit cells of the system.
  * @return Fourier transform of the potential at q, FT[V](q).
  */
-double keldyshFT(const arma::rowvec& q, double r0, double eps_s, double eps_m, double unitCellArea, int totalCells){
+double keldyshFT(const arma::rowvec& q, double r0, double eps_s, double eps_m, double unitCellVolume, int totalCells){
 
     double potential = 0;
     double eps_bar = (eps_m + eps_s)/2;
@@ -108,7 +108,7 @@ double keldyshFT(const arma::rowvec& q, double r0, double eps_s, double eps_m, d
         potential = 1/(qnorm*(1 + r0*qnorm));
     }
     
-    potential = potential*ec*1E10/(2*eps0*eps_bar*unitCellArea*totalCells);
+    potential = potential*ec*1E10/(2*eps0*eps_bar*unitCellVolume*totalCells);
     return potential;
 }
 

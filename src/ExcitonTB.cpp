@@ -421,7 +421,7 @@ double ExcitonTB::keldyshFT(arma::rowvec q){
         potential = 1/(qnorm*(1 + r0*qnorm));
     }
     
-    potential = potential*ec*1E10/(2*eps0*eps_bar*system->unitCellArea*totalCells);
+    potential = potential*ec*1E10/(2*eps0*eps_bar*system->unitCellVolume*totalCells);
     return potential;
 }
 
