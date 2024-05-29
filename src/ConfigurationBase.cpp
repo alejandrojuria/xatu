@@ -8,8 +8,10 @@ namespace xatu {
  * initialized providing a filename with the configuration to be parsed.
  */
 ConfigurationBase::ConfigurationBase(){
+
     throw std::invalid_argument("ConfigurationBase must be called with one argument (filename)");
-};
+
+}
 
 /**
  * File constructor.
@@ -28,7 +30,8 @@ ConfigurationBase::ConfigurationBase(const std::string& file) {
     if(!m_file.is_open()){
         throw std::invalid_argument("ConfigurationBase: file does not exist");
     }
-};
+
+}
 
 /**
  * Method to parse arguments.
@@ -36,7 +39,7 @@ ConfigurationBase::ConfigurationBase(const std::string& file) {
  * an argument. Then, it strips everything except for the argument, which is systematically
  * lowercased.
  * @param line Line containing the argument.
- * @returns Argument.
+ * @return std::string Argument.
  */
 std::string ConfigurationBase::parseArgument(const std::string& line) const {
 
@@ -45,15 +48,18 @@ std::string ConfigurationBase::parseArgument(const std::string& line) const {
     str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
     std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
-};
+
+}
 
 /**
  * Method to extract all arguments from the raw text.
  * @details This method finds all lines containing an argument delimiter,
  * which are then parsed to extract the argument itself, and then are stored in the
  * attribute foundArguments.
+ * @return void.
  */
 void ConfigurationBase::extractArguments(){
+
     std::vector<std::string> arguments;
     std::string line;
     while (std::getline(m_file, line)){
@@ -64,32 +70,38 @@ void ConfigurationBase::extractArguments(){
     }
     restartFileStream();
     this->foundArguments = arguments;
-};
+
+}
 
 /**
  * Method to check if the arguments found contain at least the expected arguments.
  * @details Checks if all expected argument are present within the found ones. If not,
  * it throws an error.
+ * @return void.
  */
 void ConfigurationBase::checkArguments() const {
 
     if(expectedArguments.empty()){
         throw std::logic_error("Expected arguments must be defined first");
-    };
+    }
+
     for (auto arg = expectedArguments.begin(); arg!= expectedArguments.end(); arg++){
             if(!(std::find(foundArguments.begin(), foundArguments.end(), *arg) != foundArguments.end())){
                 throw std::logic_error("Missing arguments in config. file: missing " + *arg);
             }
         }
-};
+
+}
 
 /**
  * Method to extract the information from the configuration file into
  * semi-structured form.
  * @details The file contents are parsed into a dictionary, whose
  * keys are the arguments and the values are the raw text between delimiters.
+ * @return void.
  */
 void ConfigurationBase::extractRawContent(){
+
     std::string line, arg;
     std::vector<std::string> content;
     while (std::getline(m_file, line)){
@@ -114,8 +126,8 @@ void ConfigurationBase::extractRawContent(){
             contents[arg] = content;
         }
     }
-    
     restartFileStream();
+
 }
 
 /**
@@ -123,10 +135,13 @@ void ConfigurationBase::extractRawContent(){
  * @details Useful to perform several reads of the file, to extract
  * different bits of information (e.g. to extract all arguments independently from
  * parsing the contents).
+ * @return void.
  */
 void ConfigurationBase::restartFileStream(){
+
     m_file.clear();
     m_file.seekg(0);
+
 }
 
 /**
@@ -134,9 +149,10 @@ void ConfigurationBase::restartFileStream(){
  * @details The value delimiters can be ",", ";" or simply " ".
  * All these possible delimiters are systematically converted to " " (blank) for simplicity.
  * @param line String to be standarized.
- * @returns Standarized line.
+ * @return std::string Standarized line.
  */
 std::string ConfigurationBase::standarizeLine(std::string& line) {
+
     if (line.find(',') != std::string::npos){
         std::replace(line.begin(), line.end(), ',', ' ');
     }
@@ -144,19 +160,23 @@ std::string ConfigurationBase::standarizeLine(std::string& line) {
         std::replace(line.begin(), line.end(), ';', ' ');
     }
     return line;
+
 }
 
 /**
  * Auxiliary method to print the contents of the dictionary with the semi-structured information.
  * @details Useful for debugging.
+ * @return void.
  */
 void ConfigurationBase::printContent() {
-    for (int i = 0; i != foundArguments.size(); i++) {
+
+    for (uint i = 0; i != foundArguments.size(); i++) {
         std::string arg = foundArguments[i];
         std::cout << arg << std::endl;
         std::vector<std::string> section = contents[arg];
         printVector(section);
     }
+
 }
 
 /**
@@ -164,7 +184,7 @@ void ConfigurationBase::printContent() {
  * @details This method is intented to be used with a line where a fraction
  * is written symbolically, i.e. "a/b". Currently unused.
  * @param content String containing the symbolic fraction.
- * @returns Numeric value of fraction.
+ * @returns double Numeric value of fraction.
  */
 double ConfigurationBase::parseFraction(const std::string& content) const {
 
@@ -182,13 +202,14 @@ double ConfigurationBase::parseFraction(const std::string& content) const {
         fraction = numerator;
     }
     return fraction;
+
 }
 
 /**
  * Method to parse a string from the configuration files.
  * @details This method removes all spaces and change the string to lowercase.
  * @param content String to be parsed.
- * @returns Parsed string.
+ * @returns std::string Parsed string.
  */
 std::string ConfigurationBase::parseWord(const std::string& content) const {
 
@@ -197,6 +218,6 @@ std::string ConfigurationBase::parseWord(const std::string& content) const {
     std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 
-};
+}
 
 }
