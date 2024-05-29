@@ -11,9 +11,9 @@
 namespace xatu {
 
 /**
- * The ConfigurationBase class provides functionality to parse general configuration files. 
+ * The ConfigurationBase abstract class provides functionality to parse general configuration files. 
  * Its purpose is not be instantiated by itself, but to serve as a base class for more specialized
- * configuration classes.
+ * configuration classes
  */
 class ConfigurationBase {
 
@@ -54,9 +54,9 @@ class ConfigurationBase {
 
         // Templated methods
         /**
-         * Template method to parse one line containing only one value of a type T.
-         * @param line String to parse.
-         * @returns Value T.
+         * Template method to parse one line containing only one value of a type T
+         * @param line String to parse
+         * @return Value T
          */
         template<typename T>
         T parseScalar(std::string& line){
@@ -68,9 +68,9 @@ class ConfigurationBase {
 
         /**
          * Template method to parse a line made of some values of type T into a vector
-         * with those values.
-         * @param line String to be parsed into a vector.
-         * @returns Vector of values T.
+         * with those values
+         * @param line String to be parsed into a vector
+         * @return Vector of values T
          */
         template<typename T>
         std::vector<T> parseLine(const std::string& line){
@@ -84,8 +84,9 @@ class ConfigurationBase {
         };
 
         /**
-         * Template method to print a vector of type T to screen.
-         * @param v Vector to print.
+         * Template method to print a vector of type T to screen
+         * @param v Vector to print
+         * @return void
          */
         template<typename T>
         void printVector(std::vector<T>& v){
