@@ -1,6 +1,3 @@
-#include <stdexcept>
-#include <sstream>
-#include <algorithm>
 #include "xatu/ConfigurationBase.hpp"
 
 namespace xatu {

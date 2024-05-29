@@ -3,6 +3,9 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
+#include <sstream>
+#include <algorithm>
 #include <map>
 
 namespace xatu {
