@@ -18,7 +18,8 @@ ConfigurationBase::ConfigurationBase(){
  * is actually non-empty and if it specifies an existing file. Otherwise, it throws an error.
  * @param file Name of configuration file to be parsed.
  */
-ConfigurationBase::ConfigurationBase(std::string file) : filename(file){
+ConfigurationBase::ConfigurationBase(const std::string& file) {
+
     if(file.empty()){
         throw std::invalid_argument("ConfigurationBase: file must not be empty");
     }
@@ -37,7 +38,8 @@ ConfigurationBase::ConfigurationBase(std::string file) : filename(file){
  * @param line Line containing the argument.
  * @returns Argument.
  */
-std::string ConfigurationBase::parseArgument(std::string line){
+std::string ConfigurationBase::parseArgument(const std::string& line) const {
+
     std::size_t pos = line.find("#");
     std::string str = line.substr(pos + 1);
     str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
@@ -69,7 +71,8 @@ void ConfigurationBase::extractArguments(){
  * @details Checks if all expected argument are present within the found ones. If not,
  * it throws an error.
  */
-void ConfigurationBase::checkArguments(){
+void ConfigurationBase::checkArguments() const {
+
     if(expectedArguments.empty()){
         throw std::logic_error("Expected arguments must be defined first");
     };
@@ -163,7 +166,8 @@ void ConfigurationBase::printContent() {
  * @param content String containing the symbolic fraction.
  * @returns Numeric value of fraction.
  */
-double ConfigurationBase::parseFraction(std::string& content){
+double ConfigurationBase::parseFraction(const std::string& content) const {
+
     std::istringstream iss(content);
     double numerator, denominator, fraction;
     std::string numeratorStr, denominatorStr;
@@ -186,7 +190,8 @@ double ConfigurationBase::parseFraction(std::string& content){
  * @param content String to be parsed.
  * @returns Parsed string.
  */
-std::string ConfigurationBase::parseWord(std::string& content){
+std::string ConfigurationBase::parseWord(const std::string& content) const {
+
     std::string str = content;
     str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end());
     std::transform(str.begin(), str.end(), str.begin(), ::tolower);

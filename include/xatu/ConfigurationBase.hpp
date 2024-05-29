@@ -33,19 +33,19 @@ class ConfigurationBase {
 
     protected:
         ConfigurationBase();
-        ConfigurationBase(std::string);
-        virtual ~ConfigurationBase(){};
+        ConfigurationBase(const std::string&);
+        virtual ~ConfigurationBase() = default;
 
         // Methods used in the constructor
         void extractArguments();
         void extractRawContent();
-        void checkArguments();
+        void checkArguments() const;
 
         // Parsing methods
-        std::string  parseArgument(std::string);
+        std::string  parseArgument(const std::string&) const;
         virtual void parseContent() = 0;
-        double       parseFraction(std::string&);
-        std::string  parseWord(std::string&);
+        double       parseFraction(const std::string&) const;
+        std::string  parseWord(const std::string&) const;
         std::string  standarizeLine(std::string&);
 
         // Utilities
@@ -59,7 +59,7 @@ class ConfigurationBase {
          * @return Value T
          */
         template<typename T>
-        T parseScalar(std::string& line){
+        T parseScalar(const std::string& line){
             T value;
             std::istringstream iss(line);
             iss >> value;
@@ -89,7 +89,7 @@ class ConfigurationBase {
          * @return void
          */
         template<typename T>
-        void printVector(std::vector<T>& v){
+        void printVector(const std::vector<T>& v){
             for (auto i = v.begin(); i != v.end(); i++){
                 std::cout << *i << "\t"; 
             }
