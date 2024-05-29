@@ -1,24 +1,12 @@
-#include <fstream>
-#include <iostream>
-#include "xatu/ExcitonConfiguration.hpp"
+#include "xatu/ConfigurationExciton.hpp"
 
 namespace xatu {
 
 /**
- * Default constructor.
- * @details Throws an error if called. Class must be constructed providing a filename with the configuration. 
+ * File constructor for ConfigurationExciton. It extracts the relevant information from the exciton file.
+ * @param exciton_file Name of file with the exciton configuration.
  */
-ExcitonConfiguration::ExcitonConfiguration(){
-    throw std::invalid_argument("Error: ExcitonConfiguration must be invoked with one argument (filename)");
-};
-
-/**
- * File constructor. 
- * @details ExcitonConfiguration must be initialized always with this constructor.
- * Upon call, the exciton configuration file is fully parsed and the information extracted.
- * @param filename Name of file with the exciton configuration.
- */
-ExcitonConfiguration::ExcitonConfiguration(std::string filename) : ConfigurationBase(filename){
+ConfigurationExciton::ConfigurationExciton(const std::string& exciton_file) : ConfigurationBase(exciton_file){
     this->expectedArguments = {"ncells", "dielectric"};
     parseContent();
     checkArguments();
@@ -29,8 +17,9 @@ ExcitonConfiguration::ExcitonConfiguration(std::string filename) : Configuration
  * Method to parse the exciton configuration from its file.
  * @details This method extracts all information from the configuration file and
  * stores it with the adequate format in the information struct. 
+ * @return void.
  */
-void ExcitonConfiguration::parseContent(){
+void ConfigurationExciton::parseContent(){
     extractArguments();
     extractRawContent();
 
@@ -58,7 +47,7 @@ void ExcitonConfiguration::parseContent(){
         }
         else if(arg == "shift"){
             std::vector<double> shift = parseLine<double>(content[0]);
-            excitonInfo.shift = arma::rowvec(shift);
+            excitonInfo.shift = arma::colvec(shift);
         }
         else if(arg == "bands"){
             excitonInfo.nbands = parseScalar<int>(content[0]);
@@ -70,7 +59,7 @@ void ExcitonConfiguration::parseContent(){
         }
         else if(arg == "totalmomentum"){
             std::vector<double> Q = parseLine<double>(content[0]);
-            excitonInfo.Q = arma::rowvec(Q);
+            excitonInfo.Q = arma::colvec(Q);
         }
         else if(arg == "cutoff"){
             excitonInfo.cutoff = parseScalar<double>(content[0]);
@@ -111,13 +100,14 @@ void ExcitonConfiguration::parseContent(){
             std::cout << "Unexpected argument: " << arg << ", skipping block..." << std::endl;
         }
     }
-};
+}
 
 /**
  * Method to check whether the information extracted from the configuration file is
  * consistent and well-defined. 
+ * @return void.
  */
-void ExcitonConfiguration::checkContentCoherence(){
+void ConfigurationExciton::checkContentCoherence(){
     if(excitonInfo.Q.n_elem != 3){
         throw std::logic_error("'Q' must be a 3d vector");
     };
@@ -153,6 +143,6 @@ void ExcitonConfiguration::checkContentCoherence(){
     if (excitonInfo.mode != "realspace" && excitonInfo.mode != "reciprocalspace"){
         throw std::invalid_argument("Invalid mode. Use 'realspace' or 'reciprocalspace'");
     }
-};
+}
 
 }

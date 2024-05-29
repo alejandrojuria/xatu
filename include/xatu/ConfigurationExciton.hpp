@@ -6,10 +6,10 @@
 namespace xatu {
 
 /**
- * ExcitonConfiguration is a specialization of ConfigurationBase to parse
- * exciton configuration files. 
+ * The ConfigurationExciton class is a specialization of ConfigurationBase to parse
+ * exciton configuration files 
  */
-class ExcitonConfiguration : public ConfigurationBase{
+class ConfigurationExciton : public ConfigurationBase{
 
     struct configuration {
         // Simulation label
@@ -23,9 +23,9 @@ class ExcitonConfiguration : public ConfigurationBase{
         // Specific bands that are used to compute the exciton spectrum.
         arma::ivec bands = {};
         // Center-of-mass momentum of the exciton.
-        arma::rowvec Q = {0., 0., 0.};
+        arma::colvec Q = {0., 0., 0.};
         // Displacement vector of the center of the BZ mesh.
-        arma::rowvec shift;
+        arma::colvec shift;
         // Cutoff to be used 
         double cutoff;
         // Dielectric constants
@@ -54,12 +54,13 @@ class ExcitonConfiguration : public ConfigurationBase{
         configuration excitonInfo;
         std::vector<std::string> supportedPotentials = {"keldysh", "coulomb"};
     
+    protected:
+        ConfigurationExciton() = default;
     public:
-        ExcitonConfiguration();
-        ExcitonConfiguration(std::string);
+        ConfigurationExciton(const std::string& exciton_file);
     
     private:
-        virtual void parseContent();
+        void parseContent() override;
         void checkContentCoherence();
 };
 
