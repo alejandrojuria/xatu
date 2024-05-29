@@ -1,48 +1,44 @@
-#include <algorithm>
-#include "xatu/GTFConfiguration.hpp"
+#include "xatu/ConfigurationGTF.hpp"
 
 
 namespace xatu {
 
 /**
- * File constructor for GTFConfiguration. It extracts the relevant information (exponents and contraction 
- * coefficients per shell per atomic species) from the basis sets file and stores it in an adequate format.
- * @details This class is intended to be used with the basis sets file in addition to the .outp file from the 
- * CRYSTAL code (see CRYSTALConfiguration.cpp for details on the latter). The former must be given in CRYSTAL 
- * format and contain both the basis employed in the self-consistent DFT calculation (under a line with the 
- * string: SCF BASIS) in addition to a larger auxiliary basis employed for fitting the density (under a line 
- * with the string: AUXILIARY BASIS). The initial occupancies have no impact. Pseudo-potentials are ignored, 
- * but it is advisable to be consistent with the PP choices in the self-consistency.
+ * File constructor for ConfigurationGTF from a full ConfigurationCRYSTAL object. It extracts the relevant information 
+ * (exponents and contraction coefficients per shell per atomic species) from the basis sets file and stores it as attributes.
+ * @param CRYSTALconfig ConfigurationCRYSTAL object.
  * @param bases_file Name of the file containing both Gaussian basis sets.
- * @param file Name of the .outp from the CRYSTAL SCF calculation.
- * @param ncells Number of unit cells for which the Hamiltonian and overlap matrices are read from file.
  */
-GTFConfiguration::GTFConfiguration(std::string bases_file, std::string outp_file, int ncells) : ConfigurationBase{outp_file}, CRYSTALConfiguration{outp_file, ncells} {
-    
-    this->bases_filename = bases_file;
-   
-    if(bases_file.empty()){
-        throw std::invalid_argument("GTFConfiguration: bases_file must not be empty");
-    }
-    b_file.open(bases_file.c_str());
-    if(!b_file.is_open()){
-        throw std::invalid_argument("GTFConfiguration: bases file does not exist");
-    }
+ConfigurationGTF::ConfigurationGTF(const ConfigurationCRYSTAL& CRYSTALconfig, const std::string& bases_file) : ConfigurationBase{bases_file} {
 
-    parseBases();
-    Rlistsfun(ncells);
-    // makeHreal();
+    this->nspecies_ = CRYSTALconfig.nspecies;
+    this->atomic_number_ordering_ = CRYSTALconfig.atomic_number_ordering;
+    parseContent();
 
 }
 
 /**
- * Method to parse both the DFT basis used in the self-consistency, and the auxiliary basis
- * @return void
+ * File constructor for ConfigurationGTF just from the relevant attributes of an external ConfigurationCRYSTAL objetct. 
+ * @param nspecies Number of chemical species in the unit cell
+ * @param atomic_number_ordering Vector with the atomic number (+200 if pseudo-potential) of each chemical species, in the ordering displayed in the .outp file
+ * @param bases_file Name of the file containing both Gaussian basis sets.
  */
-void GTFConfiguration::parseBases(){ 
+ConfigurationGTF::ConfigurationGTF(const int nspecies, const std::vector<int>& atomic_number_ordering, const std::string& bases_file) : ConfigurationBase{bases_file}{
+
+    this->nspecies_ = nspecies;
+    this->atomic_number_ordering_ = atomic_number_ordering;
+    parseContent();
+    
+}
+
+/**
+ * Method to parse both the DFT basis used in the self-consistency, and the auxiliary basis.
+ * @return void.
+ */
+void ConfigurationGTF::parseContent(){ 
     int countr = 0;
     std::string line;
-    while(std::getline(b_file, line)){
+    while(std::getline(m_file, line)){
         if (line.find("SCF BASIS") != std::string::npos){
             parseBasis(true);
             countr++;
@@ -59,10 +55,10 @@ void GTFConfiguration::parseBases(){
 }
 
 /**
- * Method to parse a given basis already identified in the file
- * @return void
+ * Method to parse a given basis already identified in the file.
+ * @return void.
  */
-void GTFConfiguration::parseBasis(bool basis_id){
+void ConfigurationGTF::parseBasis(const bool basis_id){
     cube_vector shells_all_species;
     std::vector<std::vector<int>> L_all_species, nG_all_species; 
     std::vector<int> nshells_all_species(nspecies,0);
@@ -83,15 +79,15 @@ void GTFConfiguration::parseBasis(bool basis_id){
         double exponent, contraction, contractionSP;
         std::string exponent_s, contraction_s, contractionSP_s;
         std::string line1;
-        std::getline(b_file, line1);
+        std::getline(m_file, line1);
         std::istringstream iss(line1);
         iss >> atomic_number >> nshells;
 
         int itr_order;
-        std::vector<int>::iterator itr = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number);
+        std::vector<int>::const_iterator itr = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number);
         if(itr == atomic_number_ordering.end()){ //reorder the species within the bases file to match the ordering in the .outp
-            std::vector<int>::iterator itr1 = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number + 200);
-            std::vector<int>::iterator itr2 = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number % 200);
+            std::vector<int>::const_iterator itr1 = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number + 200);
+            std::vector<int>::const_iterator itr2 = find(atomic_number_ordering.begin(),atomic_number_ordering.end(),atomic_number % 200);
             if(itr1 == atomic_number_ordering.end() && itr2 == atomic_number_ordering.end()){ //check if it was a PP mismatch
                  throw std::logic_error("The atomic numbers in the basis sets file don't match those of the DFT calculation");
             } else if(itr1 != atomic_number_ordering.end()){
@@ -104,19 +100,19 @@ void GTFConfiguration::parseBasis(bool basis_id){
         }
 
         if (atomic_number > 200){          //skip pseudo-potential
-            std::getline(b_file, line1);
+            std::getline(m_file, line1);
             if (line1.find("INPUT") != std::string::npos){ 
                 skip_PP(); 
             }
             else if (line1.find("INPSOC") != std::string::npos){
-                std::getline(b_file, line1);
+                std::getline(m_file, line1);
                 skip_PP();
             }
         }
 
         for(int i = 0; i < nshells; i++){   //iterate over (unfolded) shells
             std::vector<double> contGs_in_shell, contGs_in_shell_SP;  //list(s) of the contracted GTF for a given shell: {alpha_1,d_1,..,alpha_n,d_n}
-            std::getline(b_file, line1);
+            std::getline(m_file, line1);
             std::istringstream iss(line1);
             iss >> bs0 >> bs1 >> bs2 >> bs3 >> bs4;
 
@@ -129,7 +125,7 @@ void GTFConfiguration::parseBasis(bool basis_id){
                 L_in_species.push_back(0);
                 L_in_species.push_back(1);
                 for(int j = 0; j < bs2; j++){   //iterate over contracted GTF within a shell
-                std::getline(b_file, line1);
+                std::getline(m_file, line1);
                 std::istringstream iss(line1);
                 iss >> exponent_s >> contraction_s >> contractionSP_s;
 
@@ -147,7 +143,7 @@ void GTFConfiguration::parseBasis(bool basis_id){
                 nG_in_species.push_back(bs2);
                 L_in_species.push_back( std::max(bs1-1,0) );
                 for(int j = 0; j < bs2; j++){   //iterate over contracted GTF within a shell
-                    std::getline(b_file, line1);
+                    std::getline(m_file, line1);
                     std::istringstream iss(line1);
                     iss >> exponent_s >> contraction_s;
                     
@@ -174,87 +170,42 @@ void GTFConfiguration::parseBasis(bool basis_id){
 
     }
     if(basis_id){ //basis_id == true => SCF basis; basis_id == false => auxiliary basis
-        this->nshells_all_species_SCF = nshells_all_species;
-        this->norbs_all_species_SCF   = norbs_all_species;
-        this->nG_all_species_SCF      = nG_all_species;
-        this->L_all_species_SCF       = L_all_species;
-        this->shells_all_species_SCF  = shells_all_species;
+        this->nshells_all_species_SCF_ = nshells_all_species;
+        this->norbs_all_species_SCF_   = norbs_all_species;
+        this->nG_all_species_SCF_      = nG_all_species;
+        this->L_all_species_SCF_       = L_all_species;
+        this->shells_all_species_SCF_  = shells_all_species;
     } else {
-        this->nshells_all_species_AUX = nshells_all_species;
-        this->norbs_all_species_AUX   = norbs_all_species;
-        this->nG_all_species_AUX      = nG_all_species;
-        this->L_all_species_AUX       = L_all_species;
-        this->shells_all_species_AUX  = shells_all_species;
+        this->nshells_all_species_AUX_ = nshells_all_species;
+        this->norbs_all_species_AUX_   = norbs_all_species;
+        this->nG_all_species_AUX_      = nG_all_species;
+        this->L_all_species_AUX_       = L_all_species;
+        this->shells_all_species_AUX_  = shells_all_species;
     }
 }
 
 /**
- * Method to skip the pseudo-potentials when parsing the bases 
- * @return void
+ * Method to skip the pseudo-potentials when parsing the bases. 
+ * @return void.
  */
-void GTFConfiguration::skip_PP(){ 
+void ConfigurationGTF::skip_PP(){ 
     float pp0;
     int pp1, pp2, pp3, pp4, pp5, pp6;
     std::string line;
-    std::getline(b_file, line);
+    std::getline(m_file, line);
     std::istringstream iss(line);
     iss >> pp0 >> pp1 >> pp2 >> pp3 >> pp4 >> pp5 >> pp6;
-    for(int i = 0; i < pp1+pp2+pp3+pp4+pp5+pp6; i++) std::getline(b_file, line);
+    for(int i = 0; i < pp1+pp2+pp3+pp4+pp5+pp6; i++) std::getline(m_file, line);
 }
 
 /**
  * Method to replace Fortran's scientific notation (D) with the standard (E). 
  * The string is then converted to double.
- * @return double
+ * @return double String converted to double.
  */
-double GTFConfiguration::replace_D_2_double(std::string& S){ 
+double ConfigurationGTF::replace_D_2_double(std::string& S){ 
     std::replace(S.begin(), S.end(), 'D', 'E');
     return std::stod(S);
 }
-
-/**
- * Method to build the Rlist and RlistOpposites attributes, relative to the selected Bravais vectors. 
- * @return void
- */
-void GTFConfiguration::Rlistsfun(const int ncells){
-
-    arma::mat Rlist = (bravaisVectors.t());
-    std::map<int,int> RlistOpposites;
-    std::vector<int> R_unpaired;
-    for(int RindOpp = 0; RindOpp < ncells; RindOpp++){
-        int countr = 0;
-        for(int Rind = 0; Rind < ncells; Rind++){
-            arma::colvec Rsum = Rlist.col(Rind) + Rlist.col(RindOpp);
-            if( Rsum.is_zero(0.001) ){
-                RlistOpposites[RindOpp] = Rind;
-                countr++;
-            }
-        }
-        if(countr == 0){
-            RlistOpposites[RindOpp] = -1;
-            R_unpaired.push_back(RindOpp);
-            std::cerr << "WARNING! Possible non-hermiticity: Bravais vector number " << (RindOpp+1) <<
-                " has no opposite in the list of vectors. Unimportant for large number of R, otherwise try reducing or increasing it by 1" << std::endl;
-        }
-    }
-    this->Rlist = Rlist;
-    this->RlistOpposites = RlistOpposites;
-    this->R_unpaired = R_unpaired;
-}
-
-/**
- * Method to redefine the Hamiltonian matrices as real if SOC is absent.
- * @return void
- */
-// void GTFConfiguration::makeHreal(){
-
-//     if(!SOC_FLAG){
-//         this->fockMatrices  = arma::real(CRYSTALConfiguration::fockMatrices);
-//         this->alphaMatrices = arma::real(CRYSTALConfiguration::alphaMatrices);
-//         this->betaMatrices  = arma::real(CRYSTALConfiguration::betaMatrices);
-//     }
-
-// }
-
 
 }
