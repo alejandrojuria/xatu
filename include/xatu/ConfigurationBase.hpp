@@ -15,22 +15,17 @@ namespace xatu {
 class ConfigurationBase {
 
     public:
-        // Name of configuration file to be parsed.
-        std::string filename;
-        // Raw text read from the file without any parsing.
-        std::string text;
-        // List of arguments found in configuration file.
+        // List of arguments found in configuration file
         std::vector<std::string> foundArguments;
-        // List of arguments expected to be present in configuration file.
+        // List of arguments expected to be present in configuration file
         std::vector<std::string> expectedArguments;
-        // Parsed information of file already fully structured.
-        struct configuration;
         // Semi-structured contents of the file. Each key of the dictionary corresponds
         // to one argument, while its value is the raw text corresponding to that argument,
-        // which is to be processed further.
+        // which is to be processed further
         std::map<std::string, std::vector<std::string>> contents;
 
     protected:
+        // Configuration file in ifstream format, ready to be parsed
         std::ifstream m_file;
 
     protected:
