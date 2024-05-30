@@ -3,387 +3,221 @@
 namespace xatu {
 
 /**
- * Copy constructor.
- * 
- * Creates a Lattice object using another Lattice object.
- * @param lattice Lattice to be copied. 
+ * Default constructor to initialize Lattice attributes from a ConfigurationSystem object.
+ * @param SystemConfig ConfigurationSystem object. 
  */
-Lattice::Lattice(const Lattice& lattice){
+Lattice::Lattice(const ConfigurationSystem& SystemConfig){
 
-	ndim_ 			= lattice.ndim;
-	bravaisLattice_ = lattice.bravaisLattice;
-	motif_          = lattice.motif;
-	unitCellList_   = lattice.unitCellList;
-    
-    natoms_ = motif.n_rows;
-	ncells_ = unitCellList.n_rows;
-
-	calculateReciprocalLattice();
-	extractLatticeParameters();
-}
-
-/**
- * Method to initialize Lattice attributes from SystemConfiguration object.
- * 
- * @param configuration SystemConfiguration object. 
- */
-void Lattice::initializeLatticeAttributes(const SystemConfiguration& configuration){
-
-    ndim_           = configuration.systemInfo.ndim;	
-    bravaisLattice_ = configuration.systemInfo.bravaisLattice;
-    motif_          = configuration.systemInfo.motif;
-	unitCellList_   = configuration.systemInfo.bravaisVectors;
-    
-    natoms_ = motif.n_rows;
-	ncells_ = unitCellList.n_rows;
-
-	nk_ = 0; // Mesh has to be explicitly initialized
-
-    calculateReciprocalLattice();
-    extractLatticeParameters();
+    this->ndim_   = SystemConfig.ndim;	
+	this->Rbasis_ = SystemConfig.Rbasis;
 	computeUnitCellVolume();
+    calculateGbasis();
+
 }
 
 /**
- *  Routine to generate the reciprocal lattice basis vectors from the bravais lattice basis. 
- *	@details The algorithm is based on the fact that
- *  a_i\dot b_j=2PI\delta_ij, which can be written as a linear system of
- *  equations to solve for b_j. Resulting vectors have 3 components independently
- *  of the dimension of the vector space they span.
- */
-void Lattice::calculateReciprocalLattice(){
-	reciprocalLattice_ = arma::zeros(ndim, 3);
-	arma::mat coefficient_matrix = bravaisLattice;
-
-	if (ndim == 1){
-		reciprocalLattice_ = 2.*PI*coefficient_matrix / pow(arma::norm(coefficient_matrix), 2);
-	}
-	else{
-		coefficient_matrix = coefficient_matrix.cols(0, ndim - 1);
-		
-		for (int i = 0; i < ndim; i++){
-			arma::vec coefficient_vector = arma::zeros(ndim);
-			coefficient_vector(i) = 2*PI;
-			arma::vec reciprocal_vector = arma::zeros(3, 1);
-			try{
-				reciprocal_vector.rows(0, ndim - 1) = arma::solve(coefficient_matrix, coefficient_vector);
-			}
-			catch (std::runtime_error e) {
-				std::cout << "Failed to obtain reciprocal lattice vectors" << std::endl;
-				throw;
-			};
-			reciprocalLattice_.row(i) = reciprocal_vector.t();
-		};
-	};
-};
-
-/**
- * Method to obtain the lattice parameters of 2D lattices.
- * @details For simplicity, it takes a as the norm of the first Bravais vector
- * and c as the height of the 2D crystal, taking as reference the hexagonal lattice.
+ * Method to generate a kronecker-like list of integer combinations, to be used with direct or reciprocal lattice vectors.
+ * Each row contains the ndim coefficients of a different point. Matrix dimension: (n_{1}*..*n_{ndim}, ndim)
+ * @param n1 Number of cells in the direction of the first vector.
+ * @param n2 Number of cells in the direction of the second vector. Irrelevant for 1D.
+ * @param n3 Number of cells in the direction of the third vector. Irrelevant for 1D and 2D.
+ * @param centered If true, the combinations are centered at zero.
+ * 				   If false, all combinations have positive coefficients.
+ * @returns arma::mat List of cell combinations.
 */
-void Lattice::extractLatticeParameters(){
+arma::mat Lattice::generateCombinations(const int32_t n1, const int32_t n2, const int32_t n3, const bool centered){
 
-	try{
-		if (motif.is_empty() || bravaisLattice.is_empty()){
-			throw "Error: Can not obtain lattice parameters (no Bravais lattice or motif)";
-		}
-	}
-	catch (std::string e){
-			std::cerr << e;
-	}
-	this->a_ = arma::norm(bravaisLattice.row(0));
+    if(n1 < 0 || n2 < 0 || n3 < 0){
+        throw std::invalid_argument("ERROR generateCombinations: number of points per direction cannot be negative");
+    }
+    arma::icolvec nvec = {1,n1,n2,n3};
+    nvec = nvec.subvec(0, ndim);
+    nvec.insert_rows(ndim + 1, 1);
+    nvec(ndim + 1) = 1;   // nvec = {1,n_{1},..,n_{ndim},1}
 
-	double reference_height = motif.row(0)(2);
-	double c = 0;
-	for (arma::uword i = 0; i < motif.n_rows; i++){
-		double diff = abs(motif.row(i)(2) - reference_height);
-		if (diff > c){
-			c = diff;
-		}
-	}
-	if (c == 0){
-		c = 1;
-	}
-	this->c_ = c;
+    int64_t ncombinations = arma::prod(nvec);
+    arma::mat combinations(ncombinations, ndim);
+
+    for(int d = 0; d < ndim; d++){
+        int dshift = centered ? (int)nvec(d+1)/2 : 0;
+        arma::colvec dvalues = arma::regspace<arma::colvec>(0, nvec(d+1) - 1) - dshift;
+        arma::colvec com_aux = arma::repelem( dvalues, arma::prod( nvec.subvec(0,d) ), 1 ); 
+        combinations.col(d)  = arma::repmat( com_aux , arma::prod( nvec.subvec(d+2, nvec.n_elem - 1) ), 1 );
+    }
+
+    return combinations;
+
+}
+
+arma::mat Lattice::generateCombinations(const int32_t n1, const int32_t n2, const bool centered){
+
+    return generateCombinations(n1,n2,n2,centered);
+
+}
+
+arma::mat Lattice::generateCombinations(const int32_t n1, const bool centered){
+
+    return generateCombinations(n1,n1,n1,centered);
+
+}
+
+/* --------------------------- Reciprocal Lattice methods --------------------------- */
+
+/**
+ * Compute the reciprocal lattice vectors {G_1,..,G_ndim} and return them by columns in arma::mat (3,ndim). 
+ * The units (Angstrom^-1 or atomic units) are preserved from those of the input Bravais vectors (Angstrom or atomic units).
+ * @return void.
+ */
+void Lattice::calculateGbasis(){
+    
+    arma::mat Gbasis = arma::zeros<arma::mat>(3,ndim);
+    arma::colvec R1 = Rbasis_.col(0);
+    if(ndim == 1){
+        Gbasis(0,0) = 2*PI/R1(0);
+    } 
+    else if(ndim == 2){
+        arma::colvec R2 = Rbasis_.col(1);
+        arma::mat Rot2D = {{0,-1,0},{1,0,0},{0,0,1}};
+        arma::mat RotFac = (2*PI/arma::dot(R1,Rot2D*R2))*Rot2D;
+        Gbasis.col(0) = RotFac*R2;
+        Gbasis.col(1) = -RotFac*R1;
+    }
+    else if(ndim == 3){
+        arma::colvec R2 = Rbasis_.col(1);
+        arma::colvec R3 = Rbasis_.col(2);
+        double volFac = 2*PI/std::abs(arma::det(Rbasis_));
+        Gbasis.col(0) = volFac*arma::cross(R2,R3);
+        Gbasis.col(1) = volFac*arma::cross(R3,R1);
+        Gbasis.col(2) = volFac*arma::cross(R1,R2);
+    }
+    else {
+        throw std::invalid_argument("ERROR calculateGbasis: lattice dimensionality is not 1, 2 or 3.");
+    }
+
+    this->Gbasis_ = Gbasis;
+
 }
 
 /**
- * Method to compute the unit cell volume, area or length of the crystal.
- * @details Method adapted to compute the relevant quantity depending on the dimensionality
- * of the problem (1D = length, 2D = area, 3D = volume).
+ * Compute a Monkhorst-Pack grid in the interval [0 G1)x...x[0 Gn_dim), and return the k-points by columns in arma::mat (3,nk). 
+ * The units (Angstrom^-1 or atomic units) are preserved from those of the input basis of reciprocal vector.
+ * @param shrink1,shrink2,shrink3 Number of sampled k-points along each reciprocal lattice vectors G1,G2,G3 (resp.). 
+ *        Only the first ndim are taken into accout.
+ * @param containsGamma True (false) for a grid containing Gamma (displaced by half the corresponding step in each Gi, respectively).
+ */
+arma::mat Lattice::gridMonkhorstPack(const int32_t shrink1, const int32_t shrink2, const int32_t shrink3, const bool containsGamma){
+
+    arma::mat combs = ( generateCombinations(shrink1, shrink2, shrink3, false) ).t();
+    arma::colvec shrink_vec = {(double)shrink1,(double)shrink2,(double)shrink3};
+    shrink_vec = shrink_vec.subvec(0, ndim - 1);
+
+    uint32_t nk = combs.n_cols;
+    if(!containsGamma){
+        combs += 0.5; 
+    }
+    combs /= arma::repmat(shrink_vec,1,nk);
+    arma::mat Klist = Gbasis*combs;
+
+    return Klist;
+
+}
+
+arma::mat Lattice::gridMonkhorstPack(const int32_t shrink1, const int32_t shrink2, const bool containsGamma){
+
+    return gridMonkhorstPack(shrink1, shrink2, shrink2, containsGamma);
+
+}
+
+arma::mat Lattice::gridMonkhorstPack(const int32_t shrink1, const bool containsGamma){
+
+    return gridMonkhorstPack(shrink1, shrink1, shrink1, containsGamma);
+
+}
+
+/* --------------------------- Direct Lattice methods --------------------------- */
+
+/**
+ * Method to compute the unit cell volume, area or length (depending on the lattice dimensionality).
  * @return void
  */
 void Lattice::computeUnitCellVolume(){
-	if(ndim == 1){
-		this->unitCellVolume_ = arma::norm(bravaisLattice.row(0));
-	}
-	else if(ndim == 2){
-		arma::rowvec crossProduct = arma::cross(bravaisLattice.row(0), bravaisLattice.row(1));
-		this->unitCellVolume_ = arma::norm(crossProduct);
-	}
-	else if(ndim == 3){
-		this->unitCellVolume_ = std::abs(arma::det(bravaisLattice));
-	}
+
+	arma::mat Rbasis_red = Rbasis_.submat(0, 0, ndim - 1, ndim - 1);
+	this->unitCellVolume_ = std::abs( arma::det( Rbasis_red ) );
+
 }
 
-/* --------------------------- Brillouin zone methods --------------------------- */
+/**
+* Method to create the matrix of the first nR (at least) 3-component Bravais vectors, stored by columns and ordered by ascending norm.
+* @details The number of returned vectors is at least nR because full stars are given. 
+* It basically substitutes Rlist for the integrals when more R-vectors are requested than contained in the .outp.
+* @param nR Minimum number of direct lattice vectors that will be listed.
+* @param IntegralType String which will be printed along with norm(nR) and which indicates the type of integrals for which the 
+*        list is generated
+* @return arma::mat (3, nR' >= nR) matrix with the aforementioned Bravais vectors by columns.
+*/
+arma::mat Lattice::generateRlist(const uint32_t nR, const std::string& IntegralType){
+
+    arma::rowvec norms_Ri = arma::sqrt(arma::sum(Rbasis_ % Rbasis_, 0));
+    // Automatic correction accounting for possibly large differences of norms in the lattice vectors
+    uint normRatio = std::ceil(0.5*arma::max(norms_Ri) / arma::min(norms_Ri)); 
+    // Conservative estimate to make sure that none of the first n vectors is left out
+    uint32_t RindmaxAux = std::ceil(3*normRatio*std::sqrt(nR));
+	RindmaxAux += 1 - (RindmaxAux % 2);
+    
+	arma::mat combinations = generateCombinations(RindmaxAux, true);
+	uint64_t ncombinations = combinations.n_rows;
+	arma::mat generated_Rlist(3,ncombinations); 
+    arma::rowvec generated_norms(ncombinations);
+
+	#pragma omp parallel for 
+	for(uint64_t ind_comb = 0; ind_comb < ncombinations; ind_comb++){
+		arma::colvec comb = (combinations.row(ind_comb)).t();
+		arma::colvec Rvec = Rbasis_*comb;
+
+		generated_Rlist.col(ind_comb) = Rvec;
+		generated_norms(ind_comb) = arma::norm(Rvec);
+	}
+
+    arma::urowvec indices = (arma::sort_index(generated_norms)).t();
+    generated_norms = arma::sort(generated_norms);
+    generated_Rlist = generated_Rlist.cols(indices); // Order the lattice vectors (columns of generated_Rlist) according to the norms 
+    
+    double requested_norm = generated_norms(nR - 1);
+    uint32_t countr = nR;
+    double current_norm = generated_norms(countr);
+    std::cout << "Requested direct lattice vectors maximum norm: " << requested_norm << " Angstrom (" + IntegralType + ")" << std::endl;
+
+    while(current_norm - requested_norm < 1e-3){ // Complete the current star of direct lattice vectors
+        countr++;
+        current_norm = generated_norms(countr);
+    }
+    return generated_Rlist.cols(0, countr - 1);
+
+}
 
 /**
- * Routine to compute a mesh of the first Brillouin zone using the Monkhorst-Pack algorithm.
- * @details Always returns a mesh centered at the Gamma point, for both n even or odd. 
- * @param n Number of points along one of the axis. 
+ * Returns a map where each entry is the index of the direct lattice vector in the input generated_Rlist (generalization of Rlist for
+ * an arbitrary number of direct lattice vectors) opposite to the lattice vector whose index is the corresponding map's key. 
+ * @param generated_Rlist List of Bravais vectors (3,nR), as given by generateRlist. Not necessarily the attribute Rlist
+ * @return std::map The list whose n-th entry is -R_{n}, where R_{n} = Rlist(n).
  */
-void Lattice::brillouinZoneMesh(int n){
+std::map<uint32_t,uint32_t> Lattice::generateRlistOpposite(const arma::mat& generated_Rlist){
 
-	std::cout << "Creating BZ mesh... " << std::flush;
+    uint32_t nRlist = generated_Rlist.n_cols; 
+    std::map<uint32_t,uint32_t> RlistOpposites;
+    for(uint32_t RindOpp = 0; RindOpp < nRlist; RindOpp++){
+        for(uint32_t Rind = 0; Rind < nRlist; Rind++){
+            arma::colvec Rsum = generated_Rlist.col(Rind) + generated_Rlist.col(RindOpp);
+            if( Rsum.is_zero(0.001) ){
+                RlistOpposites[RindOpp] = Rind;
+            }
+        }
 
-	int nk = pow(n, ndim);
-	arma::mat kpoints(pow(n, ndim), 3);
-	arma::mat combinations = generateCombinations(n, ndim);
-	if (n % 2 == 1){
-		combinations += 1./2;
-	}
-	
-	for (int i = 0; i < nk; i++){
-		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
-		for (int j = 0; j < ndim; j++){
-			kpoint += (2*combinations.row(i)(j) - n)/(2*n)*reciprocalLattice_.row(j);
-		}
-		kpoints.row(i) = kpoint;
-	}
-	kpoints_ = kpoints;
-	meshBZ_ = kpoints;
-	nk_ = kpoints.n_rows;
-	std::cout << "Done. Number of k points in BZ mesh: " << nk << std::endl;
+    }
+    return RlistOpposites;
+
 }
-
-/**
- * Method to generate a kpoint mesh which is a subset of the full BZ mesh. 
- * @details If n is even, we substract one so that the mesh is symmetric under inversion.
- * The reduction factor specifies is used to create a mesh of the full BZ of factor*n points,
- * from which we extract the corresponding mesh for n points centered at Gamma.
- * @param n Number of points along one axis.
- * @param factor Reduction factor of the mesh.
- * */
-void Lattice::reducedBrillouinZoneMesh(int n, int factor){
-
-	// First create mesh of whole BZ
-	brillouinZoneMesh(n*factor);
-
-	// Now create submesh
-	int nk = pow(n, ndim);
-
-	arma::mat kpoints(nk, 3);
-	arma::mat combinations = generateCombinations(n, ndim);
-	if (n % 2 == 1){
-		combinations += 1./2;
-	}
-	
-	for (int i = 0; i < nk; i++){
-		arma::rowvec kpoint = arma::zeros<arma::rowvec>(3);
-		for (int j = 0; j < ndim; j++){
-			kpoint += (2*combinations.row(i)(j) - n)/(2*n*factor)*reciprocalLattice_.row(j);
-		}
-		kpoints.row(i) = kpoint;
-	}
-	kpoints_ = kpoints;
-	nk_ = nk;
-	factor_ = factor;
-	std::cout << "Number of k points in submesh: " << nk << std::endl;
-}
-
-/**
- * Method to shift the center of the BZ mesh to a given point.
- * @param shift Vector to shift center of BZ mesh. 
- */
-void Lattice::shiftBZ(const arma::rowvec& shift){
-	std::cout << std::left << std::setw(30) << "Shifting BZ mesh by vector: ";
-	for (auto si : shift){
-		std::cout << si << "  ";
-	}
-	std::cout << std::endl;
-	if(shift.n_elem != 3){
-		std::cout << "shift vector must be 3d" << std::endl;
-		return; 
-	}
-	if(kpoints.empty()){
-		std::cout << "To call this method kpoints must be initiallized first" << std::endl;
-		return;
-	}
-	for(int i = 0; i < kpoints.n_rows; i++){
-		kpoints_.row(i) += shift;
-	}
-}
-
-/**
- * Auxiliary method to compute the inverse reciprocal matrix.
- * @details The reciprocal matrix is defined as the R*R.t, where R is the matrix
- * containing the reciprocal lattice vectors as row. This inverted matrix is required
- * to map any kpoint back to the original Monkhorst-Pack mesh.
-*/
-void Lattice::calculateInverseReciprocalMatrix(){
-	arma::mat coefs = arma::zeros(ndim, ndim);
-	coefs = reciprocalLattice * reciprocalLattice.t();
-	arma::mat inverse;
-	try{
-		inverse = arma::inv(coefs);	
-	}
-	catch(std::runtime_error e){
-		std::cout << "Unable to compute inverse reciprocal coefficients" << std::endl;
-		throw;
-	}
-	this->inverseReciprocalMatrix = inverse;
-}
-
-/**
- * Method to determine a kpoint equivalent to another within the BZ mesh.
- * @details Given a kpoint, this function finds its reciprocal coordinates to determine if 
- * it is outside of the BZ mesh. If it is, shift it by a reciprocal lattice vector so it falls
- * on a point of the mesh. Intended to be used only with mesh of full BZ (i.e. Monkhorst-Pack).
- * @param kpoint kpoint to be mapped back.
- * @param ncell Number of points used in the original BZ mesh, usually equivalent to the number of cells.
- * @returns Index (row) of the equivalent kpoint from the BZ mesh matrix.
- */ 
-int Lattice::findEquivalentPointBZ(const arma::rowvec& kpoint, int ncell){
-	if(inverseReciprocalMatrix.empty()){
-		calculateInverseReciprocalMatrix();
-	}
-	ncell = ncell * factor_;
-	arma::vec independentTerm = reciprocalLattice * kpoint.t();
-	arma::vec coefs = inverseReciprocalMatrix * independentTerm * 2*ncell;
-	coefs = (ncell % 2 == 1) ? coefs - 1 : coefs; 
-	coefs = arma::round(coefs);
-
-	for(int i = 0; i < coefs.n_elem; i++){
-		if (coefs(i) >= ncell){
-			coefs(i) -= 2*ncell;
-		}
-		else if(coefs(i) < -ncell){
-			coefs(i) += 2*ncell;
-		}
-		coefs(i) += ncell;
-		coefs(i) /= 2;
-	}
-	int index = 0;
-	
-	std::vector<int> cells_array = {1, ncell, ncell*ncell}; // Auxiliar array to avoid using std::pow
-	for(int i = 0; i < coefs.n_elem; i++){
-		index += coefs(i)*cells_array[i];
-	}
-
-	return index;
-};
-
-/* --------------------------- Supercell methods --------------------------- */
-
-/**
- * Method to generate a list with combinations of Bravais vectors.
- * @details Each row of the list stores the integers which correspond
- * to the coefficients of the linear combinations of Bravais basis vectors.
- * @param nvalues Number of cells in one direction.
- * @param ndim Dimension of the system.
- * @param centered If true, the combinations are centered at the origin cell.
- * 				   If false, all combinations have positive coefficients.
- * @returns List of cell combinations.
-*/
-arma::mat Lattice::generateCombinations(int nvalues, int ndim, bool centered){
-	int ncombinations = pow(nvalues, ndim);
-	arma::vec ones = arma::ones(nvalues);
-	arma::mat combinations(ncombinations, ndim);
-	arma::vec auxvector;
-	arma::rowvec combination(ndim);
-	int shift = centered ? (int)nvalues/2 : 0;
-	for(int n = 0; n < ndim; n++){
-		arma::vec values = arma::regspace(0, nvalues - 1) - shift;
-		for(int i = 0; i < ndim - n - 1; i++){
-			values = arma::kron(ones, values);
-		}
-		for(int j = 0; j < n; j++){
-			values = arma::kron(values, ones);
-		}
-		combinations.col(n) = values;
-	}
-
-	return combinations;
-}
-
-/**
- * Method to generate a list of cells within a sphere of specified radius.
- * @param ncell List of cells along one axis.
- * @param radius Cutoff radius of the sphere.
- * @returns List of cells within the sphere.
-*/
-arma::mat Lattice::truncateSupercell(int ncell, double radius){
-
-	arma::mat combinations = generateCombinations(ncell, ndim, true);
-	std::vector<arma::rowvec> cells_vector;
-	for (int i = 0; i < combinations.n_rows; i++){
-		arma::rowvec lattice_vector = arma::zeros<arma::rowvec>(3);
-		for (int j = 0; j < ndim; j++){
-			lattice_vector += combinations.row(i)(j) * bravaisLattice.row(j);
-		};
-		double distance = arma::norm(lattice_vector);
-		if (distance < radius + 1E-5){
-			cells_vector.push_back(lattice_vector);
-		}
-	}
-	int total_cells = cells_vector.size();
-	arma::mat cells = arma::zeros(total_cells, 3);
-	for (int i = 0; i < total_cells; i++){
-		cells.row(i) = cells_vector[i];
-	}
-
-	return cells;
-}
-
-/**
- * Method to generate a list of reciprocal cells contained within a sphere of specified radius.
- * @param ncell List of cells in one direction.
- * @param radius Radius of the cutoff sphere.
- * @returns List of reciprocal cells in cartesian coordinates.
-*/
-arma::mat Lattice::truncateReciprocalSupercell(int ncell, double radius){
-
-	arma::mat combinations = generateCombinations(ncell, ndim, true);
-	std::vector<arma::rowvec> cells_vector;
-	for (int i = 0; i < combinations.n_rows; i++){
-		arma::rowvec lattice_vector = arma::zeros<arma::rowvec>(3);
-		for (int j = 0; j < ndim; j++){
-			lattice_vector += combinations.row(i)(j) * reciprocalLattice.row(j);
-		};
-		double distance = arma::norm(lattice_vector);
-		if (distance < radius + 1E-5){
-			cells_vector.push_back(lattice_vector);
-		}
-	}
-	int total_cells = cells_vector.size();
-	arma::mat cells = arma::zeros(total_cells, 3);
-	for (int i = 0; i < total_cells; i++){
-		cells.row(i) = cells_vector[i];
-	}
-
-	return cells;
-}
-
-/* --------------------------- Other methods --------------------------- */
-
-/**
- * Routine to rotate a position by 2pi/3, either on real space
- * or on reciprocal space to enforce C3 symmetry.
- * @param position Vector to rotate.
- * @returns Rotated vector.
- */
-arma::rowvec Lattice::rotateC3(const arma::rowvec& position){
-	double theta = 2*PI/3;
-	arma::mat C3rotation = {{cos(theta), -sin(theta), 0},
-							{sin(theta),  cos(theta), 0},
-							{         0,		   0, 1}};
-	
-	arma::vec rotated_position = arma::inv(C3rotation)*(position.t());
-
-	return rotated_position.t();
-};
 
 
 }
