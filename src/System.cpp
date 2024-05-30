@@ -1,99 +1,85 @@
-#include <complex>
-#include <math.h>
-#include <stdlib.h>
 #include "xatu/System.hpp"
 
 namespace xatu {
 
-// -------------------- Constructors and destructor --------------------
-
 /**
- * Copy constructor.
- * @details Initializes one default System objects, and afterwards copies
- * its attributes to be the same as those of the given System object to copy.
- * @param system SystemTB object to copy.
+ * Default constructor.
+ * @details The default constructor throws an error as the class must always be initialized from either a ConfigurationSystem 
+ * or a ConfigurationCRYSTAL object, or with a copy constructor.
  */
-System::System(const System& system) : Lattice(system){
-
-	systemName			  = system.systemName;
-	orbitalsPerSpecies_   = system.orbitalsPerSpecies;
-	hamiltonianMatrices_  = system.hamiltonianMatrices;
-	overlapMatrices_      = system.overlapMatrices;
-	filling_			  = system.filling;
-	highestValenceBand_	  = filling_ - 1;
-	norbitals_ 			  = system.norbitals;
-}
-
-/**
- * Configuration constructor.
- * @details Constructor which takes in a SystemConfiguration object, i.e.
- * to init a System from a configuration file.
- * @param configuration SystemConfiguration object obtained from config. file.
- */
-System::System(const SystemConfiguration& configuration) : Lattice(){
-
-	initializeLatticeAttributes(configuration);
-	initializeSystemAttributes(configuration);
-};
-
-// --------------------------------- Methods ---------------------------------
-/**
- * Routine to extract the information contained in the SystemConfiguration object from
- * parsing the input text file. To be used in the TB mode.
- * @details To be called from the configuration constructor.
- * @param configuration SystemConfiguration object.
- */
-void System::initializeSystemAttributes(const SystemConfiguration& configuration){
+System::System(){
 	
-	orbitalsPerSpecies_   = configuration.systemInfo.orbitalsPerSpecies;
-	hamiltonianMatrices_  = configuration.systemInfo.hamiltonian;
-	overlapMatrices_      = configuration.systemInfo.overlap;
-	filling_			  = configuration.systemInfo.filling;
-	highestValenceBand_	  = filling_ - 1;
+    throw std::invalid_argument("System must be called with either a ConfigurationSystem, a ConfigurationCRYSTAL or another System object");
 
-    int norbitals = 0;
-    for(int i = 0; i < natoms; i++){
-        int species = this->motif.row(i)(3);
-        norbitals += orbitalsPerSpecies(species);
-    }
-	norbitals_   = norbitals;
 }
-
 
 /**
- * Filling setter.
- * @details Sets both the filling and the Fermi level, which is defined as filling - 1.
- * Filling must be a positive integer.
- * @param filling Number of electrons of the system.
-*/
-void System::setFilling(int filling){
-	if (filling > 0){
-		filling_ = filling;
-		highestValenceBand_ = filling_ - 1;
-	}
-	else{
-		std::cout << "Filling must be a positive integer" << std::endl;
-	}
+ * Constructor from ConfigurationSystem, to be used in the TB mode only.
+ * @param SystemConfig ConfigurationSystem object obtained from any configuration file.
+ */
+System::System(const ConfigurationSystem& SystemConfig) : Lattice{SystemConfig}{
+
+	this->highestValenceBand_	    = SystemConfig.filling - 1;
+	this->Rlist_                    = SystemConfig.Rlist;
+	this->ncells_                   = SystemConfig.ncells;
+	this->norbitals_   			    = SystemConfig.hamiltonianMatrices.n_cols;
+	this->ptr_hamiltonianMatrices   = &SystemConfig.hamiltonianMatrices;
+	this->ptr_overlapMatrices       = &SystemConfig.overlapMatrices;
+	
 }
 
+/**
+ * Constructor from ConfigurationCRYSTAL, to be used in CRYSTAL calculations (compatible with both modes). 
+ * @param CRYSTALconfig ConfigurationCRYSTAL object obtained from a CRYSTAL .outp file.
+ */
+System::System(const ConfigurationCRYSTAL& CRYSTALconfig) : Lattice{CRYSTALconfig}{
+
+	this->highestValenceBand_   = CRYSTALconfig.filling - 1;
+	this->Rlist_                = CRYSTALconfig.Rlist;
+	this->ncells_               = CRYSTALconfig.ncells;
+	this->norbitals_            = CRYSTALconfig.norbitals;
+	this->ptr_overlapMatrices   = &CRYSTALconfig.overlapMatrices;
+	
+	if(!CRYSTALconfig.MAGNETIC_FLAG || CRYSTALconfig.SOC_FLAG){
+		this->ptr_hamiltonianMatrices = &CRYSTALconfig.hamiltonianMatrices;
+		this->ptr_alphaMatrices       = nullptr;
+		this->ptr_betaMatrices        = nullptr;
+	} 
+	else { // CRYSTALconfig.MAGNETIC_FLAG && !CRYSTALconfig.SOC_FLAG (magnetism without SOC)
+		if(CRYSTALconfig.overlapMatrices.n_cols == CRYSTALconfig.alphaMatrices.n_cols){ // <=> GTF mode
+			this->ptr_hamiltonianMatrices = nullptr;
+			this->ptr_alphaMatrices       = &CRYSTALconfig.alphaMatrices;
+			this->ptr_betaMatrices        = &CRYSTALconfig.betaMatrices;
+		} 
+		else { // <=> TB mode
+			this->ptr_hamiltonianMatrices = &CRYSTALconfig.hamiltonianMatrices;
+			this->ptr_alphaMatrices       = nullptr;
+			this->ptr_betaMatrices        = nullptr;
+		}
+	}
+
+}
 
 /**
  * System name setter.
- * @details Sets the name of the system.
- * @param name Name of the system.
+ * @param systemName Name of the system.
+ * @return void.
 */
-void System::setSystemName(std::string name){
-	systemName = name;
+void System::setSystemName(const std::string& systemName){
+	
+	this->systemName = systemName;
+
 }
 
-
 /**
- * Method to write to a file the energy bands evaluated on a set of kpoints specified on a file.
- * @details It creates a file with the name "[systemName].bands" where the bands are stores.
- * @param kpointsfile File with the kpoints where we want to obtain the bands.
- * @param triangular To specify if the Hamiltonian is triangular.
+ * Method to write to a file the energy bands evaluated on a set of kpoints specified on a file. This method is just a general envelope, 
+ * and the core diagonalization method must be defined in the relevant derived class, depending on the mode (TB or Gaussian).
+ * @details Each k-point must occupy a row in the file, with no blank lines. The format for each k-point is: kx ky kz ,
+ * whose values are in Angstrom. It creates a file with the name "kpointsfile.bands" where the bands are stored.
+ * @param kpointsfile Name of the file with the kpoints where we want to obtain the bands.
+ * @return void.
 */
-void System::solveBands(std::string kpointsfile) const {
+void System::solveBands(const std::string& kpointsfile) const {
 	std::ifstream inputfile;
 	std::string line;
 	double kx, ky, kz;
@@ -108,7 +94,7 @@ void System::solveBands(std::string kpointsfile) const {
 			iss >> kx >> ky >> kz;
 			arma::rowvec kpoint{kx, ky, kz};
 			solveBands(kpoint, eigval, eigvec);
-			for (int i = 0; i < eigval.n_elem; i++){
+			for (uint i = 0; i < eigval.n_elem; i++){
 				fprintf(bandfile, "%12.6f\t", eigval(i));
 			}
 			fprintf(bandfile, "\n");
@@ -121,29 +107,5 @@ void System::solveBands(std::string kpointsfile) const {
 	arma::cout << "Done" << arma::endl;
 }
 
-/**
- * Method to add a Zeeman term to the Hamiltonian. 
- * @details This method assumes that the Hamiltonian incorporates spin in 
- * the following way: |i1,up>,|i1,down>,...,|in,up>,|in,down>, where i runs over orbitals.
- * @param amplitude Strength of the Zeeman term.
- * @returns void
-*/
-void System::addZeeman(double amplitude){
-
-	arma::cx_vec zeeman_values = {amplitude, -amplitude};
-	arma::cx_mat zeeman_matrix = arma::diagmat<arma::cx_mat>(arma::kron(arma::ones<arma::cx_vec>(basisdim/2), zeeman_values));
-
-	// Identify hamiltonian slice for R=0
-	int idx;
-	for (unsigned int i = 0; i < unitCellList.n_rows; i++){
-		if (arma::norm(unitCellList.row(i)) < 1E-5){
-			arma::cout << unitCellList.row(i) << arma::endl;
-			idx = i;
-			break;
-		}
-	}
-
-	hamiltonianMatrices_.slice(idx) += zeeman_matrix;
-}
 
 }
