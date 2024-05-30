@@ -1,49 +1,37 @@
-#include "xatu/Coulomb2Centers.hpp"
+#include "xatu/IntegralsCoulomb2C.hpp"
 
 namespace xatu {
 
 /**
- * Constructor that also initializes IntegralsBase from the DFT files. 
- * Should only be used to test the 3-center overlap matrices in isolation.
- * @param GTFConfig GTFConfiguration object.
- * @param tol Tolerance for retaining the entries of the 3-center overlap matrices. These must be > 10^-tol, in absolute value.
- * @param o3Mat_name Name of the file where the 3-center overlap matrices will be stored as a cube (o3Mat_name.o3c).
- * @param o2Mat_name Name of the file where the 2-center overlap matrices in the AUX basis will be stored as a cube (o2Mat_name.o2c).
- */
-Coulomb2Centers::Coulomb2Centers(const GTFConfiguration& GTFConfig, const uint32_t nR, const std::string& C2Mat_name, const bool comp) : IntegralsBase{GTFConfig} {
-
-    if(comp){
-        Coulomb2Cfun(nR, C2Mat_name);
-    }
-
-}
-
-/**
  * Constructor that copies a pre-initialized IntegralsBase and also computes the 2-center overlap in the AUX basis.
  * @param IntBase IntegralsBase object.
- * @param tol Tolerance for retaining the entries of the 3-center overlap matrices. These must be > 10^-tol, in absolute value.
- * @param nR2 Number of R and R' that will be considered for the integrals. By default it's IntegralsBase.ncells, and cannot be larger than it.
- * @param o3Mat_name Name of the file where the 3-center overlap matrices will be stored as a cube (o3Mat_name.o3c).
- * @param o2Mat_name Name of the file where the 2-center overlap matrices in the AUX basis will be stored as a cube (o2Mat_name.o2c).
+ * @param nR Minimum number of direct lattice vectors for which the 2-center overlap integrals will be computed.
+ * @param intName Name of the file where the 2-center Coulomb matrices will be stored as a cube (C2Mat_intName.C2c).
  */
-Coulomb2Centers::Coulomb2Centers(const IntegralsBase& IntBase, const uint32_t nR, const std::string& C2Mat_name) : IntegralsBase{IntBase} {
+IntegralsCoulomb2C::IntegralsCoulomb2C(const IntegralsBase& IntBase, const uint32_t nR, const std::string& intName) : IntegralsBase{IntBase} {
 
-    Coulomb2Cfun(nR, C2Mat_name);
+    Coulomb2Cfun(nR, intName);
 
 }
 
 /**
  * Method to compute the Coulomb matrices in the auxiliary basis (<P,0|V_c|P',R>) for the first nR Bravais vectors R.
  * These first nR (at least, until the star of vectors is completed) are generated with IntegralsBase::generateRlist.
- * The resulting cube (third dimension spans the Bravais vectors) is saved in the C2Mat_name.C2c file.
+ * The resulting cube (third dimension spans the Bravais vectors) is saved in the C2Mat_intName.C2c file.
+ * @param nR Minimum number of direct lattice vectors for which the 2-center overlap integrals will be computed.
+ * @param intName Name of the file where the 2-center Coulomb matrices will be stored as a cube (C2Mat_intName.C2c).
+ * @return void. Matrices and the corresponding list of lattice vectors are stored instead.
  */
-void Coulomb2Centers::Coulomb2Cfun(const uint32_t nR, const std::string& C2Mat_name){
+void IntegralsCoulomb2C::Coulomb2Cfun(const uint32_t nR, const std::string& intName){
 
-arma::mat RlistAU = ANG2AU*generateRlist(bravaisLattice, nR);
+const double PIpow = std::pow(PI,2.5);
+arma::mat RlistAU = ANG2AU*generateRlist(nR, "Coulomb2C");
 uint32_t nR_star = RlistAU.n_cols;
 std::map<uint32_t,uint32_t> RlistOpposites = generateRlistOpposite(RlistAU);
 
-std::cout << "Computing " << nR_star << " " << dimMat_AUX << "x" << dimMat_AUX << " 2-center Coulomb matrices in the AUX basis..." << std::endl;
+std::cout << "Computing " << nR_star << " " << dimMat_AUX << "x" << dimMat_AUX << " 2-center Coulomb matrices in the AUX basis..." << std::flush;
+
+// Start the calculation
 auto begin = std::chrono::high_resolution_clock::now();  
 
     uint64_t nelem_triang = 0.5*dimMat_AUX*(dimMat_AUX + 1);
@@ -53,7 +41,7 @@ auto begin = std::chrono::high_resolution_clock::now();
     #pragma omp parallel for 
     for(uint64_t s = 0; s < total_elem; s++){ //Spans the lower triangle of all the nR_star matrices <P,0|P',R>
         uint64_t sind {s % nelem_triang};    //Index for the corresponding entry in the overlap matrix, irrespective of the specific R
-        uint32_t Rind {s / nelem_triang};         //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
+        uint32_t Rind {static_cast<uint32_t>(s / nelem_triang)};         //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
         std::array<uint32_t,2> orb_braket {triangInd_to_rowcol.at(sind)}; 
         // arma::colvec R {RlistAU.col(Rind)};  //Bravais vector (a.u.) corresponding to the "s" matrix element
         uint32_t RindOpp    {RlistOpposites.at(Rind)};  //Position in RlistAU (i.e. 0 for R=0) of the opposite of the corresponding Bravais vector
@@ -117,7 +105,7 @@ auto begin = std::chrono::high_resolution_clock::now();
                                     for(int t_ket = 0; t_ket <= i_ket; t_ket++){
                                         for(int u_ket = 0; u_ket <= j_ket; u_ket++){
                                             for(int v_ket = 0; v_ket <= k_ket; v_ket++){
-                                                int sign_ket {std::pow(-1, t_ket + u_ket + v_ket)};
+                                                int sign_ket {static_cast<int>(std::pow(-1, t_ket + u_ket + v_ket))};
                                                 int t_tot = t_bra + t_ket;
                                                 int u_tot = u_bra + u_ket;
                                                 int v_tot = v_bra + v_ket;
@@ -163,7 +151,7 @@ auto begin = std::chrono::high_resolution_clock::now();
 
             }
         }
-        Coulomb2Matrices(orb_bra,orb_ket,Rind) *= FAC12_braket*2*std::pow(PI,2.5);
+        Coulomb2Matrices(orb_bra,orb_ket,Rind) *= FAC12_braket*2*PIpow;
         if((RindOpp >= 0) && (orb_bra > orb_ket)){
             Coulomb2Matrices(orb_ket,orb_bra,RindOpp) = Coulomb2Matrices(orb_bra,orb_ket,Rind);
         }
@@ -173,18 +161,24 @@ auto begin = std::chrono::high_resolution_clock::now();
     auto end = std::chrono::high_resolution_clock::now(); 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin); 
 
-    Coulomb2Matrices.save(IntFiles_Dir + C2Mat_name + ".C2c",arma::arma_ascii);  //save matrices to file
+// Store the matrices and the list of direct lattice vectors
+Coulomb2Matrices.save(IntFiles_Dir + "C2Mat_" + intName + ".C2c",arma::arma_ascii); 
+RlistAU.save(IntFiles_Dir + "RlistAU_" + intName + ".C2c", arma::arma_ascii);
 
-    std::cout << "Done! Elapsed wall-clock time: " << std::to_string( elapsed.count() * 1e-3 ) << " seconds. Matrices stored in the file: " << 
-        IntFiles_Dir + C2Mat_name << ".C2c." << std::endl;
+std::cout << "Done! Elapsed wall-clock time: " << std::to_string( elapsed.count() * 1e-3 ) << " seconds." << std::endl;
+std::cout << "Matrices stored in the file: " << IntFiles_Dir + "C2Mat_" + intName + ".C2c" << 
+    " , and list of Bravais vectors in " << IntFiles_Dir + "RlistAU_" + intName + ".C2c" << std::endl;
 
 }
 
 /**
  * Analogous to Efun in the parent class IntegralsBase, but restricted to i'=0 and setting PA=0. These are the 
- * expansion coefficients of a single GTF in Hermite Gaussians with the same exponent and center.
+ * expansion coefficients of a single (cartesian) GTF in Hermite Gaussians with the same exponent and center.
+ * @param i Index i of the cartesian Gaussian.
+ * @param p Exponent of the cartesian Gaussian.
+ * @return arma::colvec Vector where each entry indicates a value of t, and contains E^{i,0}_{t}.
  */
-arma::colvec Coulomb2Centers::Efun_single(const int i, const double p){
+arma::colvec IntegralsCoulomb2C::Efun_single(const int i, const double p){
 
     switch(i)
     {
@@ -210,7 +204,7 @@ arma::colvec Coulomb2Centers::Efun_single(const int i, const double p){
         return arma::colvec {3*facp_to2,  0,  6*facp_to3,  0,  facp_to3*facp};
     }
     default: {
-        throw std::invalid_argument("Coulomb2Centers::Efun_single error: the E^{i,0}_{t} coefficients are being evaluated for i >= 5");
+        throw std::invalid_argument("IntegralsCoulomb2C::Efun_single error: the E^{i,0}_{t} coefficients are being evaluated for i >= 5");
     }
     }
 
@@ -219,8 +213,11 @@ arma::colvec Coulomb2Centers::Efun_single(const int i, const double p){
 /**
  * Method to compute and return the Boys function F_{n}(arg) = \int_{0}^{1}t^{2n}exp(-arg*t^2)dt. It is computed 
  * with the lower incomplete Gamma function as: F_{n}(arg) = Gamma(n+0.5)*IncGamma(n+0.5,arg)/(2*arg^(n+0.5)), see (9.8.20)-Helgaker.
+ * @param n Order of the Boys function.
+ * @param arg Argument of the Boys function.
+ * @return double Value of the Boys function.
  */
-double Coulomb2Centers::Boysfun(const int n, const double arg){
+double IntegralsCoulomb2C::Boysfun(const int n, const double arg){
 
     if(arg < 3.1e-10){
         return (double)1/(2*n + 1);
@@ -237,8 +234,12 @@ double Coulomb2Centers::Boysfun(const int n, const double arg){
 
 /**
  * Method to compute and return the auxiliary Hermite Coulomb integral R^{n}_{0,0,0}(p,arg)=(-2p)^n *F_{n}(arg), see (9.9.14)-Helgaker.
+ * @param n Order of the auxiliary Hermite Coulomb integral.
+ * @param p First argument of the auxiliary Hermite Coulomb integral.
+ * @param arg Second argument of the auxiliary Hermite Coulomb integral.
+ * @return double Value of the auxiliary Hermite Coulomb integral.
  */
-double Coulomb2Centers::Rn000(const int n, const double p, const double arg){
+double IntegralsCoulomb2C::Rn000(const int n, const double p, const double arg){
 
     return std::pow(-2*p,n)*Boysfun( n, arg );
 
@@ -246,8 +247,16 @@ double Coulomb2Centers::Rn000(const int n, const double p, const double arg){
 
 /**
  * Method to compute and return the Hermite Coulomb integral R^{0}_{t,u,v}(r,(X,Y,Z)), see (9.9.9)-Helgaker.
+ * @param t X-coordinate order of the the Hermite Coulomb integral.
+ * @param u Y-coordinate order of the the Hermite Coulomb integral.
+ * @param v Z-coordinate order of the the Hermite Coulomb integral.
+ * @param p Reduced exponent of the pair of Hermite Gaussians.
+ * @param X X-component of the vector from the first Hermite Gaussian to the second.
+ * @param Y Y-component of the vector from the first Hermite Gaussian to the second.
+ * @param Z Z-component of the vector from the first Hermite Gaussian to the second.
+ * @return double Value of the Hermite Coulomb integral.
  */
-double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, const double p, const double X, const double Y, const double Z){
+double IntegralsCoulomb2C::HermiteCoulomb(const int t, const int u, const int v, const double p, const double X, const double Y, const double Z){
 
     double arg = p*(X*X + Y*Y + Z*Z);
     switch(v)
@@ -290,7 +299,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return 105*Rn000(4,p,arg) + X2*(420*Rn000(5,p,arg) + X2*(210*Rn000(6,p,arg) + X2*(28*Rn000(7,p,arg) + X2*Rn000(8,p,arg))));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=0,v=0)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=0,v=0)");
             }
             }
         }
@@ -321,7 +330,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return X*Y*(105*Rn000(5,p,arg) + X2*(105*Rn000(6,p,arg) + X2*(21*Rn000(7,p,arg) + X2*Rn000(8,p,arg))));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=1,v=0)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=1,v=0)");
             }
             }
         }
@@ -350,7 +359,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return 15*Rn000(4,p,arg) + 15*(3*X2 + Y2)*Rn000(5,p,arg) + X2*(15*(X2 + 3*Y2)*Rn000(6,p,arg) + X2*((X2 + 15*Y2)*Rn000(7,p,arg) + X2*Y2*Rn000(8,p,arg)));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=2,v=0)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=2,v=0)");
             }
             }
         }
@@ -371,7 +380,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return X*Y*(45*Rn000(5,p,arg) + 15*(2*X2 + Y2)*Rn000(6,p,arg) + X2*((3*X2 + 10*Y2)*Rn000(7,p,arg) + X2*Y2*Rn000(8,p,arg)));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=3,v=0)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=3,v=0)");
             }
             }
         }
@@ -384,12 +393,12 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return 9*Rn000(4,p,arg) + 18*(X2 + Y2)*Rn000(5,p,arg) + 3*(X2*X2 + Y2*Y2 + 12*X2*Y2)*Rn000(6,p,arg) + 6*X2*Y2*(X2 + Y2)*Rn000(7,p,arg) + X2*X2*Y2*Y2*Rn000(8,p,arg);
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=4,v=0)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=4,v=0)");
             }
             }
         }
         default:  {
-            throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with v=0)");
+            throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with v=0)");
         }
         }
     } 
@@ -419,7 +428,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return Y*Z*(15*Rn000(5,p,arg) + X2*(45*Rn000(6,p,arg) + X2*(15*Rn000(7,p,arg) + X2*Rn000(8,p,arg))));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=1,v=1)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=1,v=1)");
             }
             }
         }
@@ -443,7 +452,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return X*Z*(15*Rn000(5,p,arg) + (10*X2 + 15*Y2)*Rn000(6,p,arg) + X2*((X2 + 10*Y2)*Rn000(7,p,arg) + X2*Y2*Rn000(8,p,arg)));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=2,v=1)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=2,v=1)");
             }
             }
         }
@@ -460,12 +469,12 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return Y*Z*(9*Rn000(5,p,arg) + 3*(6*X2 + Y2)*Rn000(6,p,arg) + X2*(3*(X2 + 2*Y2)*Rn000(7,p,arg) + X2*Y2*Rn000(8,p,arg)));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=3,v=1)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=3,v=1)");
             }
             }
         }
         default:  {
-            throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with v=1)");
+            throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with v=1)");
         }
         }
     } 
@@ -495,7 +504,7 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return 3*Rn000(4,p,arg) + 3*(2*X2 + Y2 + Z2)*Rn000(5,p,arg) + (X2*(X2 + 6*(Y2 + Z2)) + 3*Y2Z2)*Rn000(6,p,arg) + X2*((6*Y2Z2 + X2*(Y2 + Z2))*Rn000(7,p,arg) + X2*Y2Z2*Rn000(8,p,arg));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=2,v=2)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=2,v=2)");
             }
             }
         }
@@ -509,17 +518,17 @@ double Coulomb2Centers::HermiteCoulomb(const int t, const int u, const int v, co
                 return X*Y*(9*Rn000(5,p,arg) + 3*(X2 + Y2 + 3*Z2)*Rn000(6,p,arg) + (X2*Y2 + 3*Z2*(X2 + Y2))*Rn000(7,p,arg) + X2*Y2*Z2*Rn000(8,p,arg));
             }
             default: {
-                throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=3,v=2)");
+                throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with u=3,v=2)");
             }
             }
         }
         default:  {
-            throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with v=2)");
+            throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, with v=2)");
         }
         }
     }
     default:  {
-        throw std::invalid_argument("Coulomb2Centers::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, v>=3)");
+        throw std::invalid_argument("IntegralsCoulomb2C::HermiteCoulomb error: the R^{0}_{t,u,v} coefficients are being evaluated for t+u+v > 8 (in particular, v>=3)");
     }
     }
 

@@ -1,57 +1,47 @@
-#include "xatu/Overlap3Centers.hpp"
+#include "xatu/IntegralsOverlap3C.hpp"
 
 namespace xatu {
 
 /**
- * Constructor that also initializes IntegralsBase from the DFT files. 
- * Should only be used to test the 3-center overlap matrices in isolation.
- * @param GTFConfig GTFConfiguration object.
- * @param tol Tolerance for retaining the entries of the 3-center overlap matrices. These must be > 10^-tol, in absolute value.
- * @param o3Mat_name Name of the file where the 3-center overlap matrices will be stored as a cube (o3Mat_name.o3c).
- * @param o2Mat_name Name of the file where the 2-center overlap matrices in the AUX basis will be stored as a cube (o2Mat_name.o2c).
- */
-Overlap3Centers::Overlap3Centers(const GTFConfiguration& GTFConfig, const int tol, const uint32_t nR2, const std::string& o3Mat_name, const std::string& o2Mat_name) 
-    : Overlap2Centers{GTFConfig, nR2, o2Mat_name, false}, IntegralsBase{GTFConfig} {
-
-    overlap3Cfun(nR2, tol, o3Mat_name);
-
-}
-
-/**
- * Constructor that copies a pre-initialized IntegralsBase and also computes the 2-center overlap in the AUX basis.
+ * Constructor that copies a pre-initialized IntegralsBase.
  * @param IntBase IntegralsBase object.
  * @param tol Tolerance for retaining the entries of the 3-center overlap matrices. These must be > 10^-tol, in absolute value.
  * @param nR2 Number of R and R' that will be considered for the integrals. By default it's IntegralsBase.ncells, and cannot be larger than it.
- * @param o3Mat_name Name of the file where the 3-center overlap matrices will be stored as a cube (o3Mat_name.o3c).
- * @param o2Mat_name Name of the file where the 2-center overlap matrices in the AUX basis will be stored as a cube (o2Mat_name.o2c).
+ * @param intName Name of the file where the 3-center overlap matrices will be stored as a cube (o3Mat_intName.o3c).
  */
-Overlap3Centers::Overlap3Centers(const IntegralsBase& IntBase, const int tol, const uint32_t nR2, const std::string& o3Mat_name, const std::string& o2Mat_name) 
-    : Overlap2Centers{IntBase, nR2, o2Mat_name, false}, IntegralsBase{IntBase} {
+IntegralsOverlap3C::IntegralsOverlap3C(const IntegralsBase& IntBase, const int tol, const uint32_t nR2, const std::string& intName) : IntegralsBase{IntBase} {
 
-    overlap3Cfun(nR2, tol, o3Mat_name);
+    overlap3Cfun(nR2, tol, intName);
 
 }
 
 /**
  * Method to compute the rectangular overlap matrices <P,0|mu,R;mu',R'> in the mixed SCF and auxiliary basis sets for the first nR Bravais
  * vectors R and R' (nR2^2 pairs of vectors). These first nR (at least, until the star of vectors is completed) are generated with IntegralsBase::generateRlist.
- * The resulting cube (third dimension spans auxiliary basis {P}, while the Bravais lattice vectors R and R' vary by rows and columns
- * (respectively) once the block for {mu,mu'} has been completed, i.e., each slice is kron({mu,mu'},{R,R'}) ) is saved in the o3Mat_name.o2c file.
+ * Each entry above a certain tolerance (10^-tol) is stored in an entry of a vector (of arrays) along with the corresponding indices:
+ * P,mu,mu',R,R',value; in that order. The vector is saved in the o3Mat_intName.o3c file.
+ * @param nR2 Square root of the minimum number of direct lattice vectors for which the 3-center overlap integrals will be computed.
+ * @param tol Threshold tolerance for the integrals: only entries > 10^-tol are stored.
+ * @param intName Name of the file where the 3-center overlap matrices will be stored (o3Mat_intName.o3c).
+ * @return void. Matrices and the corresponding list of lattice vectors are stored instead.
  */
-void Overlap3Centers::overlap3Cfun(const uint32_t nR2, const int tol, const std::string& o3Mat_name){
+void IntegralsOverlap3C::overlap3Cfun(const uint32_t nR2, const int tol, const std::string& intName){
 
 // openmp directive to define std::vector insert as a reduction. SEE https://stackoverflow.com/questions/18669296/c-openmp-parallel-for-loop-alternatives-to-stdvector
 #pragma omp declare reduction (merge : std::vector<double> : omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end()))
 #pragma omp declare reduction (merge2 : std::vector<std::array<uint32_t,5>> : omp_out.insert(omp_out.end(), omp_in.begin(), omp_in.end()))
 
-arma::mat RlistAU = ANG2AU*generateRlist(bravaisLattice, nR2);
+const double PIpow = std::pow(PI,1.5);
+arma::mat RlistAU = ANG2AU*generateRlist(nR2, "Overlap3C");
 uint32_t nR2_star = RlistAU.n_cols;
 
 double etol = std::pow(10.,-tol);
 uint64_t dim_Slice = dimMat_SCF*nR2_star;
 uint64_t nelems_slice = dim_Slice*dim_Slice;
 uint64_t total_elem = nelems_slice*dimMat_AUX;
-std::cout << "Computing " << dimMat_AUX << " " << dim_Slice << "x" << dim_Slice << " 3-center overlap matrices..." << std::endl;
+std::cout << "Computing " << dimMat_AUX << " " << dimMat_SCF << "x" << nR2_star << "x" << dimMat_SCF << "x" << nR2_star << " 3-center overlap matrices..." << std::flush;
+
+// Start the calculation
 auto begin = std::chrono::high_resolution_clock::now();  
 
     std::vector<double> overlap3Matrices_val; //Each entry is a 3-center overlap matrix element above the defined tolerance 
@@ -61,13 +51,13 @@ auto begin = std::chrono::high_resolution_clock::now();
     for(uint64_t s = 0; s < total_elem; s++){ //Spans all the matrix elements of the cube
         uint64_t sind {s % nelems_slice};   //Index for the entry within the slice matrix (single index for {mu,R,mu',R'}) corresponding to loop index s. Iterates first over columns (mu,R)
         
-        uint32_t Pind {s / nelems_slice};     //Slice of the cube (or AUX basis component P, <dimMat_AUX) corresponding to loop index s 
+        uint32_t Pind {static_cast<uint32_t>(s / nelems_slice)};     //Slice of the cube (or AUX basis component P, <dimMat_AUX) corresponding to loop index s 
         uint64_t muRind1 {sind % dim_Slice};  //Row in the slice matrix (single index for {mu,R})
-        uint32_t muind1 {muRind1 % dimMat_SCF};    //Orbital number mu (<dimMat_SCF) corresponding to loop index s
-        uint32_t Rind1  {muRind1 / dimMat_SCF};    //Direct lattice vector index (<nR2_star) corresponding to loop index s
+        uint32_t muind1 {static_cast<uint32_t>(muRind1 % dimMat_SCF)};    //Orbital number mu (<dimMat_SCF) corresponding to loop index s
+        uint32_t Rind1  {static_cast<uint32_t>(muRind1 / dimMat_SCF)};    //Direct lattice vector index (<nR2_star) corresponding to loop index s
         uint64_t muRind2 {sind / dim_Slice};  //Column in the slice matrix (single index for {mu',R'}) 
-        uint32_t muind2 {muRind2 % dimMat_SCF};    //Orbital number mu' (<dimMat_SCF) corresponding to loop index s 
-        uint32_t Rind2  {muRind2 / dimMat_SCF};    //Direct lattice vector R' (<nR2_star) corresponding to loop index s
+        uint32_t muind2 {static_cast<uint32_t>(muRind2 % dimMat_SCF)};    //Orbital number mu' (<dimMat_SCF) corresponding to loop index s 
+        uint32_t Rind2  {static_cast<uint32_t>(muRind2 / dimMat_SCF)};    //Direct lattice vector R' (<nR2_star) corresponding to loop index s
 
         int L_P  {orbitals_info_int_AUX[Pind][2]};
         int m_P  {orbitals_info_int_AUX[Pind][3]};
@@ -210,7 +200,7 @@ auto begin = std::chrono::high_resolution_clock::now();
             }
         }
 
-        overlap3_g_pre0 *= FAC12_AUX[Pind]*FAC12_SCF[muind1]*FAC12_SCF[muind2]*std::pow(PI,1.5);
+        overlap3_g_pre0 *= FAC12_AUX[Pind]*FAC12_SCF[muind1]*FAC12_SCF[muind2]*PIpow;
         if(std::abs(overlap3_g_pre0) > etol){
             overlap3Matrices_val.push_back(overlap3_g_pre0);
             overlap3Matrices_ind.push_back({Pind,muind1,muind2,Rind1,Rind2});
@@ -221,8 +211,9 @@ auto begin = std::chrono::high_resolution_clock::now();
     auto end = std::chrono::high_resolution_clock::now(); 
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin); 
 
+// Store the matrices and the list of direct lattice vectors
 uint64_t n_entries = overlap3Matrices_val.size();
-std::ofstream output_file(IntFiles_Dir + o3Mat_name + ".o3c");
+std::ofstream output_file(IntFiles_Dir + "o3Mat_" + intName + ".o3c");
 output_file << "Entry, P, mu, mu', R, R'" << std::endl;
 output_file << n_entries << std::endl;
 output_file << "Matrix density: " << ((double)n_entries/total_elem)*100 << " %" << std::endl;
@@ -230,18 +221,23 @@ for(uint64_t ent = 0; ent < n_entries; ent++){
     output_file << overlap3Matrices_val[ent] << ", " << overlap3Matrices_ind[ent][0] << ", " << overlap3Matrices_ind[ent][1] << ", " <<
         overlap3Matrices_ind[ent][2] << ", " << overlap3Matrices_ind[ent][3] << ", " << overlap3Matrices_ind[ent][4] << std::endl;
 }
+RlistAU.save(IntFiles_Dir + "RlistAU_" + intName + ".o3c",arma::arma_ascii);
 
-// overlap3Matrices.save(IntFiles_Dir + o3Mat_name + ".o3c",arma::arma_ascii);  //save matrices to file
-
-std::cout << "Done! Elapsed wall-clock time: " << std::to_string( elapsed.count() * 1e-3 ) << " seconds. Values above 10^-" << std::to_string(tol) <<
-    " stored in the file: " << IntFiles_Dir + o3Mat_name << ".o3c." << std::endl;
+std::cout << "Done! Elapsed wall-clock time: " << std::to_string( elapsed.count() * 1e-3 ) << " seconds." << std::endl;
+std::cout << "Values above 10^-" << std::to_string(tol) << " stored in the file: " << IntFiles_Dir + "o3Mat_" + intName + ".o3c" << 
+    ", and list of Bravais vectors in " << IntFiles_Dir + "RlistAU_" + intName + ".o3c" << std::endl;
 
 }
 
 /**
  * Method to compute the E^{i,i'}_{0} coefficients, for (5 <= i <= 8, i' <= 4). Returns only the t=0 component.
+ * @param index Bijection (i,i') to a single integer, given by index(i,i')= i' + i(i+1)/2.
+ * @param p Sum of the exponents of the two individual Gaussians.
+ * @param PA The corresponding spatial component of the vector going from the center of first Gaussian to the center of the Hermite Gaussian.
+ * @param PB The corresponding spatial component of the vector going from the center of second Gaussian to the center of the Hermite Gaussian.
+ * @return double E^{i,i'}_{0}.
  */
-double Overlap3Centers::EfunTriplet0(const int index, const double p, const double PA, const double PB){
+double IntegralsOverlap3C::EfunTriplet0(const int index, const double p, const double PA, const double PB){
 
     switch(index)
     {
@@ -382,16 +378,21 @@ double Overlap3Centers::EfunTriplet0(const int index, const double p, const doub
         return ((PAPAp*(PAPAp*(PAPAp*(PAPAp*(64*PBPBp*(PBPBp + 3) + 48) + PBPBp*(1024*PAPBp + 896*PBPBp + 8064) + 1536*PAPBp + 3360) + PBPBp*(10752*PAPBp + 3360*PBPBp + 50400) + 26880*PAPBp + 29400)+ 3360*PBPBp*(8*PAPBp + PBPBp + 21) + 94080*PAPBp + 52920) + PAPBp*(13440*PBPBp + 60480) + 420*PBPBp*(PBPBp + 27) + 10395)*facp3*facp3);
     }
     default: {
-        throw std::invalid_argument("Overlap3Centers_Mat::EfunTriplet0 error: the E^{i,i'}_{0} coefficients are being evaluated for i >= 9 and/or i' >= 5");
+        throw std::invalid_argument("IntegralsOverlap3C::EfunTriplet0 error: the E^{i,i'}_{0} coefficients are being evaluated for i >= 9 and/or i' >= 5");
     }
     }
 
 }
 
-// Coefficients D^{t}_{l}(p) in the expansion \Lambda_{t}(x,p,Px) = D^{t}_{l}(p) *(x-Px)^l *exp(-p(x-Px)^2).
-// The argument t spans 0 <= t <= 8, and the entries of the returned vector are the nonzero D^{t}_{l} for the given t.  
-// There are ceil((t+1)/2) of such entries, each corresponding to l = t, t-2, t-4, ... 1 (or 0)
-std::vector<double> Overlap3Centers::Dfun(const int t, const double p){
+/** 
+ * Coefficients D^{t}_{l}(p) in the expansion \Lambda_{t}(x,p,Px) = D^{t}_{l}(p) *(x-Px)^l *exp(-p(x-Px)^2).
+ * The argument t spans 0 <= t <= 8, and the entries of the returned vector are the nonzero D^{t}_{l} for the given t.  
+ * There are ceil((t+1)/2) of such entries, each corresponding to l = t, t-2, t-4, ... 1 (or 0).
+ * @param t Order of the Hermite Gaussian to be expanded.
+ * @param p Exponent of the Hermite Gaussian to be expanded.
+ * @return std::vector<double> Vector where each entry indicates a value of l = t, t-2, t-4, ... 1 (or 0), and contains D^{t}_{l}.
+ */
+std::vector<double> IntegralsOverlap3C::Dfun(const int t, const double p){
 
     switch(t)
     {
@@ -430,7 +431,7 @@ std::vector<double> Overlap3Centers::Dfun(const int t, const double p){
         return std::vector<double> {105*fac, -840*p*fac, 840*p*p*fac, -224*p*p*p*fac, fac*fac};
     }
     default: {
-        throw std::invalid_argument("Overlap3Centers::Dfun error: the D^{t}_{l} coefficients are being evaluated for t not in [0,8]");
+        throw std::invalid_argument("IntegralsOverlap3C::Dfun error: the D^{t}_{l} coefficients are being evaluated for t not in [0,8]");
     }
     }
 

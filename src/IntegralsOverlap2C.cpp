@@ -1,55 +1,49 @@
-#include "xatu/Overlap2Centers.hpp"
+#include "xatu/IntegralsOverlap2C.hpp"
 #include <chrono>
 
 namespace xatu {
 
 /**
- * Constructor that also initializes IntegralsBase from the DFT files. It computes the matrices in the auxiliary basis set.
- * Should only be used to test the 2-center overlap matrices in isolation. 
- * @param GTFConfig GTFConfiguration object.
- * @param o2Mat_name Name of the file where the 2-center overlap matrices will be stored as a cube (o2Mat_name.o2c).
- * @param comp True => Compute the integrals, False => Don't compute the integrals.
- */
-Overlap2Centers::Overlap2Centers(const GTFConfiguration& GTFConfig, const uint32_t nR, const std::string& o2Mat_name, const bool comp) : IntegralsBase{GTFConfig} {
-
-    if(comp){
-        overlap2Cfun(nR, o2Mat_name);
-    }
-
-}
-
-/**
- * Constructor that copies a pre-initialized IntegralsBase.
+ * Constructor that copies a pre-initialized IntegralsBase object.
  * @param IntBase IntegralsBase object.
- * @param o2Mat_name Name of the file where the 2-center overlap matrices will be stored as a cube (o2Mat_name.o2c).
+ * @param nR Minimum number of direct lattice vectors for which the 2-center overlap integrals will be computed.
+ * @param intName Name of the file where the 2-center overlap matrices will be stored as a cube (o2Mat_intName.o2c).
  * @param basis_id True => SCF basis, False => Auxiliary basis.
  */
-Overlap2Centers::Overlap2Centers(const IntegralsBase& IntBase, const uint32_t nR, const std::string& o2Mat_name, const bool basis_id) : IntegralsBase{IntBase} {
+IntegralsOverlap2C::IntegralsOverlap2C(const IntegralsBase& IntBase, const uint32_t nR, const std::string& intName, const bool basis_id) : IntegralsBase{IntBase} {
 
-    overlap2Cfun(nR, o2Mat_name, basis_id);
+    overlap2Cfun(nR, intName, basis_id);
 
 }
 
 /**
- * Method to compute the overlap matrices in the auxiliary (if basis_id == false) or SCF (if basis_id == true) basis (<P,0|P',R> or <mu,0|mu',R>) 
+ * Method to compute and store the overlap matrices in the auxiliary (if basis_id == false) or SCF (if basis_id == true) basis (<P,0|P',R> or <mu,0|mu',R>) 
  * for the first nR Bravais vectors R. These first nR (at least, until the star of vectors is completed) are generated with IntegralsBase::generateRlist.
- * The resulting cube (third dimension spans the Bravais vectors) is saved in the o2Mat_name.o2c file.
- * The basis_id parameter determines the basis for which the integrals will be computed: true => SCF, false => AUX.
+ * The resulting cube (third dimension spans the Bravais vectors) is saved in the o2Mat_intName.o2c file, and the list of Bravais vectors in atomic units
+ * is saved in the RlistAU_intName.o2c file.
+ * @param nR Minimum number of direct lattice vectors for which the 2-center overlap integrals will be computed.
+ * @param intName Name of the file where the 2-center overlap matrices will be stored as a cube (o2Mat_intName.o2c).
+ * @param basis_id True => SCF basis, False => Auxiliary basis.
+ * @return void. Matrices and the corresponding list of lattice vectors are stored instead.
  */
-void Overlap2Centers::overlap2Cfun(const uint32_t nR, const std::string& o2Mat_name, const bool basis_id){
+void IntegralsOverlap2C::overlap2Cfun(const uint32_t nR, const std::string& intName, const bool basis_id){
 
-arma::mat RlistAU = ANG2AU*generateRlist(bravaisLattice, nR);
+const double PIpow = std::pow(PI,1.5);
+arma::mat RlistAU = ANG2AU*generateRlist(nR, "Overlap2C");  //convert Bravais vectors from Angstrom to atomic units
 uint32_t nR_star = RlistAU.n_cols;
 std::map<uint32_t,uint32_t> RlistOpposites = generateRlistOpposite(RlistAU);
 
-uint32_t dimMat {basis_id? dimMat_SCF : dimMat_AUX};
-std::vector<std::vector<int>> orbitals_info_int {basis_id? orbitals_info_int_SCF : orbitals_info_int_AUX};
-std::vector<std::vector<double>> orbitals_info_real {basis_id? orbitals_info_real_SCF : orbitals_info_real_AUX};
-std::vector<double> FAC12 {basis_id? FAC12_SCF : FAC12_AUX};
-std::vector<std::vector<double>> FAC3 {basis_id? FAC3_SCF : FAC3_AUX};
+// Discern between basis sets
+const uint32_t dimMat {basis_id? dimMat_SCF : dimMat_AUX};
+const std::vector<std::vector<int>>& orbitals_info_int {basis_id? orbitals_info_int_SCF : orbitals_info_int_AUX};
+const std::vector<std::vector<double>>& orbitals_info_real {basis_id? orbitals_info_real_SCF : orbitals_info_real_AUX};
+const std::vector<double>& FAC12 {basis_id? FAC12_SCF : FAC12_AUX};
+const std::vector<std::vector<double>>& FAC3 {basis_id? FAC3_SCF : FAC3_AUX};
+const std::string basis_string {basis_id? "SCF" : "AUX"};
 
-std::string basis_string {basis_id? "SCF" : "AUX"};
-std::cout << "Computing " << nR_star << " " << dimMat << "x" << dimMat << " 2-center overlap matrices in the " << basis_string  << " basis..." << std::endl;
+std::cout << "Computing " << nR_star << " " << dimMat << "x" << dimMat << " 2-center overlap matrices in the " << basis_string  << " basis..." << std::flush;
+
+// Start the calculation
 auto begin = std::chrono::high_resolution_clock::now();  
 
     uint64_t nelem_triang = 0.5*dimMat*(dimMat + 1);
@@ -59,11 +53,10 @@ auto begin = std::chrono::high_resolution_clock::now();
     #pragma omp parallel for 
     for(uint64_t s = 0; s < total_elem; s++){ //Spans the lower triangle of all the nR_star matrices <P,0|P',R>
         uint64_t sind {s % nelem_triang};    //Index for the corresponding entry in the overlap matrix, irrespective of the specific R
-        uint32_t Rind {s / nelem_triang};         //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
+        uint32_t Rind {static_cast<uint32_t>(s / nelem_triang)};         //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
         std::array<uint32_t,2> orb_braket {triangInd_to_rowcol.at(sind)}; 
         // arma::colvec R {RlistAU.col(Rind)};  //Bravais vector (a.u.) corresponding to the "s" matrix element
         uint32_t RindOpp    {RlistOpposites.at(Rind)};  //Position in RlistAU (i.e. 0 for R=0) of the opposite of the corresponding Bravais vector 
-
         uint32_t orb_bra {orb_braket[0]};   //Orbital number (<dimMat) of the bra corresponding to the index s 
         int L_bra  {orbitals_info_int[orb_bra][2]};
         int m_bra  {orbitals_info_int[orb_bra][3]};
@@ -128,33 +121,42 @@ auto begin = std::chrono::high_resolution_clock::now();
                 overlap2Matrices(orb_bra,orb_ket,Rind) += overlap_g_pre;
             }
         }
-        overlap2Matrices(orb_bra,orb_ket,Rind) *= FAC12_braket*std::pow(PI,1.5);
+        overlap2Matrices(orb_bra,orb_ket,Rind) *= FAC12_braket*PIpow;
         if(orb_bra > orb_ket){
             overlap2Matrices(orb_ket,orb_bra,RindOpp) = overlap2Matrices(orb_bra,orb_ket,Rind);
         }
 
     }
 
-auto end = std::chrono::high_resolution_clock::now(); 
-auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin); 
+    auto end = std::chrono::high_resolution_clock::now(); 
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin); 
 
-overlap2Matrices.save(IntFiles_Dir + o2Mat_name + ".o2c",arma::arma_ascii);  //save matrices to file
+// Store the matrices and the list of direct lattice vectors
+overlap2Matrices.save(IntFiles_Dir + "o2Mat_" + intName + ".o2c", arma::arma_ascii); 
+RlistAU.save(IntFiles_Dir + "RlistAU_" + intName + ".o2c", arma::arma_ascii);
 
-std::cout << "Done! Elapsed wall-clock time: " << std::to_string( elapsed.count() * 1e-3 ) << " seconds. Matrices stored in the file: " << 
-    IntFiles_Dir + o2Mat_name << ".o2c." << std::endl;
+std::cout << "Done! Elapsed wall-clock time: " << std::to_string( elapsed.count() * 1e-3 ) << " seconds." << std::endl;
+std::cout << "Matrices stored in the file: " << IntFiles_Dir + "o2Mat_" + intName + ".o2c" << 
+    " , and list of Bravais vectors in " << IntFiles_Dir + "RlistAU_" + intName + ".o2c" << std::endl;
 
 double trace_overlap0 {arma::trace(overlap2Matrices.slice(0))};
 if(std::abs(trace_overlap0-dimMat) >= 0.1){
-    std::cerr << "WARNING! There is a deviation of " << 100*abs(trace_overlap0-dimMat)/dimMat << 
-        "% in the trace of the 2-center overlap matrix in the reference cell. Please, contact the devs!" << std::endl;
+    std::cerr << "UNEXPECTED ERROR! There is a deviation of " << 100*abs(trace_overlap0-dimMat)/dimMat << 
+        "% in the trace of the 2-center overlap matrix in the reference cell." << std::endl;
+    throw std::logic_error("Please, contact the developers.");
 }
 
 }
 
 /**
- * Method to compute the E^{i,i'}_{0} coefficients, for i,i'<=4. Returns only the t=0 component.
+ * Method to compute the E^{i,i'}_{0} Hermite Gaussian coefficients, for i,i'<=4. Returns only the t=0 component.
+ * @param index Bijection (i,i') to a single integer, given by index(i,i')= i' + i(i+1)/2.
+ * @param p Sum of the exponents of the two individual Gaussians.
+ * @param PA The corresponding spatial component of the vector going from the center of first Gaussian to the center of the Hermite Gaussian.
+ * @param PB The corresponding spatial component of the vector going from the center of second Gaussian to the center of the Hermite Gaussian.
+ * @return double E^{i,i'}_{0}.
  */
-double Overlap2Centers::Efunt0(const int index, const double p, const double PA, const double PB){
+double IntegralsOverlap2C::Efunt0(const int index, const double p, const double PA, const double PB){
 
     switch(index)
     {
@@ -226,7 +228,7 @@ double Overlap2Centers::Efunt0(const int index, const double p, const double PA,
         + PAPBp*(PBPBp*192 + 480) + PBPBp*12*(PBPBp + 15) + 105)*facp_to2*facp_to2);
     }
     default: {
-        throw std::invalid_argument("Overlap2Centers::Efunt0 error: the E^{i,i'}_{0} coefficients are being evaluated for i and/or i' >= 5");
+        throw std::invalid_argument("IntegralsOverlap2C::Efunt0 error: the E^{i,i'}_{0} coefficients are being evaluated for i and/or i' >= 5");
     }
     }
         

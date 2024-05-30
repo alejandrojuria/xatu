@@ -1,31 +1,35 @@
-#include "xatu/Overlap2MixCenters.hpp"
+#include "xatu/IntegralsOverlap2MixC.hpp"
 
 namespace xatu {
 
 /**
- * Constructor that copies a pre-initialized IntegralsBase and also computes the 2-center overlap in the SCF basis.
+ * Constructor that copies a pre-initialized IntegralsBase.
  * @param IntBase IntegralsBase object.
- * @param o2MixMat_name Name of the file where the mixed 2-center overlap matrices will be stored as a cube (o2MixMat_name.o2mc).
- * @param o2Mat_name Name of the file where the 2-center overlap matrices in the SCF basis will be stored as a cube (o2Mat_name.o2c).
+ * @param intName Name of the file where the mixed 2-center overlap matrices will be stored as a cube (o2MixMat_intName.o2mc).
  */
-Overlap2MixCenters::Overlap2MixCenters(const IntegralsBase& IntBase, const uint32_t nR, const std::string& o2MixMat_name, const std::string& o2Mat_name) 
-    : IntegralsBase{IntBase}, Overlap2Centers{IntBase, nR, o2Mat_name, true} {
+IntegralsOverlap2MixC::IntegralsOverlap2MixC(const IntegralsBase& IntBase, const uint32_t nR, const std::string& intName) : IntegralsBase{IntBase} {
 
-    overlap2MixCfun(nR, o2MixMat_name);
-
+    overlap2MixCfun(nR, intName);
+    
 }
 
 /**
  * Method to compute the overlap matrices in the mixed SCF and auxiliary basis sets (<P,0|mu,R>) for the first nR Bravais vectors R. 
  * These first nR (at least, until the star of vectors is completed) are generated with IntegralsBase::generateRlist.
- * The resulting cube (third dimension spans the Bravais vectors) is saved in the o2MixMat_name.o2mc file.
+ * The resulting cube (third dimension spans the Bravais vectors) is saved in the o2MixMat_intName.o2mc.
+ * @param nR Minimum number of direct lattice vectors for which the 2-center overlap integrals will be computed.
+ * @param intName Name of the file where the mixed 2-center overlap matrices will be stored as a cube (o2MixMat_name.o2mc).
+ * @return void. Matrices and the corresponding list of lattice vectors are stored instead.
  */
-void Overlap2MixCenters::overlap2MixCfun(const uint32_t nR, const std::string& o2MixMat_name){
+void IntegralsOverlap2MixC::overlap2MixCfun(const uint32_t nR, const std::string& intName){
 
-arma::mat RlistAU = ANG2AU*generateRlist(bravaisLattice, nR);
+const double PIpow = std::pow(PI,1.5);
+arma::mat RlistAU = ANG2AU*generateRlist(nR, "Overlap2MixC");
 uint32_t nR_star = RlistAU.n_cols;
 
-std::cout << "Computing " << nR_star << " " << dimMat_AUX << "x" << dimMat_SCF << " 2-center mixed overlap matrices..." << std::endl;
+std::cout << "Computing " << nR_star << " " << dimMat_AUX << "x" << dimMat_SCF << " 2-center mixed overlap matrices..." << std::flush;
+
+// Start the calculation
 auto begin = std::chrono::high_resolution_clock::now();  
 
     uint64_t nelem_rectang = dimMat_AUX*dimMat_SCF;
@@ -35,9 +39,9 @@ auto begin = std::chrono::high_resolution_clock::now();
     #pragma omp parallel for
     for(uint64_t s = 0; s < total_elem; s++){ //Spans all the elements of all the nR_star matrices <P,0|mu,R>
         uint64_t sind {s % nelem_rectang};   //Index for the corresponding entry in the overlap matrix, irrespective of the specific R
-        uint32_t Rind {s / nelem_rectang};   //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
-        uint32_t orb_bra {sind % dimMat_AUX};  //Orbital number (<dimMat_AUX) of the bra corresponding to the index s
-        uint32_t orb_ket {sind / dimMat_AUX};  //Orbital number (<dimMat_SCF) of the ket corresponding to the index s
+        uint32_t Rind {static_cast<uint32_t>(s / nelem_rectang)};   //Position in RlistAU (i.e. 0 for R=0) of the corresponding Bravais vector 
+        uint32_t orb_bra {static_cast<uint32_t>(sind % dimMat_AUX)};  //Orbital number (<dimMat_AUX) of the bra corresponding to the index s
+        uint32_t orb_ket {static_cast<uint32_t>(sind / dimMat_AUX)};  //Orbital number (<dimMat_SCF) of the ket corresponding to the index s
         // arma::colvec R {RlistAU.col(Rind)};  //Bravais vector (a.u.) corresponding to the "s" matrix element
 
         int L_bra  {orbitals_info_int_AUX[orb_bra][2]};
@@ -103,17 +107,20 @@ auto begin = std::chrono::high_resolution_clock::now();
                 overlap2MixMatrices(orb_bra,orb_ket,Rind) += overlap_g_pre;
             }
         }
-        overlap2MixMatrices(orb_bra,orb_ket,Rind) *= FAC12_braket*std::pow(PI,1.5);
+        overlap2MixMatrices(orb_bra,orb_ket,Rind) *= FAC12_braket*PIpow;
 
     }
 
 auto end = std::chrono::high_resolution_clock::now(); 
 auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - begin); 
 
-overlap2MixMatrices.save(IntFiles_Dir + o2MixMat_name + ".o2mc",arma::arma_ascii);  //save matrices to file
+// Store the matrices and the list of direct lattice vectors
+overlap2MixMatrices.save(IntFiles_Dir + "o2MixMat_" + intName + ".o2mc", arma::arma_ascii); 
+RlistAU.save(IntFiles_Dir + "RlistAU_" + intName + ".o2mc", arma::arma_ascii);
 
-std::cout << "Done! Elapsed wall-clock time: " << std::to_string( elapsed.count() * 1e-3 ) << " seconds. Matrices stored in the file: " << 
-    IntFiles_Dir + o2MixMat_name << ".o2mc." << std::endl;
+std::cout << "Done! Elapsed wall-clock time: " << std::to_string( elapsed.count() * 1e-3 ) << " seconds." << std::endl;
+std::cout << "Matrices stored in the file: " << IntFiles_Dir + "o2MixMat_" + intName + ".o2mc" << 
+    " , and list of Bravais vectors in " << IntFiles_Dir + "RlistAU_" + intName + ".o2mc" << std::endl;
 
 }
 
