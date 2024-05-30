@@ -4,60 +4,55 @@
 namespace xatu {
 
 /**
- * Standard constructor. Should only be used once, after that use the copy constructor.
- * @details Constructor which takes in a GTFConfiguration object, i.e.
- * to init the parameters needed for all integrals from the DFT configuration files.
- * @param configuration GTFConfiguration object.
- * @param integrals_directory Location where the integrals files generated in this family of classes will be stored. The folder must exist in the first place!
+ * Default constructor.
+ * @details The default constructor throws an error as the class must always be initialized from a parsed .outp + basis sets
+ * configuration or another IntegralsBase object.
  */
-IntegralsBase::IntegralsBase(const GTFConfiguration& GTFconfig, const std::string& integrals_directory) {
+IntegralsBase::IntegralsBase() {
 
-    this->IntFiles_Dir = integrals_directory;
-	initializeBasesAttributes(GTFconfig);
-    buildOrbitalsInfo(GTFconfig);
+    throw std::invalid_argument("IntegralsBase must be called with either a ConfigurationCRYSTAL or another IntegralsBase object");
+    
+}
+
+/**
+ * Standard constructor. Should only be used once, afterwards use the copy constructor.
+ * @details Constructor which takes in a ConfigurationCRYSTAL and ConfigurationGTF objects, in order to init the parameters needed for 
+ * all integrals from the DFT configuration and basis sets files.
+ * @param CRYSTALconfig ConfigurationCRYSTAL object.
+ * @param GTFconfig ConfigurationGTF object.
+ * @param integrals_directory Location where the integrals and list of Bravais vectors files generated in this family of classes will be stored. 
+ *        The folder must exist in the first place!
+ */
+IntegralsBase::IntegralsBase(const ConfigurationCRYSTAL& CRYSTALconfig, const ConfigurationGTF& GTFconfig, const std::string& integrals_directory) 
+    : Lattice{CRYSTALconfig} {
+
+    this->IntFiles_Dir_ = integrals_directory;
+    buildOrbitalsInfo(GTFconfig, CRYSTALconfig.natoms, CRYSTALconfig.motif);
+    if(dimMat_SCF != CRYSTALconfig.norbitals){
+        throw std::logic_error("IntegralsBase::buildOrbitalsInfo error: mismatch between in SCF basis dimension between the .outp and the bases files");
+    }
 
     gfun( maxL );
-    triangIndfun(dimMat_AUX);
+    triangIndfun();
     FAC12fun(GTFconfig, maxL, true );
     FAC12fun(GTFconfig, maxL, false );
     FAC3fun( true );
     FAC3fun( false );
 
-};
-
-/**
- * Copy constructor. It should be used after the first use of the standard constructor.
- */
-IntegralsBase::IntegralsBase(const IntegralsBase& IntBase) = default;
-
-/**
- * Method to initialize IntegralsBase attributes from GTFConfiguration object.
- */
-void IntegralsBase::initializeBasesAttributes(const GTFConfiguration& GTFconfig){
-
-    ndim_                    = GTFconfig.ndim;	
-    nspecies_                = GTFconfig.nspecies;
-    motif_                   = GTFconfig.motif;
-    bravaisLattice_          = GTFconfig.bravaisLattice;
-    natoms_                  = motif.n_rows;
-
-    // RlistAU_                 = ANG2AU*(GTFconfig.Rlist);   //conversion from Angstrom to atomic units
-    // RlistOpposites_          = GTFconfig.RlistOpposites;
-    // R_unpaired_              = GTFconfig.R_unpaired;
-    
-	// ncells_ = RlistAU.n_cols;
-
 }
 
-
 /**
- * Method to build the arma::mat orbitals_info attributes. 
+ * Method to build the arma::mat orbitals_info attributes.
+ * @param GTFconfig ConfigurationGTF object.
+ * @param natoms Number of atoms in the unit cell. From a ConfigurationCRYSTAL object.
+ * @param motif Matrix containing the positions of the atoms of the motif by columns. From a ConfigurationCRYSTAL object.
+ * @return void. 
  */
-void IntegralsBase::buildOrbitalsInfo(const GTFConfiguration& GTFconfig){
+void IntegralsBase::buildOrbitalsInfo(const ConfigurationGTF& GTFconfig, const int natoms, const arma::mat& motif){
 
     std::vector<int> maxL_spec_SCF, maxL_spec_AUX;
     for(int atom = 0; atom < natoms; atom++){
-        int spec = motif.at(atom,3);
+        int spec = motif(3,atom);
         std::vector<int> L_spec_SCF = GTFconfig.L_all_species_SCF[spec];
         std::vector<int> L_spec_AUX = GTFconfig.L_all_species_AUX[spec];
         maxL_spec_SCF.push_back( *std::max_element(L_spec_SCF.begin(),L_spec_SCF.end()) );
@@ -71,8 +66,8 @@ void IntegralsBase::buildOrbitalsInfo(const GTFConfiguration& GTFconfig){
     std::vector<std::vector<double>> orbitals_info_real_SCF, orbitals_info_real_AUX;
 
     for(int atom = 0; atom < natoms; atom++){
-        int spec = motif(atom,3);
-        std::vector<double> coords_atom {ANG2AU*motif(atom,0), ANG2AU*motif(atom,1), ANG2AU*motif(atom,2)};
+        int spec = motif(3,atom);
+        std::vector<double> coords_atom {ANG2AU*motif(0,atom), ANG2AU*motif(1,atom), ANG2AU*motif(2,atom)};
         int nsh_spec_SCF = GTFconfig.nshells_all_species_SCF[spec];
         int nsh_spec_AUX = GTFconfig.nshells_all_species_AUX[spec];
         std::vector<int> L_spec_SCF  = GTFconfig.L_all_species_SCF[spec];
@@ -108,93 +103,20 @@ void IntegralsBase::buildOrbitalsInfo(const GTFConfiguration& GTFconfig){
         
     }
 
-    this->orbitals_info_int_SCF  = orbitals_info_int_SCF;
-    this->orbitals_info_real_SCF = orbitals_info_real_SCF;
-    this->orbitals_info_int_AUX  = orbitals_info_int_AUX;
-    this->orbitals_info_real_AUX = orbitals_info_real_AUX;
-    this->dimMat_SCF = ( orbitals_info_int_SCF.size() );
-    this->dimMat_AUX = ( orbitals_info_int_AUX.size() );
-    this->maxL = maxL;
+    this->orbitals_info_int_SCF_  = orbitals_info_int_SCF;
+    this->orbitals_info_real_SCF_ = orbitals_info_real_SCF;
+    this->orbitals_info_int_AUX_  = orbitals_info_int_AUX;
+    this->orbitals_info_real_AUX_ = orbitals_info_real_AUX;
+    this->dimMat_SCF_ = ( orbitals_info_int_SCF.size() );
+    this->dimMat_AUX_ = ( orbitals_info_int_AUX.size() );
+    this->maxL_ = maxL;
 
-}
-
-/**
-* Method to create the matrix of the first nR (at least) Bravais vectors, stored by columns and ordered by ascending norm.
-* The number of returned vectors is at least nR because full stars are given. bravaisLattice is (ndim x 3) and contains R1,R2,R3 by columns.
-* It basically substitutes RlistAU for the integrals when more R-vectors are requested than contained in the .outp.
-*/
-arma::mat IntegralsBase::generateRlist(const arma::mat& bravaisLattice, const uint32_t nR){
-
-    arma::rowvec norms_Ri = arma::sqrt(arma::sum(bravaisLattice % bravaisLattice));
-    // Automatic correction accounting for possibly large differences of norms in the lattice vectors
-    int normRatio = std::ceil(0.5*arma::max(norms_Ri.cols(0,ndim-1))/arma::min(norms_Ri.cols(0,ndim-1))); 
-    // Conservative estimate to make sure that none of the first n vectors is left out
-    double RindmaxAux = std::ceil(3*normRatio*std::sqrt(nR));
-    arma::rowvec Rindmax;
-    if(ndim == 3){
-        Rindmax = {RindmaxAux, RindmaxAux, RindmaxAux};
-    } else if(ndim == 2){
-        Rindmax = {RindmaxAux, RindmaxAux, 0}; 
-    } else if(ndim == 1){
-        Rindmax = {RindmaxAux, 0, 0}; 
-    } else {
-        throw std::logic_error("IntegralsBase::generateRlist error: attempted to construct list of Bravais vectors for a finite system");
-    }
-
-    arma::mat generated_Rlist = {}; 
-    arma::colvec generated_norms = {};     
-    for(int Rind1 = -Rindmax(0); Rind1 <= Rindmax(0); Rind1++){
-        for(int Rind2 = -Rindmax(1); Rind2 <= Rindmax(1); Rind2++){
-            for(int Rind3 = -Rindmax(2); Rind3 <= Rindmax(2); Rind3++){
-                arma::irowvec Rindvec = {Rind1, Rind2, Rind3};
-                arma::rowvec Rvec = Rindvec.cols(0,ndim-1)*bravaisLattice;
-                generated_Rlist = arma::join_vert(generated_Rlist, Rvec);
-
-                arma::colvec norm_aux(1,arma::fill::value(arma::norm(Rvec)));
-                generated_norms = arma::join_vert(generated_norms, norm_aux);
-            }       
-        }
-    }
-
-    arma::ucolvec indices = arma::sort_index(generated_norms);
-    generated_norms = arma::sort(generated_norms);
-    generated_Rlist = generated_Rlist.rows(indices); // Order the lattice vectors (stored as rows still) according to the norms 
-
-    double requested_norm = generated_norms(nR - 1);
-    uint32_t countr = nR;
-    double current_norm = generated_norms(countr);
-    std::cout << "Requested direct lattice vectors maximum norm: " << requested_norm << " Angstrom (IntegralsBase::generateRlist)" << std::endl;
-
-    while(current_norm - requested_norm < 1e-3){
-        countr++;
-        current_norm = generated_norms(countr);
-    }
-    return (generated_Rlist.rows(0, countr - 1)).t();
-
-}
-
-/**
- * Returns a map where each entry is the index of the direct lattice vector in Rlist opposite to the lattice vector whose index is 
- * the corresponding map's key. 
- */
-std::map<uint32_t,uint32_t> IntegralsBase::generateRlistOpposite(const arma::mat& Rlist){
-
-    uint32_t nRlist = Rlist.n_cols; 
-    std::map<uint32_t,uint32_t> RlistOpposites;
-    for(uint32_t RindOpp = 0; RindOpp < nRlist; RindOpp++){
-        for(uint32_t Rind = 0; Rind < nRlist; Rind++){
-            arma::colvec Rsum = Rlist.col(Rind) + Rlist.col(RindOpp);
-            if( Rsum.is_zero(0.001) ){
-                RlistOpposites[RindOpp] = Rind;
-            }
-        }
-
-    }
-    return RlistOpposites;
 }
 
 /**
  * Method to build the matrix of the normalization prefactor FAC1(m,l)->FAC1[l][m]. 
+ * @param maxL Maximum l orbital quantum number among all shells and among both basis sets.
+ * @return std::vector<std::vector<double>> FAC1(m,l)->FAC1[l][m].
  */
 std::vector<std::vector<double>> IntegralsBase::FAC1fun(const int maxL) {
 
@@ -243,11 +165,14 @@ std::vector<std::vector<double>> IntegralsBase::FAC1fun(const int maxL) {
 /**
  * Method to build the vector of the normalization prefactor FAC2(shell,l)->FAC2[shell]. 
  * The shells of only one atom per species are included. 
+ * @param GTFconfig ConfigurationGTF object.
+ * @param basis_id Boolean which indicates SCF (if true) or AUXILIARY (if false) basis set.
+ * @return std::vector<double> FAC2(shell,l)->FAC2[shell].
  */
-std::vector<double> IntegralsBase::FAC2fun(const GTFConfiguration& GTFconfig, const bool basis_id){
+std::vector<double> IntegralsBase::FAC2fun(const ConfigurationGTF& GTFconfig, const bool basis_id){
 
     std::vector<double> FAC2;
-    for(int spec = 0; spec < nspecies; spec++){
+    for(int spec = 0; spec < GTFconfig.nspecies; spec++){
         int nsh_spec;
         std::vector<int> L_spec, nG_spec;
         std::vector<std::vector<double>> shells_spec;
@@ -287,8 +212,12 @@ std::vector<double> IntegralsBase::FAC2fun(const GTFConfiguration& GTFconfig, co
 
 /**
  * Method to build the vector FAC12[orb] attribute: FAC12[orb] = FAC1[l(shell)][m(orb)] * FAC2[shell]. 
+ * @param GTFconfig ConfigurationGTF object.
+ * @param maxL Maximum l orbital quantum number among all shells and among both basis sets.
+ * @param basis_id Boolean which indicates SCF (if true) or AUXILIARY (if false) basis set.
+ * @return void.
  */
-void IntegralsBase::FAC12fun(const GTFConfiguration& GTFconfig, const int maxL, const bool basis_id){
+void IntegralsBase::FAC12fun(const ConfigurationGTF& GTFconfig, const int maxL, const bool basis_id){
 
     std::vector<std::vector<double>> FAC1 = FAC1fun( maxL );
     std::vector<double> FAC2 = FAC2fun(GTFconfig, basis_id);
@@ -306,7 +235,7 @@ void IntegralsBase::FAC12fun(const GTFConfiguration& GTFconfig, const int maxL, 
             }
             FAC12.push_back( (FAC1[L_orb][m_orb + L_orb])*(FAC2[shl_spec_orb]) );
         }
-        this->FAC12_SCF = FAC12;
+        this->FAC12_SCF_ = FAC12;
 
     } else {
         FAC12.reserve( dimMat_AUX );
@@ -320,13 +249,15 @@ void IntegralsBase::FAC12fun(const GTFConfiguration& GTFconfig, const int maxL, 
             }
             FAC12.push_back( (FAC1[L_orb][m_orb + L_orb])*(FAC2[shl_spec_orb]) );
         }
-        this->FAC12_AUX = FAC12;
+        this->FAC12_AUX_ = FAC12;
     }
 
 }
 
 /**
  * Method to build the vector of vectors FAC3[orb][gaussian] attribute. 
+ * @param basis_id Boolean which indicates SCF (if true) or AUXILIARY (if false) basis set.
+ * @return void.
  */
 void IntegralsBase::FAC3fun(const bool basis_id){
 
@@ -345,7 +276,7 @@ void IntegralsBase::FAC3fun(const bool basis_id){
             }
             FAC3.push_back( FAC3_pre );
         }
-        this->FAC3_SCF = FAC3;
+        this->FAC3_SCF_ = FAC3;
 
     } else {
         FAC3.reserve( dimMat_AUX );
@@ -361,13 +292,15 @@ void IntegralsBase::FAC3fun(const bool basis_id){
             }
             FAC3.push_back( FAC3_pre );
         }
-        this->FAC3_AUX = FAC3;
+        this->FAC3_AUX_ = FAC3;
     }
 
 }
 
 /**
  * Method to build the unordered_map method containing the g^{l,m}_{i,j,k} expansion coefficients.
+ * @param maxL Maximum l orbital quantum number among all shells and among both basis sets.
+ * @return void.
  */
 void IntegralsBase::gfun(const int maxL){
 
@@ -408,14 +341,16 @@ void IntegralsBase::gfun(const int maxL){
     }
     }
     }
-    this->g_coefs = g_coefs;
+    this->g_coefs_ = g_coefs;
 
 }
 
 /**
  * Method to build the unordered_map method containing the inverse of the (bijective) function: s(i,j) = j + i(i+1)/2.
+ * Based on the dimension of the AUXILIARY basis, which is not smaller than that of the SCF basis.
+ * @return void.
  */
-void IntegralsBase::triangIndfun(const uint32_t dimMat_AUX){
+void IntegralsBase::triangIndfun(){
     
     std::unordered_map<uint64_t,std::array<uint32_t,2>> triangInd_to_rowcol;
     uint64_t countr = 0;
@@ -425,12 +360,17 @@ void IntegralsBase::triangIndfun(const uint32_t dimMat_AUX){
             countr++;
         }
     }
-    this->triangInd_to_rowcol = triangInd_to_rowcol;
+    this->triangInd_to_rowcol_ = triangInd_to_rowcol;
 
 }
 
 /**
- * Method to compute the E^{i,i'}_{t} coefficients, for i,i'<=4. Returns the vector for 0 <= t <= (i+i').
+ * Method to compute the E^{i,i'}_{t} Hermite Gaussian coefficients, for i,i'<=4. Returns the vector for 0 <= t <= (i+i').
+ * @param index Bijection (i,i') to a single integer, given by index(i,i')= i' + i(i+1)/2.
+ * @param p Sum of the exponents of the two individual Gaussians.
+ * @param PA The corresponding spatial component of the vector going from the center of first Gaussian to the center of the Hermite Gaussian.
+ * @param PB The corresponding spatial component of the vector going from the center of second Gaussian to the center of the Hermite Gaussian.
+ * @return arma::colvec Vector where each entry indicates a value of t, and contains E^{i,i'}_{t}.
  */
 arma::colvec IntegralsBase::Efun(const int index, const double p, const double PA, const double PB){
 
@@ -586,6 +526,8 @@ arma::colvec IntegralsBase::Efun(const int index, const double p, const double P
 
 /**
  * Method to compute the factorial of a given integer. 
+ * @param a Input integer
+ * @return int a!
  */
 int IntegralsBase::factorial(int a){
      
@@ -595,6 +537,8 @@ int IntegralsBase::factorial(int a){
 
 /**
  * Method to compute the double factorial of a given integer. Should not be used for integers <= -2. 
+ * @param a Input integer
+ * @return int a!!
  */
 int IntegralsBase::doubleFactorial(int a){
      
