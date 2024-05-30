@@ -1,16 +1,15 @@
 #pragma once
-#include <armadillo>
-#include "xatu/SystemConfiguration.hpp"
+#include "xatu/ConfigurationSystem.hpp"
 
 namespace xatu {
 
-class HDF5Configuration : public SystemConfiguration {
+class HDF5Configuration : public ConfigurationSystem {
 
     private:
         std::string filename;
     
     public:
-        HDF5Configuration(std::string);
+        HDF5Configuration(const std::string&);
         ~HDF5Configuration(){};
 
     private:

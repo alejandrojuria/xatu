@@ -1,4 +1,3 @@
-#include <armadillo>
 #include "xatu/HDF5Configuration.hpp"
 
 namespace xatu {
@@ -9,7 +8,7 @@ namespace xatu {
  * parsed with armadillo to extract the content.
  * @param filename Name of the HDF5 file to be parsed.
 */
-HDF5Configuration::HDF5Configuration(std::string filename) : ConfigurationBase{filename} {
+HDF5Configuration::HDF5Configuration(const std::string& filename) : ConfigurationBase{filename} {
     #ifdef ARMA_USE_HDF5
         this->filename = filename;
         parseContent();
