@@ -1,9 +1,9 @@
 #pragma once
-#include <armadillo>
-#include <string>
-#include <iostream>
-#include "xatu/SystemConfiguration.hpp"
-
+#include <numeric>
+#include <iomanip>
+#include <math.h>
+#include <omp.h>
+#include "xatu/ConfigurationSystem.hpp"
 
 #ifndef constants
 #define PI 3.141592653589793
