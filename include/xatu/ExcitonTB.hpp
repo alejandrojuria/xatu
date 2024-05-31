@@ -8,7 +8,6 @@
 #include "xatu/ResultTB.hpp"
 
 #ifndef constants
-#define PI 3.141592653589793
 #define ec 1.6021766E-19
 #define eps0 8.8541878E-12
 #endif
