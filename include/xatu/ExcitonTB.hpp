@@ -1,11 +1,10 @@
 #pragma once
-#include <complex>
-#include <omp.h>
-#include <stdlib.h>
+#include "xatu/ConfigurationExciton.hpp"
 #include "xatu/SystemTB.hpp"
 #include "xatu/Exciton.hpp"
-#include "xatu/ExcitonConfiguration.hpp"
 #include "xatu/ResultTB.hpp"
+#include "xatu/utils.hpp"
+#include "xatu/davidson.hpp"
 
 #ifndef constants
 #define ec 1.6021766E-19

@@ -1,11 +1,4 @@
-#include <math.h>
-#include <iomanip>
 #include "xatu/ExcitonTB.hpp"
-#include "xatu/utils.hpp"
-#include "xatu/davidson.hpp"
-
-using namespace arma;
-using namespace std::chrono;
 
 namespace xatu {
 
