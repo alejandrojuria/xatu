@@ -2,7 +2,6 @@
 #define RESULT_HPP
 
 #pragma once
-#include <armadillo>
 #include "xatu/Exciton.hpp"
 
 namespace xatu {
@@ -42,7 +41,7 @@ class Result {
         arma::cx_vec spinX(int);
         virtual arma::cx_vec spinX(const arma::cx_vec&) = 0;
         virtual double realSpaceWavefunction(const arma::cx_vec&, int, int,
-                                     const arma::rowvec&, const arma::rowvec&) = 0;
+                                     const arma::colvec&, const arma::colvec&) = 0;
 
         // Output and plotting
         void writeReciprocalAmplitude(const arma::cx_vec&, FILE*);
@@ -53,11 +52,11 @@ class Result {
         void writePhase(int, FILE*);
         void writeExtendedPhase(const arma::cx_vec&, FILE*);
         void writeExtendedPhase(int, FILE*);
-        void writeEigenvalues(FILE*, int n = 0);
-        void writeStates(FILE*, int n = 0);
-        void writeSpin(int, FILE*);
-        void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*, int);
-        virtual void writeRealspaceAmplitude(const arma::cx_vec&, int, const arma::rowvec&, FILE*, int) = 0;
+        void writeEigenvalues(FILE*, int64_t n = 0);
+        void writeStates(FILE*, int64_t n = 0);
+        void writeSpin(int64_t, FILE*);
+        void writeRealspaceAmplitude(int, int, const arma::colvec&, FILE*, int);
+        virtual void writeRealspaceAmplitude(const arma::cx_vec&, int, const arma::colvec&, FILE*, int) = 0;
         virtual void writeAbsorptionSpectrum() = 0;
 
     protected:

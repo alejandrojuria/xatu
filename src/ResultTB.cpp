@@ -1,7 +1,6 @@
 #ifndef RESULTTB_CPP
 #define RESULTTB_CPP
 
-#include <complex>
 #include "xatu/ResultTB.hpp"
 
 namespace xatu {
@@ -24,13 +23,13 @@ arma::cx_vec ResultTB::spinX(const arma::cx_vec& coefs){
     arma::cx_double electronSpin = 0;
     arma::cx_double holeSpin = 0;
     double totalSpin = 0;
-    int dimX = exciton->basisStates.n_rows;
+    uint32_t dimX = exciton->basisStates.n_rows;
 
     arma::cx_vec spinEigvalues = {1./2, -1./2};
     arma::cx_vec spinVector = arma::zeros<arma::cx_vec>(system->norbitals);
     int vecIterator = 0;
     for(int atomIndex = 0; atomIndex < system->natoms; atomIndex++){
-        int species = system->motif.row(atomIndex)(3);
+        int species = system->motif.col(atomIndex)(3);
         int norb = system->orbitalsPerSpecies(species);
         spinVector.subvec(vecIterator, vecIterator + norb - 1) = 
                           arma::kron(arma::ones(norb/2), spinEigvalues);
@@ -60,7 +59,7 @@ arma::cx_vec ResultTB::spinX(const arma::cx_vec& coefs){
         }
     }
 
-    for(unsigned int k = 0; k < system->kpoints.n_rows; k++){
+    for(uint32_t k = 0; k < system->kpoints.n_cols; k++){
         arma::cx_mat spinHoleReduced = arma::zeros<arma::cx_mat>(nvbands, nvbands);
         arma::cx_mat spinElectronReduced = arma::zeros<arma::cx_mat>(ncbands, ncbands);
         for(int i = 0; i < nvbands; i++){
@@ -114,7 +113,7 @@ arma::mat ResultTB::velocity(int index){
     arma::cx_vec total_h_velocity = arma::zeros<arma::cx_vec>(3);
 
     #pragma omp parallel for collapse(3)
-    for (int n = 0; n < system->nk; n++){
+    for (int64_t n = 0; n < system->nk; n++){
     for (int j = 0; j < exciton->conductionBands.n_elem; j++){
     for (int i = 0; i < exciton->valenceBands.n_elem; i++){
 
@@ -177,10 +176,9 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
     arma::cx_cube hkDerivative = arma::zeros<arma::cx_cube>(system->norbitals, system->norbitals, 3);
     arma::cx_cube iHt = arma::zeros<arma::cx_cube>(system->norbitals, system->norbitals, 3);
 
-    arma::rowvec k = system->kpoints.row(kIndex);
-    std::complex<double> imag(0, 1);
+    arma::colvec k = system->kpoints.col(kIndex);
 
-    arma::rowvec Q = arma::zeros<arma::rowvec>(3);
+    arma::colvec Q = arma::zeros<arma::colvec>(3);
     if (bandType == "conduction"){
         Q = exciton->Q;
     }
@@ -188,8 +186,8 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
     // First compute Hk derivative
     for (int j = 0; j < 3; j++){
         for (int i = 0; i < system->ncells; i++){
-            arma::rowvec cell = system->unitCellList.row(i);
-            hkDerivative.slice(j) += system->hamiltonianMatrices.slice(i) * 
+            arma::colvec cell = system->Rlist.col(i);
+            hkDerivative.slice(j) += (*(system->ptr_hamiltonianMatrices)).slice(i) * 
                                      std::exp(imag*arma::dot(k + Q, cell)) * cell(j) * imag;
 	    };
     }
@@ -199,8 +197,8 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
     arma::cx_mat extendedMotif = arma::zeros<arma::cx_mat>(system->norbitals, 3);
     int currentIndex = 0;
     for (int i = 0; i < system->natoms; i++){
-        int norb = system->orbitalsPerSpecies(system->motif.row(i)(3));
-        extendedMotif.rows(currentIndex, currentIndex + norb - 1) = arma::kron(system->motif.row(i).subvec(0, 2),
+        int norb = system->orbitalsPerSpecies(system->motif.col(i)(3));
+        extendedMotif.rows(currentIndex, currentIndex + norb - 1) = arma::kron((system->motif.col(i).subvec(0, 2)).t(),
                                                                          arma::ones<arma::cx_vec>(norb));
         currentIndex += norb;
     }
@@ -241,45 +239,45 @@ arma::cx_vec ResultTB::velocitySingleParticle(int fIndex, int sIndex, int kIndex
  */
 arma::cx_mat ResultTB::excitonOscillatorStrength(){
 
-    int nR = system->unitCellList.n_rows;
+    int nR = system->Rlist.n_cols;
     int norb = system->norbitals;
     int norb_ex = exciton->dimBSE;
-    int filling = system->filling;
+    int filling = (system->highestValenceBand) + 1;
     int nv = exciton->valenceBands.n_elem;
     int nc = exciton->conductionBands.n_elem;
 
-    arma::mat Rvec = system->unitCellList;
+    arma::mat Rvec = (system->Rlist).t();
     // Extend bravais lattice to 3x3 matrix
     arma::mat R = arma::zeros(3, 3);
-    for (int i = 0; i < system->bravaisLattice.n_rows; i++){
-        R.row(i) = system->bravaisLattice.row(i);
+    for (uint i = 0; i < system->Rbasis.n_cols; i++){
+        R.col(i) = system->Rbasis.col(i);
     }
+    R = R.t();
 
-    // arma::mat B = system->motif.cols(0, 2);
     arma::mat extendedMotif = arma::zeros(system->norbitals, 3);
     int it = 0;
     for(int i = 0; i < system->natoms; i++){
-        arma::rowvec atom = system->motif.row(i).subvec(0, 2);
-        int species = system->motif.row(i)(3);
-        for(int j = 0; j < system->orbitalsPerSpecies(species); j++){
+        arma::rowvec atom = (system->motif.col(i).subvec(0, 2)).t();
+        int species = system->motif.col(i)(3);
+        for(uint j = 0; j < system->orbitalsPerSpecies(species); j++){
             extendedMotif.row(it) = atom; 
             it++;
         }
     }
-    arma::cx_cube hhop = system->hamiltonianMatrices;
+    arma::cx_cube hhop = *(system->ptr_hamiltonianMatrices);
     arma::cube shop(arma::size(hhop));
-    if (system->overlapMatrices.empty()){
-        for (int i = 0; i < hhop.n_slices; i++){
+    if ((*(system->ptr_overlapMatrices)).empty()){
+        for (uint i = 0; i < hhop.n_slices; i++){
             shop.slice(i) = arma::eye(size(hhop.slice(i)));
         }
     }
     else{
-        shop = arma::real(system->overlapMatrices);
+        shop = arma::real(*(system->ptr_overlapMatrices));
     }
     int nk = system->nk;
-    arma::vec rkx = system->kpoints.col(0);
-    arma::vec rky = system->kpoints.col(1);
-    arma::vec rkz = system->kpoints.col(2);
+    arma::rowvec rkx = system->kpoints.row(0);
+    arma::rowvec rky = system->kpoints.row(1);
+    arma::rowvec rkz = system->kpoints.row(2);
 
     arma::mat eigval_sp = exciton->eigvalKStack;
     arma::cx_cube eigvec_sp = exciton->eigvecKStack;
@@ -308,22 +306,22 @@ arma::cx_mat ResultTB::excitonOscillatorStrength(){
  * @return Real-space amplitude evaluated at those electron and hole positions.
  */
 double ResultTB::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electronIndex, int holeIndex,
-                             const arma::rowvec& eCell, const arma::rowvec& hCell){
+                             const arma::colvec& eCell, const arma::colvec& hCell){
 
     std::complex<double> imag(0, 1);
     double totalAmplitude = 0;
     arma::cx_vec eigvec = arma::cx_vec(BSEcoefs);
-    int eOrbitals = system->orbitalsPerSpecies(system->motif.row(electronIndex)(3));
-    int hOrbitals = system->orbitalsPerSpecies(system->motif.row(holeIndex)(3));
+    int eOrbitals = system->orbitalsPerSpecies(system->motif.col(electronIndex)(3));
+    int hOrbitals = system->orbitalsPerSpecies(system->motif.col(holeIndex)(3));
 
     // Compute index corresponding to electron and hole
     int eIndex = 0;
     int hIndex = 0;
-    for(unsigned int i = 0; i < electronIndex; i++){
-        eIndex += system->orbitalsPerSpecies(system->motif.row(i)(3));
+    for(int i = 0; i < electronIndex; i++){
+        eIndex += system->orbitalsPerSpecies(system->motif.col(i)(3));
     }
-    for(unsigned int i = 0; i < holeIndex; i++){
-        hIndex += system->orbitalsPerSpecies(system->motif.row(i)(3));
+    for(int i = 0; i < holeIndex; i++){
+        hIndex += system->orbitalsPerSpecies(system->motif.col(i)(3));
     }
     eigvec = addExponential(eigvec, eCell - hCell);
 
@@ -341,7 +339,7 @@ double ResultTB::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electro
         arma::cx_rowvec vFlat = arma::reshape(v, 1, v.n_elem, 1);
         arma::cx_rowvec vExtended = arma::zeros<arma::cx_rowvec>(vFlat.n_elem*exciton->conductionBands.n_elem);
         int blockSize = exciton->conductionBands.n_elem * exciton->valenceBands.n_elem;
-        for(unsigned int i = 0; i < system->nk; i++){
+        for(uint32_t i = 0; i < system->nk; i++){
             vExtended.subvec(i*blockSize, (i + 1)*blockSize - 1) = arma::kron(arma::ones<arma::cx_rowvec>(exciton->conductionBands.n_elem), 
                                                         vFlat.subvec(i*exciton->valenceBands.n_elem, (i + 1)*exciton->valenceBands.n_elem - 1));
         }
@@ -368,33 +366,32 @@ double ResultTB::realSpaceWavefunction(const arma::cx_vec& BSEcoefs, int electro
  * @return void
  */
 void ResultTB::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeIndex,
-                                     const arma::rowvec& holeCell, FILE* textfile, int ncells){
+                                     const arma::colvec& holeCell, FILE* textfile, int ncells){
 
-    arma::rowvec holePosition = system->motif.row(holeIndex).subvec(0, 2) + holeCell;
+    arma::colvec holePosition = system->motif.col(holeIndex).subvec(0, 2) + holeCell;
     fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n", holePosition(0), holePosition(1), 0.0);
 
-    double radius = arma::norm(system->bravaisLattice.row(0)) * ncells;
+    double radius = arma::norm(system->Rbasis.col(0)) * ncells;
     arma::mat cellCombinations = system->truncateSupercell(exciton->ncell, radius);
-    arma::vec coefs = arma::zeros(cellCombinations.n_rows*system->motif.n_rows);
-    int it = 0;
+    arma::vec coefs = arma::zeros(cellCombinations.n_cols*system->motif.n_cols);
 
     // Compute probabilities
     #pragma omp parallel for
-    for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
-        arma::rowvec cell = cellCombinations.row(cellIndex);
-        for (unsigned int atomIndex = 0; atomIndex < system->motif.n_rows; atomIndex++){
-            int idx = atomIndex + cellIndex*system->motif.n_rows;
+    for(uint32_t cellIndex = 0; cellIndex < cellCombinations.n_cols; cellIndex++){
+        arma::colvec cell = cellCombinations.col(cellIndex);
+        for (unsigned int atomIndex = 0; atomIndex < system->motif.n_cols; atomIndex++){
+            int idx = atomIndex + cellIndex*system->motif.n_cols;
             //coefs(it) = atomCoefficientSquared(atomIndex, cell, holeCell, RScoefs);
             coefs(idx) = realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
         }
     }
 
     // Write probabilities to file
-    for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
-        arma::rowvec cell = cellCombinations.row(cellIndex);
-        for(unsigned int atomIndex = 0; atomIndex < system->motif.n_rows; atomIndex++){
-            int idx = atomIndex + cellIndex*system->motif.n_rows;
-            arma::rowvec position = system->motif.row(atomIndex).subvec(0, 2) + cell;
+    for(uint32_t cellIndex = 0; cellIndex < cellCombinations.n_cols; cellIndex++){
+        arma::colvec cell = cellCombinations.col(cellIndex);
+        for(unsigned int atomIndex = 0; atomIndex < system->motif.n_cols; atomIndex++){
+            int idx = atomIndex + cellIndex*system->motif.n_cols;
+            arma::colvec position = system->motif.col(atomIndex).subvec(0, 2) + cell;
             fprintf(textfile, "%11.8lf\t%11.8lf\t%14.11lf\n",
                             position(0), position(1), coefs(idx));
         }
@@ -411,45 +408,45 @@ void ResultTB::writeRealspaceAmplitude(const arma::cx_vec& statecoefs, int holeI
  */
 void ResultTB::writeAbsorptionSpectrum(){
 
-    int nR = system->unitCellList.n_rows;
+    int nR = system->Rlist.n_cols;
     int norb = system->norbitals;
     int norb_ex = exciton->dimBSE;
-    int filling = system->filling;
+    int filling = (system->highestValenceBand) + 1;
     int nv = exciton->valenceBands.n_elem;
     int nc = exciton->conductionBands.n_elem;
 
-    arma::mat Rvec = system->unitCellList;
+    arma::mat Rvec = (system->Rlist).t();
     // Extend bravais lattice to 3x3 matrix
     arma::mat R = arma::zeros(3, 3);
-    for (int i = 0; i < system->bravaisLattice.n_rows; i++){
-        R.row(i) = system->bravaisLattice.row(i);
+    for (uint i = 0; i < system->Rbasis.n_cols; i++){
+        R.col(i) = system->Rbasis.col(i);
     }
+    R = R.t();
 
-    // arma::mat B = system->motif.cols(0, 2);
     arma::mat extendedMotif = arma::zeros(system->norbitals, 3);
     int it = 0;
     for(int i = 0; i < system->natoms; i++){
-        arma::rowvec atom = system->motif.row(i).subvec(0, 2);
-        int species = system->motif.row(i)(3);
-        for(int j = 0; j < system->orbitalsPerSpecies(species); j++){
+        arma::rowvec atom = (system->motif.col(i).subvec(0, 2)).t();
+        int species = system->motif.col(i)(3);
+        for(uint j = 0; j < system->orbitalsPerSpecies(species); j++){
             extendedMotif.row(it) = atom; 
             it++;
         }
     }
-    arma::cx_cube hhop = system->hamiltonianMatrices;
+    arma::cx_cube hhop = *(system->ptr_hamiltonianMatrices);
     arma::cube shop(arma::size(hhop));
-    if (system->overlapMatrices.empty()){
-        for (int i = 0; i < hhop.n_slices; i++){
+    if ((*(system->ptr_overlapMatrices)).empty()){
+        for (uint i = 0; i < hhop.n_slices; i++){
             shop.slice(i) = arma::eye(size(hhop.slice(i)));
         }
     }
     else{
-        shop = arma::real(system->overlapMatrices);
+        shop = arma::real(*(system->ptr_overlapMatrices));
     }
     int nk = system->nk;
-    arma::vec rkx = system->kpoints.col(0);
-    arma::vec rky = system->kpoints.col(1);
-    arma::vec rkz = system->kpoints.col(2);
+    arma::rowvec rkx = system->kpoints.row(0);
+    arma::rowvec rky = system->kpoints.row(1);
+    arma::rowvec rkz = system->kpoints.row(2);
 
     arma::mat eigval_sp = exciton->eigvalKStack;
     arma::cx_cube eigvec_sp = exciton->eigvecKStack;
@@ -467,10 +464,9 @@ void ResultTB::writeAbsorptionSpectrum(){
  * @param cell Unit cell used in the exponential.
  * @return Coefficients with the added exponential.
  */
-arma::cx_vec ResultTB::addExponential(arma::cx_vec& coefs, const arma::rowvec& cell){
+arma::cx_vec ResultTB::addExponential(arma::cx_vec& coefs, const arma::colvec& cell){
 
-    arma::vec product = system->kpoints * cell.t();
-    std::complex<double> imag(0, 1);
+    arma::vec product = system->kpoints.t() * cell;
     arma::cx_vec exponentials = arma::exp(imag*product);
     int nBandCombinations = exciton->valenceBands.n_elem*exciton->conductionBands.n_elem;
     exponentials = arma::kron(exponentials, arma::ones<arma::cx_vec>(nBandCombinations));
