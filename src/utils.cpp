@@ -1,9 +1,3 @@
-#include <armadillo>
-#include <fstream>
-#include <complex>
-#include <iomanip>
-
-#include "xatu/Result.hpp"
 #include "xatu/utils.hpp"
 
 namespace xatu {
@@ -52,14 +46,14 @@ arma::vec readVectorFromFile(std::string filename){
 
     arma::vec coefs(vector);
     return coefs;
-};
+}
 
 /* Definition of non-interacting retarded Green function */
 std::complex<double> rGreenF(double energy, double delta, double eigEn){
 
 	std::complex<double> i(0,1);
 	return 1./((energy + i*delta) - eigEn);
-};
+}
 
 /* Routine to calcule the density of states at a given energy,
 associated to a given set of eigenvalues (e.g. bulk or edge).
@@ -70,7 +64,7 @@ double densityOfStates(double energy, double delta, const arma::mat& energies){
 		for(int i = 0; i < (int)energies.n_rows; i++){
 			for(int j = 0; j < (int)energies.n_cols; j++){
 				double eigEn = energies(i,j);
-				dos += -PI*imag(rGreenF(energy, delta, eigEn));
+				dos += -PI*std::imag(rGreenF(energy, delta, eigEn));
 			};
 		};
         // Divide by number of k's and length a (currently a is missing)
@@ -114,16 +108,16 @@ void writeDensityOfStates(const arma::mat& energies, double delta, FILE* dosfile
 		fprintf(dosfile, "%lf\t%lf\n", energy, dos);
 	};
 	return;
-};
+}
 
 /* Intended to be used within printEnergies, not in an standalone way. Computes degeneracy of each 
 up to a given precision with cost O(n) */
-std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int n, int precision){
-
+std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int64_t n, int precision){
+	
     if(n < 0){
         throw std::invalid_argument("detectDegeneracies: n must be a positive integer");
     }
-    else if(n > eigval.n_elem){
+    else if(n > static_cast<int64_t>(eigval.n_elem)){
         throw std::invalid_argument("detectDegeneracies: n must be lower than total number of eigenstates");
     }
 
@@ -133,7 +127,7 @@ std::vector<std::vector<double>> detectDegeneracies(const arma::vec& eigval, int
     int degeneracy = 1;
     double threshold = pow(10, -precision);
     double energy;
-    for(int i = 1; i < n; i++){
+    for(int64_t i = 1; i < n; i++){
         energy = eigval(i);
         if(std::abs(energy - previusEnergy) < threshold){
             degeneracy++;
@@ -172,9 +166,13 @@ void printHeader(){
  * Auxiliary routine used to check if a matrix is triangular (either upper or lower)
  * @details Used in System when constructed from SystemConfiguration objects to determine
  * how to build H(k) and S(k).
+ * @param matrix Complex matrix.
+ * @return bool True (false) if the matrix is triangular (not triangular, or also diagonal; respectively). 
 */
 bool checkIfTriangular(const arma::cx_mat& matrix){
+
 	return (matrix.is_trimatu() != matrix.is_trimatl());
+
 }
 
 

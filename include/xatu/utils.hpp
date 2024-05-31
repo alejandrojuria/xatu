@@ -1,5 +1,5 @@
 #pragma once
-#include <armadillo>
+#include <fstream>
 #include "xatu/Result.hpp"
 
 #ifndef constants
@@ -15,7 +15,7 @@ namespace xatu {
 void writeVectorToFile(arma::vec, FILE*);
 void writeVectorToFile(arma::rowvec, FILE*);
 void writeVectorsToFile(const arma::mat&, FILE*, std::string mode = "row");
-std::vector<std::vector<double>>  detectDegeneracies(const arma::vec&, int, int);
+std::vector<std::vector<double>>  detectDegeneracies(const arma::vec&, int64_t, int);
 void printHeader();
 
 /* Input */
@@ -36,7 +36,7 @@ bool checkIfTriangular(const arma::cx_mat&);
 * @param precision Number of decimals (sets degeneracy threshold)
 **/
 template<typename T>
-void printEnergies(const std::unique_ptr<T>& results, int n = 8, int precision = 6){
+void printEnergies(const std::unique_ptr<T>& results, int64_t n = 8, int precision = 6){
 
     // Print header
     printf("+---------------+-----------------------------+-----------------------------+\n");
