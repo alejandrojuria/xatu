@@ -47,29 +47,29 @@ double alnorm ( double x )
 //    distribution over the desired interval.
 //
 {
-  double a1 = 5.75885480458;
-  double a2 = 2.62433121679;
-  double a3 = 5.92885724438;
-  double b1 = -29.8213557807;
-  double b2 = 48.6959930692;
-  double c1 = -0.000000038052;
-  double c2 = 0.000398064794;
-  double c3 = -0.151679116635;
-  double c4 = 4.8385912808;
-  double c5 = 0.742380924027;
-  double c6 = 3.99019417011;
-  double con = 1.28;
-  double d1 = 1.00000615302;
-  double d2 = 1.98615381364;
-  double d3 = 5.29330324926;
-  double d4 = -15.1508972451;
-  double d5 = 30.789933034;
-  double ltone = 7.0;
-  double p = 0.398942280444;
-  double q = 0.39990348504;
-  double r = 0.398942280385;
+  constexpr double a1 = 5.75885480458;
+  constexpr double a2 = 2.62433121679;
+  constexpr double a3 = 5.92885724438;
+  constexpr double b1 = -29.8213557807;
+  constexpr double b2 = 48.6959930692;
+  constexpr double c1 = -0.000000038052;
+  constexpr double c2 = 0.000398064794;
+  constexpr double c3 = -0.151679116635;
+  constexpr double c4 = 4.8385912808;
+  constexpr double c5 = 0.742380924027;
+  constexpr double c6 = 3.99019417011;
+  constexpr double con = 1.28;
+  constexpr double d1 = 1.00000615302;
+  constexpr double d2 = 1.98615381364;
+  constexpr double d3 = 5.29330324926;
+  constexpr double d4 = -15.1508972451;
+  constexpr double d5 = 30.789933034;
+  constexpr double ltone = 7.0;
+  constexpr double p = 0.398942280444;
+  constexpr double q = 0.39990348504;
+  constexpr double r = 0.398942280385;
   bool up = false;
-  double utzero = 18.66;
+  constexpr double utzero = 18.66;
   double value;
   double y;
   double z;
@@ -172,9 +172,9 @@ double gammad ( double x, double p )
   double arg;
   double b;
   double c;
-  double elimit = - 88.0;
-  double oflo = 1.0E+37;
-  double plimit = 1000.0;
+  constexpr double elimit = - 88.0;
+  constexpr double oflo = 1.0E+37;
+  constexpr double plimit = 1000.0;
   double pn1;
   double pn2;
   double pn3;
@@ -182,10 +182,10 @@ double gammad ( double x, double p )
   double pn5;
   double pn6;
   double rn;
-  double tol = 1.0E-14;
+  constexpr double tol = 1.0E-14;
   // bool upper;
   double value;
-  double xbig = 1.0E+08;
+  constexpr double xbig = 1.0E+08;
 
   value = 0.0;
 //
