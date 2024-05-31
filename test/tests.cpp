@@ -22,7 +22,7 @@ TEST_CASE("Modelfile parsing", "[model_parsing]"){
     std::cout.setstate(std::ios_base::failbit);
     
     std::string modelfile = "../examples/material_models/hBN.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     int expectedFilling = 1;
     int expectedDim = 2;
@@ -33,26 +33,29 @@ TEST_CASE("Modelfile parsing", "[model_parsing]"){
     arma::vec expectedBravaisVectorsHash = {0, -0.110843, 2.38916, 2.05422, 4.55422};
     arma::vec expectedHamiltionianHash = {-1.34375, -0.9, -0.9, -0.0375, -0.0375};
     
-    REQUIRE(config.systemInfo.ndim == expectedDim);
-    REQUIRE(config.systemInfo.filling == expectedFilling);
-    for(uint i = 0; i < config.systemInfo.norbitals.n_cols; i++){
-        REQUIRE(config.systemInfo.norbitals(i) == expectedOrbitals(i));
+    REQUIRE(config.ndim == expectedDim);
+    REQUIRE(config.filling == expectedFilling);
+    for(uint i = 0; i < config.orbitalsPerSpecies.n_cols; i++){
+        REQUIRE(config.orbitalsPerSpecies(i) == expectedOrbitals(i));
     }
 
-    for(uint i = 0; i < config.systemInfo.bravaisLattice.n_rows; i++){
-        double hash = xatu::array2hash(config.systemInfo.bravaisLattice.row(i));
+    arma::mat Rbasis_rows = config.Rbasis.t();
+    arma::mat Rlist_rows = config.Rlist.t();
+    arma::mat motif_rows = config.motif.t();
+    for(uint i = 0; i < config.Rbasis.n_cols; i++){
+        double hash = xatu::array2hash(Rbasis_rows.row(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedBravaisLatticeHash(i), 1E-4));
     }
-    for(uint i = 0; i < config.systemInfo.motif.n_rows; i++){
-        double hash = xatu::array2hash(config.systemInfo.motif.row(i));
+    for(uint i = 0; i < config.motif.n_cols; i++){
+        double hash = xatu::array2hash(motif_rows.row(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedMotifHash(i), 1E-4));
     }
-    for(uint i = 0; i < config.systemInfo.bravaisVectors.n_rows; i++){
-        double hash = xatu::array2hash(config.systemInfo.bravaisVectors.row(i));
+    for(uint i = 0; i < config.Rlist.n_cols; i++){
+        double hash = xatu::array2hash(Rlist_rows.row(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedBravaisVectorsHash(i), 1E-4));
     }
-    for(uint i = 0; i < config.systemInfo.hamiltonian.n_slices; i++){
-        double hash = xatu::array2hash(config.systemInfo.hamiltonian.slice(i));
+    for(uint i = 0; i < config.hamiltonianMatrices.n_slices; i++){
+        double hash = xatu::array2hash(config.hamiltonianMatrices.slice(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedHamiltionianHash(i), 1E-4));
     }
 
@@ -67,54 +70,57 @@ TEST_CASE("CRYSTAL file parsing", "[CRYSTAL_parsing]"){
     std::cout.setstate(std::ios_base::failbit);
 
     std::string modelfile = "../examples/material_models/DFT/hBN_base_HSE06.outp";
-    xatu::CRYSTALConfiguration config = xatu::CRYSTALConfiguration(modelfile,20);
+    xatu::ConfigurationCRYSTAL config = xatu::ConfigurationCRYSTAL(modelfile,19, false);
 
     int expectedFilling = 6;
     int expectedDim = 2;
     arma::urowvec expectedOrbitals = {33, 36};
-    uint expectedFockMatricesNumber = 20;
+    uint expectedFockMatricesNumber = 19;
 
     arma::vec expectedBravaisLatticeHash = {2.05977, 4.51667};
     arma::vec expectedMotifHash = {0.068875, 2.84563};
     arma::vec expectedBravaisVectorsHash = {0, -0.113953, 4.56977, 2.39605, 2.05977,
                                             -0.503333, 4.51667, -0.39124, 3.9562, -0.95062,
                                             8.7531, 6.57938, 1.2231, -0.894573, 8.47287,
-                                            4.12543, 3.45287, -1.34, 8.7, -0.838527};
+                                            4.12543, 3.45287, -1.34, 8.7};
     arma::vec expectedHamiltionianHash = {61.2007, 2.87756, -0.679479, 0.246344, -0.981652,
                                           0.447539, -1.41873, 0.32476, 0.408354, 0.596467,
                                           0.309267, 0.191303, 0.107262, 0.244018, 0.220732,
-                                          0.165454, 0.248117, 0.32759, 0.169674, 0.0856007};
+                                          0.165454, 0.248117, 0.32759, 0.169674};
     arma::vec expectedOverlapHash = {46.302, -1.47274, -0.128825, 0.444089, 1.43755,
                                     -0.87285, 1.00188, 0.0256365, 0.0421825, -0.0733795,
                                     0.0628083, 0.113745, 0.340853, 0.0733232, 0.0869901,
-                                    0.0867042, 0.151335, 0.0713888, 0.0795013, 0.0507182};
+                                    0.0867042, 0.151335, 0.0713888, 0.0795013};
     
-    REQUIRE(config.systemInfo.ndim == expectedDim);
-    REQUIRE(config.systemInfo.filling == expectedFilling);
-    REQUIRE(config.systemInfo.hamiltonian.n_slices == expectedFockMatricesNumber);
-    REQUIRE(config.systemInfo.overlap.n_slices == expectedFockMatricesNumber);
-    for(uint i = 0; i < config.systemInfo.norbitals.n_cols; i++){
-        REQUIRE(config.systemInfo.norbitals(i) == expectedOrbitals(i));
+    REQUIRE(config.ndim == expectedDim);
+    REQUIRE(config.filling == expectedFilling);
+    REQUIRE(config.hamiltonianMatrices.n_slices == expectedFockMatricesNumber);
+    REQUIRE(config.overlapMatrices.n_slices == expectedFockMatricesNumber);
+    for(uint i = 0; i < config.orbitalsPerSpecies.n_cols; i++){
+        REQUIRE(config.orbitalsPerSpecies(i) == expectedOrbitals(i));
     }
 
-    for(uint i = 0; i < config.systemInfo.bravaisLattice.n_rows; i++){
-        double hash = xatu::array2hash(config.systemInfo.bravaisLattice.row(i));
+    arma::mat Rbasis_rows = config.Rbasis.t();
+    arma::mat Rlist_rows = config.Rlist.t();
+    arma::mat motif_rows = config.motif.t();
+    for(uint i = 0; i < config.Rbasis.n_cols; i++){
+        double hash = xatu::array2hash(Rbasis_rows.row(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedBravaisLatticeHash(i), 1E-4));
     }
-    for(uint i = 0; i < config.systemInfo.motif.n_rows; i++){
-        double hash = xatu::array2hash(config.systemInfo.motif.row(i));
+    for(uint i = 0; i < config.motif.n_rows; i++){
+        double hash = xatu::array2hash(motif_rows.row(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedMotifHash(i), 1E-4));
     }
-    for(uint i = 0; i < config.systemInfo.bravaisVectors.n_rows; i++){
-        double hash = xatu::array2hash(config.systemInfo.bravaisVectors.row(i));
+    for(uint i = 0; i < config.Rlist.n_cols; i++){
+        double hash = xatu::array2hash(Rlist_rows.row(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedBravaisVectorsHash(i), 1E-4));
     }
-    for(uint i = 0; i < config.systemInfo.hamiltonian.n_slices; i++){
-        double hash = xatu::array2hash(config.systemInfo.hamiltonian.slice(i));
+    for(uint i = 0; i < config.hamiltonianMatrices.n_slices; i++){
+        double hash = xatu::array2hash(config.hamiltonianMatrices.slice(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedHamiltionianHash(i), 1E-2));
     } 
-    for(uint i = 0; i < config.systemInfo.overlap.n_slices; i++){
-        double hash = xatu::array2hash(config.systemInfo.overlap.slice(i));
+    for(uint i = 0; i < config.overlapMatrices.n_slices; i++){
+        double hash = xatu::array2hash(config.overlapMatrices.slice(i));
         REQUIRE_THAT(hash, Catch::Matchers::WithinAbs(expectedOverlapHash(i), 1E-2));
     }
 
@@ -129,7 +135,7 @@ TEST_CASE("Exciton file parsing", "[excitonfile_parsing]"){
     std::cout.setstate(std::ios_base::failbit);
 
     std::string excitonconfig = "./data/hBN_spinless.txt";
-    xatu::ExcitonConfiguration config = xatu::ExcitonConfiguration(excitonconfig);
+    xatu::ConfigurationExciton config = xatu::ConfigurationExciton(excitonconfig);
 
     std::string expectedName = "hBN_N30";
     int expectedNcell = 30;
@@ -157,13 +163,13 @@ TEST_CASE("TB hBN energies (full diagonalization)", "[tb-hBN-fulldiag]"){
     int nstates = 3;
 
     std::string modelfile = "../examples/material_models/hBN.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
-
-    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1., 1., 10.});
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
     exciton.BShamiltonian();
+    
     auto results = exciton.diagonalize("diag", nstates);
 
     auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
@@ -189,7 +195,7 @@ TEST_CASE("TB hBN energies (davidson)", "[tb-hBN-davidson]"){
     int nstates = 3;
 
     std::string modelfile = "../examples/material_models/hBN.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
@@ -253,7 +259,7 @@ TEST_CASE("TB hBN energies (reciprocal)", "[tb-hBN-reciprocal]"){
     int nstates = 3;
 
     std::string modelfile = "../examples/material_models/hBN.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
     exciton.setMode("reciprocalspace");
@@ -288,7 +294,7 @@ TEST_CASE("TB hBN reciprocal w.f.", "[tb-hBN-kwf]"){
     int nstates = 2;
 
     std::string modelfile = "../examples/material_models/hBN.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
@@ -298,16 +304,16 @@ TEST_CASE("TB hBN reciprocal w.f.", "[tb-hBN-kwf]"){
     auto results = exciton.diagonalize("diag", nstates);
 
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
-    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_rows);
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_cols);
     for (int n = 0; n < nstates; n++){
         arma::cx_vec statecoefs = results->eigvec.col(n);
-        for (int i = 0; i < exciton.system->kpoints.n_rows; i++){
+        for (int i = 0; i < exciton.system->kpoints.n_cols; i++){
         double coef = 0;
         for(int nband = 0; nband < nbandsCombinations; nband++){
             coef += abs(statecoefs(nbandsCombinations*i + nband))*
                     abs(statecoefs(nbandsCombinations*i + nband));
         };
-        coef /= arma::norm(exciton.system->kpoints.row(1) - exciton.system->kpoints.row(0)); // L2 norm instead of l2
+        coef /= arma::norm(exciton.system->kpoints.col(1) - exciton.system->kpoints.col(0)); // L2 norm instead of l2
         kwf(i) += coef;
         };
     }
@@ -329,10 +335,10 @@ TEST_CASE("TB hBN real-space w.f.", "[tb-hBN-rswf]"){
     int ncell = 20;
     int nstates = 2;
     int holeIndex = 1;
-    arma::rowvec holeCell = {0, 0, 0};
+    arma::colvec holeCell = {0, 0, 0};
 
     std::string modelfile = "../examples/material_models/hBN.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
@@ -341,19 +347,19 @@ TEST_CASE("TB hBN real-space w.f.", "[tb-hBN-rswf]"){
     exciton.BShamiltonian();
     auto results = exciton.diagonalize("diag", nstates);
 
-    arma::rowvec holePosition = exciton.system->motif.row(holeIndex).subvec(0, 2) + holeCell;
+    // arma::colvec holePosition = exciton.system->motif.col(holeIndex).subvec(0, 2) + holeCell;
 
-    double radius = arma::norm(exciton.system->bravaisLattice.row(0)) * exciton.ncell;
+    double radius = arma::norm(exciton.system->Rbasis.col(0)) * exciton.ncell;
     arma::mat cellCombinations = exciton.system->truncateSupercell(exciton.ncell, radius);
-    arma::vec rswf = arma::zeros(cellCombinations.n_rows*exciton.system->motif.n_rows);
+    arma::vec rswf = arma::zeros(cellCombinations.n_cols*exciton.system->motif.n_cols);
 
     // Compute probabilities
     for(int n = 0; n < nstates; n++){
         int it = 0;
         arma::cx_vec statecoefs = results->eigvec.col(n);
-        for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
-        arma::rowvec cell = cellCombinations.row(cellIndex);
-        for (unsigned int atomIndex = 0; atomIndex < exciton.system->motif.n_rows; atomIndex++){
+        for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_cols; cellIndex++){
+        arma::colvec cell = cellCombinations.col(cellIndex);
+        for (unsigned int atomIndex = 0; atomIndex < exciton.system->motif.n_cols; atomIndex++){
             rswf(it) += results->realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
             it++;
         }
@@ -378,7 +384,7 @@ TEST_CASE("TB hBN absorption", "[tb-hBN-kubo]"){
     int nstates = 2;
 
     std::string modelfile = "../examples/material_models/hBN.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
 
@@ -408,7 +414,7 @@ TEST_CASE("TB hBN energies (spinful)", "[tb-hBN-spinful]"){
     int nstates = 12;
 
     std::string modelfile = "../examples/material_models/hBN_spinful.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1, 1, 10});
 
@@ -440,7 +446,7 @@ TEST_CASE("TB hBN spin", "[tb-hBN-spin]"){
     int nstates = 4;
 
     std::string modelfile = "../examples/material_models/hBN_spinful.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1, 1, 10});
     
@@ -451,7 +457,7 @@ TEST_CASE("TB hBN spin", "[tb-hBN-spin]"){
 
     arma::mat expectedSpin = arma::vec{-1, 0, 0, 1};  
 
-    for(uint i = 0; i < nstates; i++){
+    for(int i = 0; i < nstates; i++){
         arma::cx_vec spin = results->spinX(i);
         REQUIRE(spin.n_elem == 3);
         REQUIRE_THAT(std::real(spin(0)), Catch::Matchers::WithinAbs(expectedSpin(i), 1E-2));
@@ -471,15 +477,14 @@ TEST_CASE("DFT hBN", "[dft-hBN]"){
 
     int ncell = 20;
     int nstates = 2;
-    bool triangular = true;
     int holeIndex = 1;
-    arma::rowvec holeCell = {0, 0, 0};
+    arma::colvec holeCell = {0, 0, 0};
 
     std::string modelfile = "../examples/material_models/DFT/hBN_base_HSE06.outp";
-    xatu::CRYSTALConfiguration config = xatu::CRYSTALConfiguration(modelfile, 100);
+    xatu::ConfigurationCRYSTAL config = xatu::ConfigurationCRYSTAL(modelfile, 99, false);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
-    exciton.system->setAU(true);
+    exciton.system->setCRYSTAL(true);
 
     exciton.brillouinZoneMesh(ncell);
     exciton.initializeHamiltonian();
@@ -498,16 +503,16 @@ TEST_CASE("DFT hBN", "[dft-hBN]"){
 
     // Check reciprocal w.f.
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
-    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_rows);
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_cols);
     for (int n = 0; n < nstates; n++){
         arma::cx_vec statecoefs = results->eigvec.col(n);
-        for (int i = 0; i < exciton.system->kpoints.n_rows; i++){
+        for (int i = 0; i < exciton.system->kpoints.n_cols; i++){
         double coef = 0;
         for(int nband = 0; nband < nbandsCombinations; nband++){
             coef += abs(statecoefs(nbandsCombinations*i + nband))*
                     abs(statecoefs(nbandsCombinations*i + nband));
         };
-        coef /= arma::norm(exciton.system->kpoints.row(1) - exciton.system->kpoints.row(0)); // L2 norm instead of l2
+        coef /= arma::norm(exciton.system->kpoints.col(1) - exciton.system->kpoints.col(0)); // L2 norm instead of l2
         kwf(i) += coef;
         };
     }
@@ -517,19 +522,18 @@ TEST_CASE("DFT hBN", "[dft-hBN]"){
     REQUIRE_THAT(kwfHash, Catch::Matchers::WithinAbs(expectedKwfHash, 1E-5));
 
     // Check realspace w.f.
-    arma::rowvec holePosition = exciton.system->motif.row(holeIndex).subvec(0, 2) + holeCell;
+    // arma::colvec holePosition = exciton.system->motif.col(holeIndex).subvec(0, 2) + holeCell;
 
-    double radius = arma::norm(exciton.system->bravaisLattice.row(0)) * exciton.ncell;
     arma::mat cellCombinations = exciton.system->truncateSupercell(exciton.ncell, 2);
-    arma::vec rswf = arma::zeros(cellCombinations.n_rows*exciton.system->motif.n_rows);
+    arma::vec rswf = arma::zeros(cellCombinations.n_cols*exciton.system->motif.n_cols);
 
     // Compute probabilities
     for(int n = 0; n < nstates; n++){
         int it = 0;
         arma::cx_vec statecoefs = results->eigvec.col(n);
-        for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_rows; cellIndex++){
-        arma::rowvec cell = cellCombinations.row(cellIndex);
-        for (unsigned int atomIndex = 0; atomIndex < exciton.system->motif.n_rows; atomIndex++){
+        for(unsigned int cellIndex = 0; cellIndex < cellCombinations.n_cols; cellIndex++){
+        arma::colvec cell = cellCombinations.col(cellIndex);
+        for (unsigned int atomIndex = 0; atomIndex < exciton.system->motif.n_cols; atomIndex++){
             rswf(it) += results->realSpaceWavefunction(statecoefs, atomIndex, holeIndex, cell, holeCell);
             it++;
         }
@@ -554,7 +558,7 @@ TEST_CASE("MoS2 energies", "[MoS2-energies]"){
     int nstates = 2;
 
     std::string modelfile = "../examples/material_models/MoS2.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
@@ -567,6 +571,7 @@ TEST_CASE("MoS2 energies", "[MoS2-energies]"){
     
     std::vector<std::vector<double>> expectedEnergies = {{1.768783, 2}, 
                                                          {1.780562, 2}};
+ 
     for(uint i = 0; i < energies.size(); i++){
         REQUIRE_THAT(energies[i][0], Catch::Matchers::WithinAbs(expectedEnergies[i][0], 1E-4));
         REQUIRE(energies[i][1] == expectedEnergies[i][1]);
@@ -586,7 +591,7 @@ TEST_CASE("MoS2 reciprocal w.f.", "[MoS2-kwf]"){
     int nstates = 2;
 
     std::string modelfile = "../examples/material_models/MoS2.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
@@ -596,16 +601,16 @@ TEST_CASE("MoS2 reciprocal w.f.", "[MoS2-kwf]"){
     auto results = exciton.diagonalize("diag", nstates);
 
     int nbandsCombinations = exciton.conductionBands.n_elem * exciton.valenceBands.n_elem;
-    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_rows);
+    arma::cx_vec kwf = arma::zeros<arma::cx_vec>(exciton.system->kpoints.n_cols);
     for (int n = 0; n < nstates; n++){
         arma::cx_vec statecoefs = results->eigvec.col(n);
-        for (int i = 0; i < exciton.system->kpoints.n_rows; i++){
+        for (int i = 0; i < exciton.system->kpoints.n_cols; i++){
         double coef = 0;
         for(int nband = 0; nband < nbandsCombinations; nband++){
             coef += abs(statecoefs(nbandsCombinations*i + nband))*
                     abs(statecoefs(nbandsCombinations*i + nband));
         };
-        coef /= arma::norm(exciton.system->kpoints.row(1) - exciton.system->kpoints.row(0)); // L2 norm instead of l2
+        coef /= arma::norm(exciton.system->kpoints.col(1) - exciton.system->kpoints.col(0)); // L2 norm instead of l2
         kwf(i) += coef;
         };
     }
@@ -629,7 +634,7 @@ TEST_CASE("MoS2 spin", "[MoS2-spin]"){
     int factor = 2;
 
     std::string modelfile = "../examples/material_models/MoS2.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
@@ -667,10 +672,10 @@ TEST_CASE("MoS2 exciton bands", "[MoS2-Q]"){
     int nstates = 2;
 
     std::string modelfile = "../examples/material_models/MoS2.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
     
     arma::vec Q_values = {-0.1, -0.05, 0.0, 0.05, 0.1};
-    arma::rowvec Q = {0., 0., 0.};
+    arma::colvec Q = {0., 0., 0.};
     std::vector<std::vector<double>> energies;
 
     for (const auto& q : Q_values){
@@ -709,10 +714,10 @@ TEST_CASE("MoS2 exchange", "[MoS2-exchange]"){
 
     int ncell = 12;
     int nstates = 4;
-    arma::rowvec Q = {0., 0.1, 0.};
+    arma::colvec Q = {0., 0.1, 0.};
 
     std::string modelfile = "../examples/material_models/MoS2.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55}, Q);
     exciton.setExchange(true);
@@ -747,7 +752,7 @@ TEST_CASE("MoS2 reduced BZ", "[MoS2-reducedBZ]"){
     int factor = 2;
 
     std::string modelfile = "../examples/material_models/MoS2.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
@@ -783,7 +788,7 @@ TEST_CASE("MoS2 absorption", "[MoS2-kubo]"){
     int nstates = 2;
 
     std::string modelfile = "../examples/material_models/MoS2.model";    
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
 
     xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 2, 0, {1., 4., 13.55});
 
