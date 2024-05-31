@@ -68,9 +68,9 @@ int main(int argc, char* argv[]){
     cout << "#removed bands: " << nrmbands << endl;
     cout << "System configuration file: " << modelfile << "\n" << endl;
 
-    xatu::SystemConfiguration config = xatu::SystemConfiguration(modelfile);
+    xatu::ConfigurationTB config = xatu::ConfigurationTB(modelfile);
     xatu::ExcitonTB bulkExciton = xatu::ExcitonTB(config, ncell, nbands, nrmbands, parameters);
-    arma::cout << "Orbitals: " << bulkExciton.system->orbitals << arma::endl;
+    arma::cout << "Orbitals: " << bulkExciton.system->orbitalsPerSpecies << arma::endl;
     bulkExciton.setMode("realspace");
 
     cout << "Valence bands:\n" << bulkExciton.valenceBands << endl;
