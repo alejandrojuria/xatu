@@ -1,7 +1,4 @@
 #pragma once
-#include <math.h>
-#include <iomanip>
-#include <armadillo>
 #include "xatu/Exciton.hpp"
 
 namespace xatu {

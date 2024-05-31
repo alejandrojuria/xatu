@@ -6,7 +6,9 @@
 #include <omp.h>
 #include <stdlib.h>
 #include <memory>
-
+#include <math.h>
+#include <iomanip>
+#include <armadillo>
 
 #ifndef constants
 #define PI 3.141592653589793
