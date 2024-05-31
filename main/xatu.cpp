@@ -1,6 +1,4 @@
-#include <math.h>
 #include <chrono>
-#include <iomanip>
 #include <tclap/CmdLine.h>
 #include "xatu.hpp"
 
