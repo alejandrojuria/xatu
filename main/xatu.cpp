@@ -2,28 +2,18 @@
 #include <tclap/CmdLine.h>
 #include "xatu.hpp"
 
-
-#ifndef constants
-#define PI 3.141592653589793
-#define ec 1.6021766E-19
-#define eps0 8.8541878E-12
-#endif
-
-using namespace arma;
-using namespace std::chrono;
-
 int main(int argc, char* argv[]){
 
-    auto start = high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
 
     // Parse CLI arguments
     TCLAP::CmdLine cmd("Command line interface options of the Xatu binary. For a more detailed description, refer to the user guide or the API documentation.", ' ', "1.0");
 
-    TCLAP::ValueArg<int>    statesArg("n", "states", "Specify number of exciton states to show.", false, 8, "No. states", cmd);
-    TCLAP::ValueArg<int>    precisionArg("p", "precision", "Desired energy precision. Used to compute degeneracies.", false, 6, "No. decimals", cmd);
-    TCLAP::SwitchArg        spinArg("s", "spin", "Compute exciton spin and write it to file.", cmd, false);
-    TCLAP::ValueArg<int>    dftArg("d", "dft", "Indicates that the system file is a .outp CRYSTAL file.", false, -1, "No. Fock matrices", cmd);
-    TCLAP::SwitchArg        absorptionArg("a", "absorption", "Computes the absorption spectrum.", cmd, false);
+    TCLAP::ValueArg<int64_t>     statesArg("n", "states", "Specify number of exciton states to show.", false, 8, "No. states", cmd);
+    TCLAP::ValueArg<int>         precisionArg("p", "precision", "Desired energy precision. Used to compute degeneracies.", false, 6, "No. decimals", cmd);
+    TCLAP::SwitchArg             spinArg("s", "spin", "Compute exciton spin and write it to file.", cmd, false);
+    TCLAP::ValueArg<int>         dftArg("d", "dft", "Indicates that the system file is a .outp CRYSTAL file.", false, -1, "No. Fock matrices", cmd);
+    TCLAP::SwitchArg             absorptionArg("a", "absorption", "Computes the absorption spectrum.", cmd, false);
     TCLAP::ValueArg<std::string> formatArg("f", "format", "Format of the input system file.", false, "model", "model or hdf5", cmd);
 
     TCLAP::AnyOf         outputOptions;
@@ -46,7 +36,7 @@ int main(int argc, char* argv[]){
     cmd.parse(argc, argv);
 
     // Extract information from parsed CLI options
-    int nstates        = statesArg.getValue();
+    int64_t nstates        = statesArg.getValue();
     int ncells         = dftArg.getValue();
     int decimals       = precisionArg.getValue();
     std::string method = methodArg.getValue();
@@ -69,18 +59,19 @@ int main(int argc, char* argv[]){
     std::string kpointsfile = bandsArg.getValue();
 
     // Init. configurations
-    std::unique_ptr<xatu::SystemConfiguration> systemConfig;
-    std::unique_ptr<xatu::ExcitonConfiguration> excitonConfig;
+    std::unique_ptr<xatu::ConfigurationSystem>  systemConfig;
+    std::unique_ptr<xatu::ConfigurationExciton> excitonConfig;
 
     if (dftArg.isSet()){
-        systemConfig.reset(new xatu::CRYSTALConfiguration(systemfile, ncells));
+        systemConfig.reset(new xatu::ConfigurationCRYSTAL(systemfile, ncells, false)); 
+        //AGB note: consider here more cases for 3rd argument in ConfigCRYSTAL when the TB/GTF mode flag is introduced
     }
     else{
         if (format == "hdf5"){
             systemConfig.reset(new xatu::HDF5Configuration(systemfile));
         }
         else if (format == "model"){
-            systemConfig.reset(new xatu::SystemConfiguration(systemfile));
+            systemConfig.reset(new xatu::ConfigurationTB(systemfile));
         }
         else{
             throw std::invalid_argument("Format not recognized. Use 'model' or 'hdf5'.");
@@ -91,7 +82,7 @@ int main(int argc, char* argv[]){
     // Otherwise, init. exciton configuration.
     if (bandsArg.isSet()){
         xatu::SystemTB system = xatu::SystemTB(*systemConfig);
-        system.setAU(dftArg.isSet());
+        system.setCRYSTAL(dftArg.isSet());
 
         system.solveBands(kpointsfile);
 
@@ -102,28 +93,28 @@ int main(int argc, char* argv[]){
             throw std::invalid_argument("Must provide exciton file.");
         }
 
-        excitonConfig.reset(new xatu::ExcitonConfiguration(excitonfile));
+        excitonConfig.reset(new xatu::ConfigurationExciton(excitonfile));
     }
 
     // -------------------------- Main body ---------------------------
 
     xatu::printHeader();
 
-    cout << "+---------------------------------------------------------------------------+" << endl;
-    cout << "|                                  Parameters                               |" << endl;
-    cout << "+---------------------------------------------------------------------------+" << endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
+    std::cout << "|                                  Parameters                               |" << std::endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
     
     xatu::ExcitonTB bulkExciton = xatu::ExcitonTB(*systemConfig, *excitonConfig);
     bulkExciton.setMode(excitonConfig->excitonInfo.mode);
-    bulkExciton.system->setAU(dftArg.isSet());
+    bulkExciton.system->setCRYSTAL(dftArg.isSet());
 
-    cout << std::left << std::setw(30) << "System configuration file: " << std::setw(10) << systemfile << endl;
-    cout << std::left << std::setw(30) << "Exciton configuration file: " << std::setw(10) << excitonfile << "\n" << endl;
+    std::cout << std::left << std::setw(30) << "System configuration file: " << std::setw(10) << systemfile << std::endl;
+    std::cout << std::left << std::setw(30) << "Exciton configuration file: " << std::setw(10) << excitonfile << "\n" << std::endl;
     bulkExciton.printInformation();
     
-    cout << "+---------------------------------------------------------------------------+" << endl;
-    cout << "|                                Initialization                             |" << endl;
-    cout << "+---------------------------------------------------------------------------+" << endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
+    std::cout << "|                                Initialization                             |" << std::endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
 
     if(excitonConfig->excitonInfo.submeshFactor != 1){
         bulkExciton.system->reducedBrillouinZoneMesh(excitonConfig->excitonInfo.ncell, excitonConfig->excitonInfo.submeshFactor);   
@@ -133,22 +124,22 @@ int main(int argc, char* argv[]){
     }
 
     if(!excitonConfig->excitonInfo.shift.is_empty()){
-        bulkExciton.system->shiftBZ(excitonConfig->excitonInfo.shift);
+        bulkExciton.system->shiftBZ(excitonConfig->excitonInfo.shift.t());
     }
     
     bulkExciton.initializeHamiltonian();
     bulkExciton.BShamiltonian();
     auto results = bulkExciton.diagonalize(method, nstates);
 
-    cout << "+---------------------------------------------------------------------------+" << endl;
-    cout << "|                                    Results                                |" << endl;
-    cout << "+---------------------------------------------------------------------------+" << endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
+    std::cout << "|                                    Results                                |" << std::endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
 
     xatu::printEnergies(results, nstates, decimals);
 
-    cout << "+---------------------------------------------------------------------------+" << endl;
-    cout << "|                                    Output                                 |" << endl;
-    cout << "+---------------------------------------------------------------------------+" << endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
+    std::cout << "|                                    Output                                 |" << std::endl;
+    std::cout << "+---------------------------------------------------------------------------+" << std::endl;
 
     std::string output = excitonConfig->excitonInfo.label;
 
@@ -226,9 +217,9 @@ int main(int argc, char* argv[]){
         results->writeSpin(nstates, textfile_spin);
     }
 
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
-    std::cout << "Elapsed time: " << duration.count()/1000.0 << " s" << std::endl;
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "Total elapsed time: " << duration.count()/1000.0 << " s" << std::endl;
 
     return 0;
 };
