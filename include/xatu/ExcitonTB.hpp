@@ -63,29 +63,29 @@ class ExcitonTB : public Exciton<SystemTB> {
     // Constructor & Destructor
     private:
         // Private constructor to leverage to another method parameter initialization
-        ExcitonTB(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
+        ExcitonTB(int ncell, const arma::ivec& bands, const arma::rowvec& parameters, const arma::colvec& Q);
 
     public:
         // Specify number of bands participating (int)
-        ExcitonTB(const SystemConfiguration&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
-                 const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
+        ExcitonTB(const ConfigurationSystem&, int ncell = 20, int nbands = 1, int nrmbands = 0, 
+                 const arma::rowvec& parameters = {1, 5, 1}, const arma::colvec& Q = {0., 0., 0.});
 
         // Specify which bands participate (vector with band numbers)
-        ExcitonTB(const SystemConfiguration&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
-                 const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
+        ExcitonTB(const ConfigurationSystem&, int ncell = 20, const arma::ivec& bands = {0, 1}, 
+                 const arma::rowvec& parameters = {1, 5, 1}, const arma::colvec& Q = {0., 0., 0.});
         
         // Use two files: the mandatory one for system config., and one for exciton config.
-        ExcitonTB(const SystemConfiguration&, const ExcitonConfiguration&);
+        ExcitonTB(const ConfigurationSystem&, const ConfigurationExciton&);
 
         // Initialize exciton passing directly a System object instead of a file using removed bands
         ExcitonTB(std::shared_ptr<SystemTB>, int ncell = 20, int nbands = 1, int nrmbands = 0, 
-                 const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
+                 const arma::rowvec& parameters = {1, 5, 1}, const arma::colvec& Q = {0., 0., 0.});
 
         // Initialize exciton passing directly a System object instead of a file using bands vector
         ExcitonTB(std::shared_ptr<SystemTB>, int ncell = 20, const arma::ivec& bands = {0, 1}, 
-                 const arma::rowvec& parameters = {1, 5, 1}, const arma::rowvec& Q = {0., 0., 0.});
+                 const arma::rowvec& parameters = {1, 5, 1}, const arma::colvec& Q = {0., 0., 0.});
 
-        ~ExcitonTB();
+        // ~ExcitonTB();
 
         // Setters
         void setParameters(const arma::rowvec&);
@@ -103,9 +103,9 @@ class ExcitonTB : public Exciton<SystemTB> {
         potptr selectPotential(std::string);
 
         // Fourier transforms
-        double keldyshFT(arma::rowvec);
-        std::complex<double> motifFourierTransform(int, int, const arma::rowvec&, const arma::mat&, potptr);
-        arma::cx_mat motifFTMatrix(const arma::rowvec&, const arma::mat&, potptr);
+        double keldyshFT(const arma::colvec& q);
+        std::complex<double> motifFourierTransform(int, int, const arma::colvec&, const arma::mat&, potptr);
+        arma::cx_mat motifFTMatrix(const arma::colvec&, const arma::mat&, potptr);
         arma::cx_mat extendMotifFT(const arma::cx_mat&);
 
         // Interaction matrix elements
@@ -114,31 +114,31 @@ class ExcitonTB : public Exciton<SystemTB> {
                                                       const arma::cx_mat&);
         std::complex<double> reciprocalInteractionTerm(const arma::cx_vec&, const arma::cx_vec&,
                                                        const arma::cx_vec&, const arma::cx_vec&,
-                                                       const arma::rowvec&, const arma::rowvec&,
-                                                       const arma::rowvec&, const arma::rowvec&, int nrcells = 15);
+                                                       const arma::colvec&, const arma::colvec&,
+                                                       const arma::colvec&, const arma::colvec&, int nrcells = 15);
         std::complex<double> blochCoherenceFactor(const arma::cx_vec&, const arma::cx_vec&, 
-                                                  const arma::rowvec&, const arma::rowvec&,
-                                                  const arma::rowvec&);
+                                                  const arma::colvec&, const arma::colvec&,
+                                                  const arma::colvec&);
 
         // Initializers
-        void initializeExcitonAttributes(int, const arma::ivec&, const arma::rowvec&, const arma::rowvec&);
-        void initializeExcitonAttributes(const ExcitonConfiguration&);
+        void initializeExcitonAttributes(int, const arma::ivec&, const arma::rowvec&, const arma::colvec&);
+        void initializeExcitonAttributes(const ConfigurationExciton&);
         void initializeResultsH0();
-        void initializeMotifFT(int, const arma::mat&, potptr);
+        void initializeMotifFT(uint32_t, const arma::mat&, potptr);
         arma::imat specifyBasisSubset(const arma::ivec& bands);
 
         // Gauge fixing
         arma::cx_mat fixGlobalPhase(arma::cx_mat&);
 
         // Diagonalization
-        ResultTB* diagonalizeRaw(std::string method = "diag", int nstates = 8) override;
+        ResultTB* diagonalizeRaw(std::string method = "diag", int64_t nstates = 8) override;
 
     public:
         // BSE initialization and energies
         void initializeHamiltonian();
         void BShamiltonian();
         void BShamiltonian(const arma::imat& basis);
-        std::unique_ptr<ResultTB> diagonalize(std::string method = "diag", int nstates = 8);
+        std::unique_ptr<ResultTB> diagonalize(std::string method = "diag", int64_t nstates = 8);
         
         // Fermi golden rule       
         double pairDensityOfStates(double, double) const;
@@ -148,7 +148,7 @@ class ExcitonTB : public Exciton<SystemTB> {
         double edgeFermiGoldenRule(const ExcitonTB&, const arma::cx_vec&, double, std::string side = "right", bool increasing = false);
 
         // Auxiliary routines for Fermi golden rule
-        arma::rowvec findElectronHolePair(const ExcitonTB&, double, std::string, bool);
+        arma::colvec findElectronHolePair(const ExcitonTB&, double, std::string, bool);
 
         // Print information
         void printInformation();
