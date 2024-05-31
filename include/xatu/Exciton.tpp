@@ -65,7 +65,7 @@ void Exciton<T>::setBands(int nbands, int nrmbands){
  * @return void 
  */
 template <typename T>
-void Exciton<T>::setQ(const arma::rowvec& Q){
+void Exciton<T>::setQ(const arma::colvec& Q){
     if(Q.n_elem == 3){
         this->Q_ = Q;
     }
@@ -126,7 +126,7 @@ arma::imat Exciton<T>::createBasis(const arma::ivec& conductionBands,
                                 const arma::ivec& valenceBands){
 
     arma::imat states = arma::zeros<arma::imat>(dimBSE, 3);
-    int it = 0;
+    uint32_t it = 0;
     for (uint32_t i = 0; i < system->nk; i++){
         for (int k = 0; k < (int)conductionBands.n_elem; k++){
             for (int j = 0; j < (int)valenceBands.n_elem; j++){
@@ -134,14 +134,14 @@ arma::imat Exciton<T>::createBasis(const arma::ivec& conductionBands,
                 arma::irowvec state = { valenceBands(j), conductionBands(k), i };
                 states.row(it) = state;
                 it++;
-            };
-        };
-    };
+            }
+        }
+    }
 
     basisStates_ = states;
-
+    
     return states;
-};
+}
 
 /**
  * Overload of createBasis method to work with class attributes instead of given ones.
@@ -150,7 +150,7 @@ arma::imat Exciton<T>::createBasis(const arma::ivec& conductionBands,
 template <typename T>
 void Exciton<T>::initializeBasis(){
     this->basisStates_ = createBasis(conductionBands, valenceBands);
-};
+}
 
 /**
  * Wrapper for the Brillouin zone mesh method in the System class,
@@ -171,7 +171,6 @@ template <typename T>
 arma::cx_mat Exciton<T>::fixGlobalPhase(arma::cx_mat& coefs){
 
     arma::cx_rowvec sums = arma::sum(coefs);
-    std::complex<double> imag(0, 1);
     for(int j = 0; j < sums.n_elem; j++){
         double phase = arg(sums(j));
         coefs.col(j) *= exp(-imag*phase);
@@ -193,7 +192,7 @@ void Exciton<T>::generateBandDictionary(){
     };
 
     this->bandToIndex = bandToIndex;
-};
+}
 
 /**
  * Method to print information about the exciton.
@@ -203,13 +202,13 @@ template <typename T>
 void Exciton<T>::printInformation(){
     std::cout << std::left << std::setw(30) << "Number of cells: " << ncell << std::endl;
     std::cout << std::left << std::setw(30) << "Valence bands:";
-    for (int i = 0; i < valenceBands.n_elem; i++){
+    for (uint i = 0; i < valenceBands.n_elem; i++){
         std::cout << valenceBands(i) << "\t";
     }
     std::cout << std::endl;
 
     std::cout << std::left << std::setw(30) << "Conduction bands: ";
-    for (int i = 0; i < conductionBands.n_elem; i++){
+    for (uint i = 0; i < conductionBands.n_elem; i++){
         std::cout << conductionBands(i) << "\t";
     }
     std::cout << "\n" << std::endl;

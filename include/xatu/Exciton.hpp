@@ -23,6 +23,10 @@ template <typename T>
 class Exciton {
 
     // ----------------------------------- Attributes -----------------------------------
+    public:
+        // Imaginary unit i
+        static constexpr std::complex<double> imag {0., 1.};
+
     // Read-only parameters
     protected:
 
@@ -35,9 +39,10 @@ class Exciton {
         arma::ivec bands_, valenceBands_, conductionBands_;
         arma::uvec bandList_;
         arma::imat basisStates_;
-        arma::rowvec Q_;
+        arma::colvec Q_;
         double cutoff_;
         arma::cx_mat HBS_;
+        
 
         // Flags
         bool exchange = false;
@@ -50,20 +55,20 @@ class Exciton {
         const std::shared_ptr<T>& system = system_;
         // Number of unit cells along one axis
         const int& ncell = ncell_;
-        // Total number of unit cells
-        const uint32_t& totalCells = totalCells_;
-        // Dimension of electron-hole pair basis used to build excitons
-        const uint32_t& dimBSE = dimBSE_;
         // Number of bands participating in exciton formation, starting from the Fermi level
         const int& nbands = nbands_;
         // Remove bands starting from the Fermi level to build excited excitons directly
         const int& nrmbands = nrmbands_;
+        // Total number of unit cells
+        const uint32_t& totalCells = totalCells_;
+        // Dimension of electron-hole pair basis used to build excitons
+        const uint32_t& dimBSE = dimBSE_;
         // List of bands used to build the exciton
         const arma::ivec& bands = bands_;
         // List of bands used to build the exciton relative to the Fermi level
         const arma::uvec& bandList = bandList_;
         // 3d array with the center-of-mass momentum of the exciton
-        const arma::rowvec& Q = Q_;
+        const arma::colvec& Q = Q_;
         // List of valence bands that form the exciton relative to the Fermi level
         const arma::ivec& valenceBands = valenceBands_;
         // List of conduction bands that form the exciton relative to the Fermi level
@@ -91,13 +96,13 @@ class Exciton {
     public:
         // Constructor & Destructor
         Exciton(std::shared_ptr<T> sys_ptr) : system_(sys_ptr){};
-        virtual ~Exciton(){};
+        virtual ~Exciton() = default;
 
         // Setters
         void setUnitCells(int);
         void setBands(int, int);
         void setBands(const arma::ivec&);
-        void setQ(const arma::rowvec&);
+        void setQ(const arma::colvec& Q);
         void setCutoff(double);
         void setScissor(double);
         void setExchange(bool);
@@ -114,7 +119,7 @@ class Exciton {
         // BSE diagonalization: This method is not intented to be used
         // directly, but to be called by the 'diagonalize' method which has to be implemented
         // by the child classes.
-        virtual Result<T>* diagonalizeRaw(std::string method = "diag", int nstates = 8) = 0;
+        virtual Result<T>* diagonalizeRaw(std::string method = "diag", int64_t nstates = 8) = 0;
 
     public:
         arma::imat createBasis(const arma::ivec&, const arma::ivec&);
