@@ -10,8 +10,9 @@ int nbands = 1;
     int ncell = 40;
     arma::rowvec parameters = {1., 1., 10.};
     int nstates = 8;
+    auto config = ConfigurationTB("./examples/material_models/hBN.model");
+    config.printConfiguration(true,false); 
 
-    auto config = SystemConfiguration("./examples/material_models/hBN.model");
     auto exciton = ExcitonTB(config, ncell, nbands, nrmbands, parameters);
 
     exciton.brillouinZoneMesh(ncell);
