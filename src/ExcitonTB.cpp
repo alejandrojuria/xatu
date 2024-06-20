@@ -380,6 +380,57 @@ double ExcitonTB::coulomb(double r){
     return (r != 0) ? ec/(4E-10*PI*eps0*r) : ec*1E10/(4*PI*eps0*regularization);    
 }
 
+
+//+++++++++++++++++++++++++++++++++++++++++++ W1D Potential ++++++++++++++++++++++++++++++++++++++++++++++
+double ExcitonTB::W1D(double r, double L, double alpha_1D, int nqx) {
+    // Defining variables
+    std::complex<double> result(0, 0);
+    std::vector<double> k0, qx(nqx), eps_1D;
+    std::vector<std::complex<double>> exptL, y;
+
+    double a = arma::norm(system->bravaisLattice.row(0));
+
+    // Defining qx vector
+    for (int i = 0; i < nqx; ++i) {
+        qx[i] = -PI / a + i * (2 * PI / a) / (nqx - 1);
+    }
+
+
+    // Defining k0 vector (Bessel function)
+    for (double q : qx) {
+        double k = -log((L * std::abs(q)) / 4);
+        k0.push_back(k);
+    }
+
+    // Defining dielectric function
+    for (size_t i = 0; i < qx.size(); ++i) {
+        double eps1D = 1 + (8 * alpha_1D * std::pow(qx[i], 2) * k0[i]);
+        eps_1D.push_back(eps1D);
+    }
+
+    // Calculating the exponential
+    for (size_t j = 0; j < qx.size(); ++j) {
+        exptL.push_back(std::exp(std::complex<double>(0, 1) * qx[j] * r));
+    }
+
+    // Trapezoidal integration function
+    for (size_t j = 0; j < qx.size(); ++j) {
+        y.push_back((exptL[j] * k0[j] * (std::pow(ec, 2) / (2.0 * PI))) / eps_1D[j]);
+    }
+
+    // Performing the W1D integral
+    for (size_t i = 1; i < y.size(); ++i) {
+        result += (y[i] + y[i - 1]) * (qx[i] - qx[i - 1]) / 2.0;
+    }
+
+    // Calculating the modulus of the potential
+    double resultModule = std::sqrt((result.real() * result.real()) + (result.imag() * result.imag()));
+
+    return resultModule;
+}
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
 /**
  * Method to select the potential to be used in the of the exciton calculation.
  * @param potential Potential to be used in the direct term.
@@ -393,10 +444,18 @@ potptr ExcitonTB::selectPotential(std::string potential){
     else if(potential == "coulomb"){
         return &ExcitonTB::coulomb;
     }
+    else if(potential == "W1D"){
+        return &ExcitonTB::W1D;
+    }
+
+
     else{
-        throw std::invalid_argument("selectPotential(): potential must be either 'keldysh' or 'coulomb'");
+        throw std::invalid_argument("selectPotential(): potential must be either 'keldysh', 'coulomb' or 'W1D'");
     }
 }
+
+
+
 
 
 

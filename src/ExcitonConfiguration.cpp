@@ -145,10 +145,10 @@ void ExcitonConfiguration::checkContentCoherence(){
         }
     }
     if (!potentialFound){
-        throw std::invalid_argument("Specified 'potential' not supported. Use 'keldysh' or 'coulomb'");
+        throw std::invalid_argument("Specified 'potential' not supported. Use 'keldysh', 'coulomb' or 'W1D'");
     }
     if (excitonInfo.exchange && !exchangePotentialFound){
-        throw std::invalid_argument("Specified 'exchange.potential' not supported. Use 'keldysh' or 'coulomb'");
+        throw std::invalid_argument("Specified 'exchange.potential' not supported. Use 'keldysh', 'coulomb' or 'W1D'");
     }
     if (excitonInfo.mode != "realspace" && excitonInfo.mode != "reciprocalspace"){
         throw std::invalid_argument("Invalid mode. Use 'realspace' or 'reciprocalspace'");
