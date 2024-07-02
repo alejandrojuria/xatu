@@ -602,11 +602,17 @@ std::complex<double> ExcitonTB::blochCoherenceFactor(const arma::cx_vec& coefs1,
     std::complex<double> imag(0, 1);
     arma::cx_vec coefs = arma::conj(coefs1) % coefs2;
     arma::cx_vec phases = arma::ones<arma::cx_vec>(system->basisdim);
+    int index_min = 0;
+    int index_max = -1;
+
     for(int i = 0; i < system->natoms; i++){
         int species = system->motif.row(i)(3);
-        arma::rowvec atomPosition = system->motif.row(i).subvec(0, 2);
-        phases.subvec(i*system->orbitals(species), (i+1)*system->orbitals(species) - 1) *= 
-        exp(imag*arma::dot(k1 - k2 + G, atomPosition));
+        arma::rowvec atomPosition = system->motif.row(i).subvec(0, 2); 
+
+        index_max += system->orbitals(species);
+        phases.subvec(index_min, index_max) *= exp(imag*arma::dot(k1 - k2 + G, atomPosition));
+
+        index_min = index_max + 1;
     }
 
     std::complex<double> factor = arma::dot(coefs, phases);
