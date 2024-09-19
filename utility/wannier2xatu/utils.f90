@@ -9,7 +9,7 @@ module utils
         real(kind = 8)                 :: Rn(3, 3)
         integer, allocatable           :: iRn(:,:)
         complex(kind = 8), allocatable :: H(:,:,:)
-        !VARIAVEL PARA O MOTIF
+        complex(kind = 8), allocatable :: Rhop(:,:,:,:) ! motif
 
         !todo
         !w90 hamiltoniana
@@ -29,6 +29,7 @@ module utils
         subroutine LoadSystem
             integer        ::  fp, ii, jj, i, j
             real(kind = 8) ::  R, Im
+            real(kind = 8) ::  a1, a1j, a2, a2j, a3, a3j
             
             !read filename by terminal arguments
             call LoadArguments()
@@ -44,6 +45,7 @@ module utils
            
                 ! time to allocate
                 allocate(H(nFock, mSize, mSize))
+                allocate(Rhop(3, nFock, mSize, mSize))
                 allocate(degen(nFock))
                 allocate(iRn(nFock, 3))
 
@@ -62,6 +64,19 @@ module utils
                     do j = 1, mSize*mSize
                         read(fp, *) ii, jj, R, Im
                         H(i, ii, jj) = complex(R, Im)
+                    enddo
+                    if (i < nFock) read(fp, *)
+                enddo
+                read(fp,*) ! line skip
+
+                ! begin reading orbital localization -- for motif
+                do i = 1, nFock
+                    read(fp, *) ! skip iRn
+                    do j = 1, mSize*mSize
+                        read(fp, *) ii, jj, a1, a1j, a2, a2j, a3, a3j
+                        Rhop(1, i, ii, jj) = complex(a1, a1j)
+                        Rhop(2, i, ii, jj) = complex(a2, a2j)
+                        Rhop(3, i, ii, jj) = complex(a3, a3j)
                     enddo
                     if (i < nFock) read(fp, *)
                 enddo
@@ -92,18 +107,17 @@ subroutine Export2Xatu
                 write(iunit, '(A)') '# dimension'
                 write(iunit, *) size(Rn)
                 write(iunit, *) ''
-
+            ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# norbitals'
                 write(iunit, '(*(I1,1X))') (1, i=1,mSize)
                 write(iunit, *) ''
-
+            ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# bravaislattice'
                 do i = 1,3
                     write(iunit, *) Rn(i, :)
                 end do
                 write(iunit, *) ''
-
-
+            ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# bravaisvectors'
                 do i=1, nFock
                     a1 = iRn(i,1)*Rn(1,1)+iRn(i,2)*Rn(2,1)+iRn(i,3)*Rn(3,1)
@@ -113,28 +127,28 @@ subroutine Export2Xatu
                 end do
                 write(iunit, *) ''
 
-
-                ! ! write(inuit, *) ! blank line
+            ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# motif'
+                do i=1, mSize
+                    write(iunit, *) (real(Rhop(k, 1, i,i)),k=1,3), i-1
+                end do
                 write(iunit, *) ''
 
-
+            ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# hamiltonian'
                 do i=1, nFock
                     do j=1, mSize
                         do k=1,mSize
-                        write(iunit, '(F20.15, A, F20.15, A)', advance = 'no') real(H(i, j, k)),' ',aimag(H(i, j, k)), 'j    '
+                            write(iunit, '(F20.15, A, F20.15, A)', advance = 'no') real(H(i, j, k)),' ',aimag(H(i, j, k)), 'j    '
                         end do
                         write(iunit, *) ''
                     end do
                     write(iunit, '(A)') '&'
                 end do
                 write(iunit, *) ''
+            ! ------------------------------------------------------------------------------------ !
+                ! write(iunit, '(A)') '# filling'
 
-                ! ! write(inuit, *) ! blank line
-                write(iunit, '(A)') '# filling'
-
-            ! Close the file
             ! flush(iunit)
             close(iunit)
         end subroutine
