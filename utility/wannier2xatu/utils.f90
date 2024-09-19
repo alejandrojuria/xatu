@@ -71,25 +71,27 @@ module utils
 
 subroutine Export2Xatu
             implicit none
-            character(len=11) :: outfile
-            real*8 :: a1, a2, a3
-            
+            character(len=len(FileName)+2) :: outfile ! +2 because (.model=.dat+2)
             integer :: iunit, stat, i, j, k
+            integer :: pos
+            real*8 :: a1, a2, a3
 
-            ! bravais = reshape((/2.49824, 0.00000, 0.00000, -1.24912, 2.16353, 0.00000, 0.0,0.0,0.0/), shape(bravais))
-            ! mSize = 8
-            ! nFock = 21
 
-            outfile='stuff.model'
-            ! Assign a unit number for file I/O
+            ! Find the position of '.dat' in the filename
+            pos = index(FileName, '.dat')
+            if (pos > 0) then
+                ! Replace '.dat' with '.model'
+                outfile = FileName(1:pos-1) // '.model'
+            else
+                ! If no '.dat' found, just append '.model'
+                outfile = FileName // '.model'
+            end if
 
             ! Open the file for writing (create it if it doesn't exist, overwrite if it does)
             open(NEWUNIT=iunit, file=trim(outfile), action='write', status='replace', iostat=stat)
                 write(iunit, '(A)') '# dimension'
-                write(iunit, '(A)') '2'
+                write(iunit, *) size(Rn)
                 write(iunit, *) ''
-                ! write(inuit, *)
-                ! this should print a number based on... bravais lattice size..? or should always be 2?
 
                 write(iunit, '(A)') '# norbitals'
                 write(iunit, '(*(I1,1X))') (1, i=1,mSize)
@@ -102,7 +104,6 @@ subroutine Export2Xatu
                 write(iunit, *) ''
 
 
-                ! ! write(inuit, *) ! blank line
                 write(iunit, '(A)') '# bravaisvectors'
                 do i=1, nFock
                     a1 = iRn(i,1)*Rn(1,1)+iRn(i,2)*Rn(2,1)+iRn(i,3)*Rn(3,1)
@@ -118,7 +119,6 @@ subroutine Export2Xatu
                 write(iunit, *) ''
 
 
-                ! ! write(inuit, *) ! blank line
                 write(iunit, '(A)') '# hamiltonian'
                 do i=1, nFock
                     do j=1, mSize
@@ -133,7 +133,6 @@ subroutine Export2Xatu
 
                 ! ! write(inuit, *) ! blank line
                 write(iunit, '(A)') '# filling'
-                write(iunit, *) ''
 
             ! Close the file
             ! flush(iunit)
