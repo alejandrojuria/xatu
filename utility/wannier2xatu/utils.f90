@@ -58,7 +58,7 @@
                 write(iunit, '(*(I1,1X))') (1, i=1,norb)
                 ! write(inuit, *) norb
 
-                write(inuit, '(A)') ' '! blank line
+                write(inuit, '(A)') ''! blank line
                 write(iunit, '(A)') '# bravaislattice'
                 ! do i = 1,3
                 !     write(inuit, '(10F6.10)') bravais(i, :)
