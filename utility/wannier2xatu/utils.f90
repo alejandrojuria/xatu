@@ -90,6 +90,7 @@ subroutine Export2Xatu
             integer :: iunit, stat, i, j, k
             integer :: pos
             real*8 :: a1, a2, a3
+            logical :: is2D=.True.
 
 
             ! Find the position of '.dat' in the filename
@@ -105,7 +106,17 @@ subroutine Export2Xatu
             ! Open the file for writing (create it if it doesn't exist, overwrite if it does)
             open(NEWUNIT=iunit, file=trim(outfile), action='write', status='replace', iostat=stat)
                 write(iunit, '(A)') '# dimension'
-                write(iunit, *) size(Rn)
+                do i=1,nFock
+                    if (iRn(i,3).ne.0) then
+                        is2D = .False.
+                    end if
+                end do
+
+                if (is2D) then
+                    write(iunit, *) 2
+                else
+                    write(iunit, *) 3
+                end if
                 write(iunit, *) ''
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# norbitals'
@@ -130,7 +141,7 @@ subroutine Export2Xatu
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# motif'
                 do i=1, mSize
-                    write(iunit, *) (real(Rhop(k, 1, i,i)),k=1,3), i-1
+                    write(iunit, *) (real(Rhop(k, 2, i,i)),k=1,3), i-1
                 end do
                 write(iunit, *) ''
 
