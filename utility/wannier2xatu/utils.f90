@@ -88,16 +88,16 @@ subroutine Export2Xatu
             implicit none
             character(len=len(FileName)+2) :: outfile ! +2 because (.model=.dat+2)
             integer :: iunit, stat, i, j, k
-            integer :: pos
+            integer :: filePos, diag
             real*8 :: a1, a2, a3
             logical :: is2D=.True.
 
 
             ! Find the position of '.dat' in the filename
-            pos = index(FileName, '.dat')
-            if (pos > 0) then
+            filePos = index(FileName, '.dat')
+            if (filePos > 0) then
                 ! Replace '.dat' with '.model'
-                outfile = FileName(1:pos-1) // '.model'
+                outfile = FileName(1:filePos-1) // '.model'
             else
                 ! If no '.dat' found, just append '.model'
                 outfile = FileName // '.model'
@@ -140,8 +140,13 @@ subroutine Export2Xatu
 
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# motif'
+                do i=1, nFock
+                    if (iRn(i,1).eq.0 .and. iRn(i,2).eq.0 .and. iRn(i,3).eq.0) then
+                        diag = i
+                    end if
+                end do
                 do i=1, mSize
-                    write(iunit, *) (real(Rhop(k, 2, i,i)),k=1,3), i-1
+                    write(iunit, *) (real(Rhop(k, diag, i,i)),k=1,3), i-1
                 end do
                 write(iunit, *) ''
 
