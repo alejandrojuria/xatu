@@ -110,7 +110,7 @@ subroutine Export2Xatu
                     if (iRn(i,3).ne.0) then
                         is2D = .False.
                     else
-                        is2D = .true.  ! 2D system only if all iRn(i, 3) = 0.0
+                        is2D = .True.  ! 2D system only if all iRn(i, 3) = 0.0
                     end if
                 end do
 
@@ -124,6 +124,9 @@ subroutine Export2Xatu
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# norbitals'
                 write(iunit, '(*(I1,2X))') (1, i=1,mSize)
+            ! ------------------------------------------------------------------------------------ !
+                write(iunit, '(A)') '# filling'
+                write(iunit, *)
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# bravaislattice'
                 do i = 1, dimensions
@@ -158,9 +161,8 @@ subroutine Export2Xatu
                     end do
                     write(iunit, '(A)') '&'
                 end do
-                write(iunit, *) ''
+                write(iunit, *) '#'
             ! ------------------------------------------------------------------------------------ !
-            write(iunit, '(A)') '# filling'
 
             ! flush(iunit)
             close(iunit)
