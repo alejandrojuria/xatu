@@ -6,10 +6,10 @@ module utils
         character(len=:), allocatable  :: FileName
         integer                        :: nFock, mSize
         integer, allocatable           :: Degen(:)
-        real(kind = 8)                 :: Rn(3, 3)
+        real(8)                 :: Rn(3, 3)
         integer, allocatable           :: iRn(:,:)
-        complex(kind = 8), allocatable :: H(:,:,:)
-        complex(kind = 8), allocatable :: Rhop(:,:,:,:) ! motif
+        complex(8), allocatable :: H(:,:,:)
+        complex(8), allocatable :: Rhop(:,:,:,:) ! motif
 
         !todo
         !w90 hamiltoniana
@@ -28,8 +28,8 @@ module utils
 
         subroutine LoadSystem
             integer        ::  fp, ii, jj, i, j
-            real(kind = 8) ::  R, Im
-            real(kind = 8) ::  a1, a1j, a2, a2j, a3, a3j
+            real(8) ::  R, Im
+            real(8) ::  a1, a1j, a2, a2j, a3, a3j
             
             !read filename by terminal arguments
             call LoadArguments()
@@ -88,8 +88,8 @@ subroutine Export2Xatu
             implicit none
             character(len=len(FileName)+2) :: outfile ! +2 because (.model=.dat+2)
             integer :: iunit, stat, i, j, k
-            integer :: filePos, diag
-            real*8 :: a1, a2, a3
+            integer :: filePos, diag, dimensions
+            real(8) :: a1, a2, a3
             logical :: is2D=.True.
 
 
@@ -109,35 +109,26 @@ subroutine Export2Xatu
                 do i=1,nFock
                     if (iRn(i,3).ne.0) then
                         is2D = .False.
+                    else
+                        is2D = .true.  ! 2D system only if all iRn(i, 3) = 0.0
                     end if
                 end do
 
                 if (is2D) then
                     write(iunit, *) 2
+                    dimensions = 2
                 else
                     write(iunit, *) 3
+                    dimensions = 3
                 end if
-                write(iunit, *) ''
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# norbitals'
-                write(iunit, '(*(I1,1X))') (1, i=1,mSize)
-                write(iunit, *) ''
+                write(iunit, '(*(I1,2X))') (1, i=1,mSize)
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# bravaislattice'
-                do i = 1,3
+                do i = 1, dimensions
                     write(iunit, *) Rn(i, :)
                 end do
-                write(iunit, *) ''
-            ! ------------------------------------------------------------------------------------ !
-                write(iunit, '(A)') '# bravaisvectors'
-                do i=1, nFock
-                    a1 = iRn(i,1)*Rn(1,1)+iRn(i,2)*Rn(2,1)+iRn(i,3)*Rn(3,1)
-                    a2 = iRn(i,1)*Rn(1,2)+iRn(i,2)*Rn(2,2)+iRn(i,3)*Rn(3,2)
-                    a3 = iRn(i,1)*Rn(1,3)+iRn(i,2)*Rn(2,3)+iRn(i,3)*Rn(3,3)
-                    write(iunit, *) a1,'    ',a2,'  ',a3
-                end do
-                write(iunit, *) ''
-
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# motif'
                 do i=1, nFock
@@ -148,8 +139,14 @@ subroutine Export2Xatu
                 do i=1, mSize
                     write(iunit, *) (real(Rhop(k, diag, i,i)),k=1,3), i-1
                 end do
-                write(iunit, *) ''
-
+            ! ------------------------------------------------------------------------------------ !
+                write(iunit, '(A)') '# bravaisvectors'
+                do i=1, nFock
+                    a1 = iRn(i,1)*Rn(1,1)+iRn(i,2)*Rn(2,1)+iRn(i,3)*Rn(3,1)
+                    a2 = iRn(i,1)*Rn(1,2)+iRn(i,2)*Rn(2,2)+iRn(i,3)*Rn(3,2)
+                    a3 = iRn(i,1)*Rn(1,3)+iRn(i,2)*Rn(2,3)+iRn(i,3)*Rn(3,3)
+                    write(iunit, *) a1,'    ',a2,'  ',a3
+                end do
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# hamiltonian'
                 do i=1, nFock
@@ -163,7 +160,7 @@ subroutine Export2Xatu
                 end do
                 write(iunit, *) ''
             ! ------------------------------------------------------------------------------------ !
-                ! write(iunit, '(A)') '# filling'
+            write(iunit, '(A)') '# filling'
 
             ! flush(iunit)
             close(iunit)
