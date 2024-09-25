@@ -30,7 +30,7 @@ module utils
             integer        ::  fp, ii, jj, i, j
             real(8) ::  R, Im
             real(8) ::  a1, a1j, a2, a2j, a3, a3j
-            
+
             !read filename by terminal arguments
             call LoadArguments()
 
@@ -50,10 +50,12 @@ module utils
                 allocate(iRn(nFock, 3))
 
                 ! degen read, 15 elements by line
-                do i = 1, (nFock / 15)
-                    read(fp, *) Degen((i - 1)*15 + 1:(i - 1)*15 + 15)
-                enddo
-       
+                if ((nFock / 15) .gt. 1) then
+                    do i = 1, (nFock / 15)
+                        read(fp, *) Degen((i - 1)*15 + 1:(i - 1)*15 + 15) 
+                    enddo
+                end if
+                
                 ! Last line of degenerecences
                 read(fp, *) Degen((i - 1)*15 + 1:(i - 1)*15 + MOD(nFock, 15))  
                 read(fp, *)
@@ -153,6 +155,7 @@ subroutine Export2Xatu
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# hamiltonian'
                 do i=1, nFock
+                    H(i,:,:) = H(i,:,:)*Degen(i)
                     do j=1, mSize
                         do k=1,mSize
                             write(iunit, '(F20.15, A, F20.15, A)', advance = 'no') real(H(i, j, k)),' ',aimag(H(i, j, k)), 'j    '
