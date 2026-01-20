@@ -116,6 +116,17 @@ void Exciton<T>::setExchange(bool exchange){
     this->exchange = exchange;
 }
 
+
+/**
+ * To toggle on or off the self-energy term in the interaction matrix elements.
+ * @param selfenergy Either true of false
+ * @return void
+ */
+template <typename T>
+void Exciton<T>::setSelfEnergy(bool selfenergy){
+    this->selfenergy = selfenergy;
+}
+
 /*------------------------------------ Electron-hole pair basis ------------------------------------*/
 
 /**

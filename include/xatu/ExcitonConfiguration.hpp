@@ -52,6 +52,10 @@ class ExcitonConfiguration : public ConfigurationBase{
         std::string exchangePotential = "keldysh";
         // Regularization distance
         double regularization = 0.0;
+        // Flag to compute exciton energy while taking into account the Self-Energy contribution
+        bool selfenergy = false;
+        // Potential to use in selfenergy term
+        std::string selfenergyPotential = "keldysh";
     };
 
     public:

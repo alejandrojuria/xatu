@@ -28,6 +28,7 @@ int main(int argc, char* argv[]){
     TCLAP::ValueArg<int>    w90Arg("w", "w90", "Indicates that the system file is a tb.dat Wannier90 file.", false, -1, "No. electrons  ", cmd);
     TCLAP::SwitchArg        absorptionArg("a", "absorption", "Computes the absorption spectrum.", cmd, false);
     TCLAP::ValueArg<std::string> formatArg("f", "format", "Format of the input system file.", false, "model", "model or hdf5", cmd);
+    TCLAP::SwitchArg        selfenergyprint("i", "printSelfEnergy", "Prints the contribution of self energy to the single-particle bands.", cmd, false);
 
     TCLAP::AnyOf         outputOptions;
     TCLAP::SwitchArg     energyArg("e", "energy", "Write energies.", false);
@@ -171,6 +172,18 @@ int main(int argc, char* argv[]){
         results->writeEigenvalues(textfile_en, nstates);
 
         fclose(textfile_en);
+    }
+    
+    bool writeSelfEnergy = selfenergyprint.isSet();
+    if (writeSelfEnergy){
+        std::string filename_selfen = output + ".selfenergy";
+        FILE* textfile_selfen = fopen(filename_selfen.c_str(), "w");
+        
+        std::cout << "Writing self energy to file: " << filename_selfen << std::endl;
+        
+        bulkExciton.writeBandSelfEnergy(textfile_selfen);
+        
+        fclose(textfile_selfen);
     }
     
     bool writeStates = eigenstatesArg.isSet();

@@ -97,6 +97,20 @@ void ExcitonConfiguration::parseContent(){
             std::cout << arg << " " << str << std::endl;
             excitonInfo.exchangePotential = str;
         }
+        else if(arg == "selfenergy"){
+            std::string str = parseWord(content[0]);
+            if ((str != "true") && (str != "false")){
+                throw std::invalid_argument("Self-Energy option must be set to 'true' or 'false'.");
+            }
+            if (str == "true"){
+                excitonInfo.selfenergy = true;
+            }
+        }
+        else if(arg == "selfenergy.potential"){
+            std::string str = parseWord(content[0]);
+            std::cout << arg << " " << str << std::endl;
+            excitonInfo.selfenergyPotential = str;
+        }
         else if(arg == "potential"){
             std::string str = parseWord(content[0]);
             excitonInfo.potential = str;
@@ -136,6 +150,7 @@ void ExcitonConfiguration::checkContentCoherence(){
 
     bool potentialFound = false;
     bool exchangePotentialFound = false;
+    bool selfenergyPotentialFound = false;
     for (auto potential : supportedPotentials){
         if(excitonInfo.potential == potential){
             potentialFound = true;
@@ -143,12 +158,18 @@ void ExcitonConfiguration::checkContentCoherence(){
         if(excitonInfo.exchange && excitonInfo.exchangePotential == potential){
             exchangePotentialFound = true;
         }
+        if(excitonInfo.selfenergy && excitonInfo.selfenergyPotential == potential){
+            selfenergyPotentialFound = true;
+        }
     }
     if (!potentialFound){
         throw std::invalid_argument("Specified 'potential' not supported. Use 'keldysh' or 'coulomb'");
     }
     if (excitonInfo.exchange && !exchangePotentialFound){
         throw std::invalid_argument("Specified 'exchange.potential' not supported. Use 'keldysh' or 'coulomb'");
+    }
+    if (excitonInfo.selfenergy && !selfenergyPotentialFound){
+        throw std::invalid_argument("Specified 'selfenergy.potential' not supported. Use 'keldysh' or 'coulomb'");
     }
     if (excitonInfo.mode != "realspace" && excitonInfo.mode != "reciprocalspace"){
         throw std::invalid_argument("Invalid mode. Use 'realspace' or 'reciprocalspace'");

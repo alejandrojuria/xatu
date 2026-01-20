@@ -59,6 +59,7 @@ class Result {
         void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*, int);
         virtual void writeRealspaceAmplitude(const arma::cx_vec&, int, const arma::rowvec&, FILE*, int) = 0;
         virtual void writeAbsorptionSpectrum() = 0;
+        void writeSelfEnergy(FILE*);
 
     protected:
         int findExcitonPeak(int);

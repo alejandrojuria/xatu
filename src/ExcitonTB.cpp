@@ -83,6 +83,7 @@ void ExcitonTB::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
 
     // Set flags
     this->exchange = cfg.excitonInfo.exchange;
+    this->selfenergy = cfg.excitonInfo.selfenergy;
     this->scissor_ = cfg.excitonInfo.scissor;
     this->mode_    = cfg.excitonInfo.mode;
     this->nReciprocalVectors_ = cfg.excitonInfo.nReciprocalVectors;
@@ -92,6 +93,8 @@ void ExcitonTB::initializeExcitonAttributes(const ExcitonConfiguration& cfg){
     }
     this->potential_ = cfg.excitonInfo.potential;
     this->exchangePotential_ = cfg.excitonInfo.exchangePotential;
+    this->selfenergyPotential_ = cfg.excitonInfo.selfenergyPotential;
+    
 }
 
 /**
@@ -769,6 +772,9 @@ void ExcitonTB::initializeResultsH0(){
     this->ftMotifStack   = arma::cx_cube(natoms, natoms, system->meshBZ.n_rows);
     this->ftMotifQ       = arma::cx_mat(natoms, natoms);
 
+    if(this->selfenergy){
+        this->ftMotifQ3 = arma::cx_cube(natoms, natoms, system->meshBZ.n_rows);      
+    }
     vec auxEigVal(basisdim);
     arma::cx_mat auxEigvec(basisdim, basisdim);
     arma::cx_mat h;
@@ -813,7 +819,18 @@ void ExcitonTB::initializeResultsH0(){
         #pragma omp parallel for
         for (unsigned int i = 0; i < system->meshBZ.n_rows; i++){
             // BIGGEST BOTTLENECK OF THE CODE
-            initializeMotifFT(i, cells, directPotential);     
+            initializeMotifFT(i, cells, directPotential);
+            if(this->selfenergy){
+                if(arma::norm(Q) != 0){
+                    potptr selfenergyPotential = selectPotential(this->selfenergyPotential_);
+                    this->ftMotifQ3.slice(i) = motifFTMatrix(system->kpoints.row(i) - this->Q, cells, selfenergyPotential);
+                }
+                else {
+                    potptr selfenergyPotential = selectPotential(this->selfenergyPotential_);
+                    this->ftMotifQ3.slice(i) = this->ftMotifStack.slice(i);
+                };
+            }
+            
 
                 /* AJU 24-11-23: Progress bar does not work properly with parallel for 
                    Fix it or remove it direcly? */
@@ -873,6 +890,55 @@ void ExcitonTB::BShamiltonian(){
 }
 
 /**
+ * Routine to compute the self-energy contribution to the bands used in the exciton computation.
+ * @param Qtoggle toggle on whether to use Q in calculations. it is only set to zero when computing the correction to the band structure for exporting.
+ * @param k/kp_index index of k/k' point for the computation of the shifted mot 
+ * @param coefsK/Kp k/k' points in the definition of self-energy contribution
+ * @return self energy contribution
+ */
+std::complex<double> ExcitonTB::selfenergyTerm(bool Qtoggle, uint32_t k_index, uint32_t kp_index, const arma::cx_vec& coefsK, const arma::cx_vec& coefsKp){
+
+    std::complex<double> self = 0.0;
+    if (this->selfenergy){
+        uint32_t k_index_0 = system_->findEquivalentPointBZ(arma::rowvec{0,0,0}, ncell);
+        arma::cx_mat motifFT0 = ftMotifStack.slice(k_index_0);
+        arma::cx_vec coefsK3;
+        arma::cx_mat motifFT3;
+        if (mode == "realspace"){
+            for (int v3 = 0; v3 < (int)valenceBands.n_elem; v3++){
+                for (uint32_t k3_index = 0; k3_index < system->nk; k3_index++){
+                    if (gauge == "atomic"){
+                        coefsK3 = system_->latticeToAtomicGauge(eigvecKStack.slice(k3_index).col(v3), system->kpoints.row(k3_index));
+                    }
+                    else{
+                        coefsK3 = eigvecKStack.slice(k3_index).col(v3);
+                    }
+                    uint32_t effective_k3_index = system_->findEquivalentPointBZ(system->kpoints.row(k3_index) - system->kpoints.row(k_index), ncell);
+                    arma::cx_mat motifFT3 = (Qtoggle) ? this->ftMotifQ3.slice(effective_k3_index) : ftMotifStack.slice(effective_k3_index);
+                    // if (Qtoggle){
+                    //     arma::cx_mat motifFT3 = this->ftMotifQ3.slice(effective_k3_index);
+                    // }
+                    // else{
+                    //     arma::cx_mat motifFT3 = ftMotifStack.slice(effective_k3_index);
+                    //
+                    // }
+                    self = self + realSpaceInteractionTerm(coefsK, coefsK3 , coefsKp, coefsK3, motifFT0) - realSpaceInteractionTerm(coefsK, coefsK3, coefsK3, coefsKp, motifFT3);
+                    
+                };
+            };
+            return self;
+        }
+        else if (mode == "reciprocalspace"){
+            std::cout << self << std::endl;
+            return self;
+        }
+    }
+    else{
+        return self;
+    }
+};
+
+/**
  * Initialize BSE hamiltonian matrix and kinetic matrix.
  * @details Instead of calculating the energies and coeficients dinamically, which
  * is too expensive, instead we first calculate those for each k, save them
@@ -891,7 +957,6 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
     if (!basis.is_empty()){
         basisStates = basis;
     };
-
     uint64_t basisDimBSE = basisStates.n_rows;
     std::cout << "BSE dimension: " << basisDimBSE << std::endl;
     std::cout << "Initializing Bethe-Salpeter matrix... " << std::flush;
@@ -921,7 +986,6 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
         int v2 = bandToIndex[basisStates(j, 0)];
         int c2 = bandToIndex[basisStates(j, 1)];
         uint32_t k2Q_index = k2_index;
-
         // Using the atomic gauge
         if(gauge == "atomic"){
             coefsK = system_->latticeToAtomicGauge(eigvecKStack.slice(k_index).col(v), system->kpoints.row(k_index));
@@ -936,14 +1000,27 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
             coefsK2Q = eigvecKQStack.slice(k2Q_index).col(c2);
         }
 
-        std::complex<double> D, X = 0.0;
+        std::complex<double> D, X, selfcond, selfval = 0.0;
         if (mode == "realspace"){
             uint32_t effective_k_index = system_->findEquivalentPointBZ(system->kpoints.row(k2_index) - system->kpoints.row(k_index), ncell);
             arma::cx_mat motifFT = ftMotifStack.slice(effective_k_index);
             D = realSpaceInteractionTerm(coefsKQ, coefsK2, coefsK2Q, coefsK, motifFT);
             if(this->exchange){
                 X = realSpaceInteractionTerm(coefsKQ, coefsK2, coefsK, coefsK2Q, this->ftMotifQ);
-            }            
+            }
+            //self-energy terms
+            if(this->selfenergy){
+                bool testval = (kQ_index==k2Q_index and v==v2);
+                bool testcond = (k_index==k2_index and c==c2);
+                if (testval or testcond){
+                    if (testval){
+                        selfcond = selfenergyTerm(true, kQ_index, k2_index, coefsKQ, coefsK2Q);
+                    }
+                    if (testcond){
+                        selfval = selfenergyTerm(false, k2_index, k_index, coefsK2, coefsK);
+                    }
+                }
+            }           
         }
         else if (mode == "reciprocalspace"){
             arma::rowvec k = system->kpoints.row(k_index);
@@ -955,9 +1032,8 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
         }
         
         if (i == j){
-            HBS_(i, j) = (this->scissor + 
-                          eigvalKQStack.col(kQ_index)(c) - eigvalKStack.col(k_index)(v))/2. 
-                          - (D - X)/2.;            
+            HBS_(i, j) = (this->scissor + (eigvalKQStack.col(kQ_index)(c) + selfcond) - (eigvalKStack.col(k_index)(v) + selfval))/2.
+            - (D - X)/2.;
         }
         else{
             HBS_(i, j) =  - (D - X);
@@ -967,6 +1043,36 @@ void ExcitonTB::BShamiltonian(const arma::imat& basis){
     HBS_ = HBS + HBS.t();
     std::cout << "Done" << std::endl;
 };
+
+/**
+ * Routine to write the self energy contribution to each band to a file. Creates a matrix named selfen with nk rows and bands columns.
+ * Each row is organized as selfenergy(band0) selfenergy(band1) ....
+ * @param file Pointer to file.
+ * 
+ * 
+ * @return void
+ */
+void ExcitonTB::writeBandSelfEnergy(FILE* file){
+    arma::cx_vec coefsK;
+    arma::cx_mat selfen = arma::zeros<cx_mat>(system->nk, (int)bands.n_elem);
+    for (uint32_t k_index = 0; k_index < system->nk; k_index++){
+        arma::rowvec kpoint = system->kpoints.row(k_index);
+        fprintf(file, "%11.7lf\t%11.7lf\t%11.7lf\t", kpoint(0), kpoint(1), kpoint(2));
+        
+        for (int bandindex = 0; bandindex < (int)bands.n_elem; bandindex++){
+            if (gauge == "atomic"){
+                coefsK = system_->latticeToAtomicGauge(eigvecKStack.slice(k_index).col(bandindex), system->kpoints.row(k_index));
+            }
+            else{
+                coefsK = eigvecKStack.slice(k_index).col(bandindex);
+            }
+            selfen(k_index, bandindex) = selfenergyTerm(false, k_index, k_index, coefsK, coefsK);
+            fprintf(file, "%11.7lf\t%11.7lf\t", real(selfen(k_index, bandindex)), imag(selfen(k_index, bandindex)));
+        }
+        fprintf(file, "\n");
+    }
+};
+
 
 /**
  * Routine to diagonalize the BSE and return a Result object.
@@ -1427,6 +1533,10 @@ void ExcitonTB::printInformation(){
     if(exchange){
         cout << std::left << std::setw(30) << "Exchange: " << (exchange ? "True" : "False") << endl;
         cout << std::left << std::setw(30) << "Exchange potential: " << exchangePotential_ << endl;
+    }
+    if(selfenergy){
+        cout << std::left << std::setw(30) << "Self-Energy: " << (selfenergy ? "True" : "False") << endl;
+        cout << std::left << std::setw(30) << "Self-Energy potential: " << selfenergyPotential_ << endl;
     }
     if(arma::norm(Q) > 1E-7){
         cout << std::left << std::setw(30) << "Q: "; 

@@ -801,6 +801,39 @@ TEST(hBNTest, AnisotropicConductivity){
 
 }
 
+TEST(hBNTest, SelfEnergyContribution){
+    
+    std::cout.clear();
+    std::cout << std::setw(50) << std::left << "Testing TB hBN self-energy contribution (fulldiag)... " << std::endl;
+    std::cout.setstate(std::ios_base::failbit);
+    
+    int ncell = 30;
+    int nstates = 4;
+    
+    std::string modelfile = "../examples/material_models/hBN.model";    
+    xatu::SystemConfiguration config(modelfile);
+    
+    xatu::ExcitonTB exciton = xatu::ExcitonTB(config, ncell, 1, 0, {1, 1, 10});
+    exciton.setExchange(true);
+    exciton.setSelfEnergy(true);
+    
+    exciton.brillouinZoneMesh(ncell);
+    exciton.initializeHamiltonian();
+    exciton.BShamiltonian();
+    auto results = exciton.diagonalize("diag", nstates);
+    
+    auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
+    
+    std::vector<std::vector<double>> expectedEnergies = {{4.978280, 2}, 
+                                                         {5.790652, 1},
+                                                         {5.807516, 1}};
+    
+    for(uint i = 0; i < energies.size(); i++){
+        EXPECT_NEAR(energies[i][0], expectedEnergies[i][0], 1E-4);
+        EXPECT_EQ(energies[i][1], expectedEnergies[i][1]);
+    }
+}
+
 TEST(MoS2Test, FullDiagonalization){
 
     std::cout.clear();

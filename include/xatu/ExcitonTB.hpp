@@ -36,9 +36,11 @@ class ExcitonTB : public Exciton<SystemTB> {
         std::string mode_  = "realspace";
         std::string potential_ = "keldysh";
         std::string exchangePotential_ = "keldysh";
+        std::string selfenergyPotential_ = "keldysh";
 
         // Internals for BSE
         arma::cx_mat ftMotifQ;
+        arma::cx_cube ftMotifQ3;
         arma::cx_cube ftMotifStack;
         std::complex<double> ftX;
         arma::mat potentialMat;
@@ -142,6 +144,8 @@ class ExcitonTB : public Exciton<SystemTB> {
     public:
         // BSE initialization and energies
         void initializeHamiltonian();
+        std::complex<double> selfenergyTerm(bool, uint32_t, uint32_t, const arma::cx_vec&, const arma::cx_vec&);
+        void writeBandSelfEnergy(FILE*);
         void BShamiltonian();
         void BShamiltonian(const arma::imat& basis);
         std::unique_ptr<ResultTB> diagonalize(std::string method = "diag", int nstates = 8);

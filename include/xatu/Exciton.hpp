@@ -41,6 +41,7 @@ class Exciton {
 
         // Flags
         bool exchange = false;
+        bool selfenergy = false;
 
         // Internals for BSE
         arma::mat eigvalKStack_, eigvalKQStack_;
@@ -101,6 +102,8 @@ class Exciton {
         void setCutoff(double);
         void setScissor(double);
         void setExchange(bool);
+        void setSelfEnergy(bool);
+        
 
     protected:
         void initializeBasis();
