@@ -1,0 +1,20 @@
+# valence.bands
+6
+# conduction.bands
+63
+# vectors
+0 0
+# momentum
+0.2  0.  0.
+# function
+dielectric
+# ncell_aux
+10
+# spin
+false
+# isotropic
+true
+# gcutoff
+3.0
+# thickness
+3.33

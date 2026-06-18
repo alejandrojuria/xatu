@@ -11,6 +11,12 @@
 #define eps0 8.8541878E-12
 #endif
 
+/** 
+ *Method to sort rows in a matrix by norm
+ *@return void 
+*/
+void sortVectors(arma::mat&);
+
 namespace xatu {
 
 /// @brief The Lattice class is designed to hold all information regarding both
@@ -24,11 +30,14 @@ class Lattice {
         int factor_ = 1;
         double a_, c_, unitCellArea_;
         arma::mat bravaisLattice_, motif_, unitCellList_;
-        arma::mat reciprocalLattice_, kpoints_, meshBZ_;
+        arma::mat kpoints_, meshBZ_;
         std::map<std::string, int> atomToIndex;
         arma::mat inverseReciprocalMatrix;
 
-    // Const references to attributes (read-only)
+    private:
+        
+
+        // Const references to attributes (read-only)
     public:
         // Returns system dimension
         const int& ndim = ndim_;
@@ -61,8 +70,10 @@ class Lattice {
         const int& ncells = ncells_;
         // Reduction factor of Brillouin zone mesh
         const int& factor = factor_;
+        // Reciprocal Lattice matrix
+        arma::mat reciprocalLattice_;
 
-    //// Methods
+        //// Methods
     protected:
         Lattice(){}; // Protected so that Lattice can not be initialized (abstract)
     public:
@@ -78,8 +89,9 @@ class Lattice {
 
         // Supercells
         arma::mat truncateSupercell(int, double);
-        arma::mat truncateReciprocalSupercell(int, double);
+        arma::mat truncateReciprocalSupercell(double);
         arma::mat generateCombinations(int n, int ndim, bool centered = false);
+        arma::imat generateCombinationsGcutoff(double, int);
 
         /* Crystal operations */
         arma::rowvec rotateC3(const arma::rowvec&);

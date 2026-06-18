@@ -127,7 +127,7 @@ void SystemTB::solveBands(arma::rowvec& k, arma::vec& eigval, arma::cx_mat& eigv
 /**
  * Method to orthogonalize the basis.
  * @details This method acts directly over the eigenstates of the system, giving us
- * their coefficients if their were written in an orthonormal basis. The technique used
+ * their coefficients if they were written in an orthonormal basis. The technique used
  * is Lowdin orthogonalization.
  * @param k kpoint of eigenvectors to orthonormalize.
  * @param hamiltonian Matrix of eigenstates.

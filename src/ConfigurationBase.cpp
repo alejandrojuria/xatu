@@ -28,7 +28,7 @@ ConfigurationBase::ConfigurationBase(std::string file) : filename(file){
     
     m_file.open(file.c_str());
     if(!m_file.is_open()){
-        throw std::invalid_argument("ConfigurationBase: file does not exist");
+        throw std::invalid_argument("ConfigurationBase: file '" + file + "' does not exist");
     }
 };
 

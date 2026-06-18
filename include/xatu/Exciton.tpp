@@ -191,7 +191,7 @@ template <typename T>
 void Exciton<T>::generateBandDictionary(){
 
     std::map<int, int> bandToIndex;
-    for(int i = 0; i < bandList.n_elem; i++){
+    for(uint i = 0; i < bandList.n_elem; i++){
         bandToIndex[bandList(i)] = i;
     };
 
@@ -206,13 +206,13 @@ template <typename T>
 void Exciton<T>::printInformation(){
     std::cout << std::left << std::setw(30) << "Number of cells: " << ncell << std::endl;
     std::cout << std::left << std::setw(30) << "Valence bands:";
-    for (int i = 0; i < valenceBands.n_elem; i++){
+    for (uint i = 0; i < valenceBands.n_elem; i++){
         std::cout << valenceBands(i) << "\t";
     }
     std::cout << std::endl;
 
     std::cout << std::left << std::setw(30) << "Conduction bands: ";
-    for (int i = 0; i < conductionBands.n_elem; i++){
+    for (uint i = 0; i < conductionBands.n_elem; i++){
         std::cout << conductionBands(i) << "\t";
     }
     std::cout << "\n" << std::endl;

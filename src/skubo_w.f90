@@ -455,7 +455,18 @@ character(100) file_name_sp
 character(100) file_name_ex
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-open(10,file='kubo_w.in')
+! Try to open the file only if it exists
+open(unit=10, file='../kubo_w.in', status='old', iostat=iostat_var)
+
+if (iostat_var /= 0) then
+    print *, "Error: File 'kubo_w.in' does not exist or could not be opened."
+    ! Handle the error, e.g., by stopping the program or taking other actions
+    stop
+else
+    print *, "File 'kubo_w.in' opened successfully."
+end if
+
+  ! Close the file if it was opened
 read(10,*)
 read(10,*) w0
 read(10,*)
@@ -469,6 +480,9 @@ read(10,*) type_broad
 read(10,*)
 read(10,*) file_name_sp
 read(10,*) file_name_ex
+print *, "Writing absorption spectrum to files:"
+print *, file_name_sp
+print *, file_name_ex
 close(10)
 
 return

@@ -2,10 +2,10 @@
 
 <div align=center>
 
-![GitHub release (with filter)](https://img.shields.io/github/v/release/alejandrojuria/xatu)
-[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/alejandrojuria/tightbinder/issues)
+![GitHub release (with filter)](https://img.shields.io/github/v/release/Peteracn96/xatu)
+[![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/Peteracn96/xatu/issues)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![arXiv](https://img.shields.io/badge/arXiv-2307.01572-red.svg)](https://arxiv.org/abs/2307.01572)
+[![arXiv](https://img.shields.io/badge/arXiv-2603.10966-red.svg)](https://arxiv.org/abs/2603.10966)
 [![Documentation Status](https://readthedocs.org/projects/xatu-documentation/badge/?version=latest&style=flat)](https://xatu-documentation.readthedocs.io/en/latest/)
 
 </div>  
@@ -18,6 +18,12 @@ Xatu (_eXcitons from ATomistic calcUlations_) is a program and library designed 
 
 The theory behind the code plus details about the implementation and some usage examples can be found in our paper [Efficient computation of optical excitations in two-dimensional materials with the Xatu code](https://doi.org/10.1016/j.cpc.2023.109001). If you find 
 our paper or the code useful, please consider citing us.
+
+The new version of the code computes the exciton states without the need of any external model parameters through a 2D implementation of the microscopic dielectric function within the random-phase approximation (RPA). The RPA macroscopic dielectric function faithfully reproduces that from first-principles calculations. Both strict 2D or quasi-2D calculations can be used to compute the dielectric function and the excitons. The theory behind this new version can be found in the paper [Microscopic screening theory for excitons in two-dimensional materials: A bridge between effective models and _ab initio_ descriptions](https://arxiv.org/abs/2603.10966). If you find the paper or the code useful, please consider citing it.
+
+<p align="center">
+  <img src="epsilon_vs_q_hBN.jpg" width="75%" height="75%">
+</p>
 
 ## Installation
 Xatu is built upon the Armadillo C++ library for linear algebra, which is also based on the standard libraries por linear algebra, namely BLAS, LAPACK and ARPACK.
