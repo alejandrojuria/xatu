@@ -449,6 +449,7 @@ void ResultTB::writeAbsorptionSpectrum(){
     int filling = system->filling;
     int nv = exciton->valenceBands.n_elem;
     int nc = exciton->conductionBands.n_elem;
+    double scissor = exciton->scissor;
 
     arma::mat Rvec = system->unitCellList;
     // Extend bravais lattice to 3x3 matrix
@@ -523,8 +524,8 @@ void ResultTB::writeAbsorptionSpectrum(){
     arma::mat eigval_sp = exciton->eigvalKStack;
     arma::cx_cube eigvec_sp = exciton->eigvecKStack;
 
-
-    skubo_w_(&nR, &norb, &norb_ex, &nv, &nc, &filling, 
+    std::cout<< scissor << std::endl;
+    skubo_w_(&nR, &norb, &norb_ex, &nv, &nc, &filling, &scissor,
              Rvec.memptr(), R.memptr(), extendedMotifFull.memptr(), hhop.memptr(), shop.memptr(), &nk, rkx.memptr(),
              rky.memptr(), rkz.memptr(), m_eigvec.memptr(), m_eigval.memptr(), eigval_sp.memptr(), eigvec_sp.memptr());
 }

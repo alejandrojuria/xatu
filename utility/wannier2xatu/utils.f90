@@ -157,7 +157,7 @@ subroutine Export2Xatu
             ! ------------------------------------------------------------------------------------ !
                 write(iunit, '(A)') '# hamiltonian'
                 do i=1, nFock
-                    H(i,:,:) = H(i,:,:)*Degen(i)
+                    H(i,:,:) = H(i,:,:)/Degen(i)
                     do j=1, mSize
                         do k=1,mSize
                             write(iunit, '(F20.15, A, F20.15, A)', advance = 'no') real(H(i, j, k)),' ',aimag(H(i, j, k)), 'j    '

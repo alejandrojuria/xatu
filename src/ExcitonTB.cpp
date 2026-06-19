@@ -420,10 +420,23 @@ double ExcitonTB::keldysh(arma::rowvec r){
 double ExcitonTB::coulomb(arma::rowvec r){
     double cutoff = arma::norm(system->bravaisLattice.row(0)) * cutoff_ + 1E-5;
     double R = abs(arma::norm(r));
-    if (R > cutoff){
-        return 0.0;
+    /*    if (R > cutoff){
+     *       return 0.0;
     }
-    return (R != 0) ? ec/(4E-10*PI*eps0*R) : ec*1E10/(4*PI*eps0*regularization);    
+    return (R != 0) ? ec/(4E-10*PI*eps0*R) : ec*1E10/(4*PI*eps0*regularization);   */ 
+    double eps_bar = (eps_m + eps_s)/2;
+    double potential_value;
+    if(R < 1E-5){
+        potential_value =ec/(4E-10*PI*eps0*eps_bar*regularization);
+    }
+    else if (R > cutoff){
+        potential_value = 0.0;
+    }
+    else{
+        potential_value = ec*1E10/(4*PI*eps0*eps_bar*R);   
+    };
+    
+    return potential_value;
 }
 
 /**

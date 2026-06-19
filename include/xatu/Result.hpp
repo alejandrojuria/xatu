@@ -53,9 +53,9 @@ class Result {
         void writePhase(int, FILE*);
         void writeExtendedPhase(const arma::cx_vec&, FILE*);
         void writeExtendedPhase(int, FILE*);
-        void writeEigenvalues(FILE*, int n = 0);
-        void writeStates(FILE*, int n = 0);
-        void writeSpin(int, FILE*);
+        void writeEigenvalues(FILE*, int n = 0, double encut = 0.0);
+        void writeStates(FILE*, int n = 0, double encut = 0.0);
+        void writeSpin(int, double, FILE*);
         void writeRealspaceAmplitude(int, int, const arma::rowvec&, FILE*, int);
         virtual void writeRealspaceAmplitude(const arma::cx_vec&, int, const arma::rowvec&, FILE*, int) = 0;
         virtual void writeAbsorptionSpectrum() = 0;

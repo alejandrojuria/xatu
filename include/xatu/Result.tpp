@@ -401,9 +401,15 @@ void Result<T>::writeRealspaceAmplitude(int stateindex, int holeIndex,
  * @return void 
  */
 template <typename T>
-void Result<T>::writeEigenvalues(FILE* textfile, int n){
+void Result<T>::writeEigenvalues(FILE* textfile, int n, double encut){
 
-    if(n > exciton->excitonbasisdim || n < 0){
+    int newn = n;
+    
+    if (encut != 0.0){
+        newn = (int) arma::abs(eigval - encut).index_min() + 1;
+    }
+    
+    if(newn > exciton->excitonbasisdim || newn < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
 
@@ -411,7 +417,7 @@ void Result<T>::writeEigenvalues(FILE* textfile, int n){
     fprintf(textfile, "%d\n", exciton->excitonbasisdim);
 
     // second line: how many eigenvalues will follow
-    int maxEigval = (n == 0) ? exciton->excitonbasisdim : n;
+    int maxEigval = (newn == 0) ? exciton->excitonbasisdim : newn;
     fprintf(textfile, "%d\n", maxEigval);
 
     // then one eigenvalue per line
@@ -427,8 +433,14 @@ void Result<T>::writeEigenvalues(FILE* textfile, int n){
  * @return void
  */
 template <typename T>
-void Result<T>::writeStates(FILE* textfile, int n){
-    if(n > exciton->excitonbasisdim || n < 0){
+void Result<T>::writeStates(FILE* textfile, int n, double encut){
+    int newn = n;
+    
+    if (encut != 0.0){
+        newn = (int) arma::abs(eigval - encut).index_min() + 1;
+    }
+    
+    if(newn > exciton->excitonbasisdim || newn < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
     // First write basis
@@ -442,7 +454,7 @@ void Result<T>::writeStates(FILE* textfile, int n){
                 kpoint(0), kpoint(1), kpoint(2), v, c);
     }
 
-    int nstates = (n == 0) ? exciton->excitonbasisdim : n;  
+    int nstates = (newn == 0) ? exciton->excitonbasisdim : newn;  
     for(unsigned int i = 0; i < nstates; i++){
         for(unsigned int j = 0; j < exciton->excitonbasisdim; j++){
             fprintf(textfile, "%11.7lf\t%11.7lf\t", 
@@ -458,13 +470,19 @@ void Result<T>::writeStates(FILE* textfile, int n){
  * @param textfile Textfile where the spins are written.
  */
 template <typename T>
-void Result<T>::writeSpin(int n, FILE* textfile){
-
-    if(n > exciton->excitonbasisdim || n < 0){
+void Result<T>::writeSpin(int n, double encut, FILE* textfile){
+    
+    int newn = n;
+    
+    if (encut != 0.0){
+        newn = (int) arma::abs(eigval - encut).index_min() + 1;
+    }
+    
+    if(newn > exciton->excitonbasisdim || newn < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
 
-    int maxState = (n == 0) ? exciton->excitonbasisdim : n;  
+    int maxState = (newn == 0) ? exciton->excitonbasisdim : newn;  
     fprintf(textfile, "n\tSt\tSe\tSh\n");
     for(unsigned int i = 0; i < maxState; i++){
         auto spin = spinX(i);

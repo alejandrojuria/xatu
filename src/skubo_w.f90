@@ -1,5 +1,5 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine skubo_w(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,hhop,shop,npointstotal,rkx, &
+subroutine skubo_w(nR,norb,norb_ex,nv_ex,nc_ex,nv,scissor,Rvec,R,B,hhop,shop,npointstotal,rkx, &
 rky,rkz,fk_ex,e_ex,eigval_stack,eigvec_stack)
 implicit real*8 (a-h,o-z)
 
@@ -40,6 +40,7 @@ complex*16 vme_ex
 complex*16 skubo_ex_int
 complex*16 sigma_w_sp
 complex*16 sigma_w_ex
+real*8 scissor
 
 character(100) type_broad
 character(100) file_name_sp
@@ -47,6 +48,7 @@ character(100) file_name_ex
 character(100) file_name_sp_imag
 character(100) file_name_ex_imag
 character(len=:), allocatable :: file_name_strength
+logical :: do_kubo                    ! flag: do Kubo calculation only if input exists
 integer :: p_dot
 
 
@@ -64,106 +66,133 @@ rkx=rkx*0.52917721067121d0
 rky=rky*0.52917721067121d0
 rkz=rkz*0.52917721067121d0
 e_ex=e_ex/27.211385d0
+scissor=scissor/27.211385d0
 eigval_stack=eigval_stack/27.211385d0
 
-call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1), &
-R(2,2),R(2,3),cx,cy,cz)
-vcell=sqrt(cx**2+cy**2+cz**2)
+! volume formula depends on the dimensionality of the unit cell 
+! for 1D, we have the magnitude of the vector (we take the magnitude of the three vectors just to be safe)
+! for 2D, we have the crossproduct (as before, but now allowing for yz or xz -oriented lattices)
+! for 3D, we have the triple product dot(z,cross(x,y))
+! this is checked by checking the norm of rkx/rky/rkz to determine how many directions are defined in k
+
+if ( (NORM2(rkx) == 0 .and. NORM2(rky) == 0) .or. &
+      (NORM2(rky) == 0 .and. NORM2(rkz) == 0) .or. &
+      (NORM2(rkx) == 0 .and. NORM2(rkz) == 0) ) then
+  vcell=sqrt(R(1,1)**2+R(1,2)**2+R(1,3)**2+R(2,1)**2+R(2,2)**2+R(2,3)**2+R(3,1)**2+R(3,2)**2+R(3,3)**2)
+else if ( ( NORM2(rkz) == 0 .xor. NORM2(rky) == 0) .or. &
+          (NORM2(rkx) == 0 .xor. NORM2(rky) == 0) ) then
+  if (NORM2(rkx) == 0) then
+    call crossproduct(R(3,1),R(3,2),R(3,3),R(2,1),R(2,2),R(2,3),cx,cy,cz)
+  else if (NORM2(rky) == 0) then
+    call crossproduct(R(1,1),R(1,2),R(1,3),R(3,1),R(3,2),R(3,3),cx,cy,cz)
+  else
+    call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1),R(2,2),R(2,3),cx,cy,cz)
+  endif
+  vcell=sqrt(cx**2+cy**2+cz**2)
+else 
+  call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1),R(2,2),R(2,3),cx,cy,cz)
+  vcell=abs(R(3,1)*cx+R(3,2)*cy+R(3,3)*cz)
+endif
 
 !call fill_nRvec(nR,R,Rvec,nRvec)
 !get printing parameters
 call get_kubo_parameters(w0,wrange,nw,eta,type_broad, &
 file_name_sp,file_name_ex)
-eta=eta/27.211385d0
 
-!SP arrays
-allocate (wp(nw))
-allocate (sigma_w_sp(3,3,nw))
-allocate (hk_ev(norb,nbands))
-allocate (e(nbands))
+!flag indicates whether we actually read parameters
+ do_kubo = (nw .gt. 0)
+ if (.not. do_kubo) then
+   write(*,*) 'Notice: kubo input missing or empty -- conductivity routines will be skipped'
+ endif
+ if (do_kubo) then
+   eta = eta/27.211385d0
+ end if
+
+! allocate the vme array unconditionally – used by the exciton routine
 allocate (vme(npointstotal,3,nbands,nbands))
-wp=0.0d0
-wn_sp=0.0d0
-sigma_w_sp=0.0d0
-do i=1,nw
-  wp(i)=(w0+wrange/dble(nw)*dble(i-1))/27.211385d0
-end do
 
-!exciton arrays
+!exciton arrays (only the part needed for oscillator strengths)
 norb_ex_band=nv_ex*nc_ex !number of electron-hole pairs per k-point
 norb_ex_cut=norb_ex  !total number of optical transitions
 allocate (vme_ex(3,norb_ex_cut,2))
-allocate (sigma_w_ex(3,3,nw))
-allocate (skubo_ex_int(3,3,norb_ex_cut))
 vme_ex=0.0d0
-sigma_w_ex=0.0d0
-skubo_ex_int=0.0d0
 
+!calculate exciton oscillator strengths regardless of Kubo input
 call exciton_oscillator_strength(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,hhop,shop,npointstotal,rkx, &
                                  rky,rkz,fk_ex,e_ex,eigval_stack,eigvec_stack,vme,vme_ex,.false.)
 
+if (do_kubo) then
+  ! -- arrays needed for conductivity evaluation --
+  allocate (wp(nw))
+  allocate (sigma_w_sp(3,3,nw))
+  allocate (hk_ev(norb,nbands))
+  allocate (e(nbands))
+  wp=0.0d0
+  wn_sp=0.0d0
+  sigma_w_sp=0.0d0
+  do i=1,nw
+    wp(i)=(w0+wrange/dble(nw)*dble(i-1))/27.211385d0
+  end do
 
-! Obtain SP Kubo
-do ibz=1,npointstotal
-  e(:) = eigval_stack(:, ibz)
+  allocate (sigma_w_ex(3,3,nw))
+  allocate (skubo_ex_int(3,3,norb_ex_cut))
+  sigma_w_ex=0.0d0
+  skubo_ex_int=0.0d0
 
-  !get strength for kubo SP
-  call get_kubo_intens(nv_ex,npointstotal,vcell,nbands,e,vme(ibz, :, :, :),nw,wp,sigma_w_sp,eta)
+  ! Obtain SP Kubo
+  do ibz=1,npointstotal
+    e(:) = eigval_stack(:, ibz)
+    call get_kubo_intens(nv_ex,npointstotal,vcell,nbands,e,vme(ibz, :, :, :),nw,wp,sigma_w_sp,eta,scissor)
+  end do
 
-end do
-
-
-!fill kubo oscillators of EXCITONS
-do nn=1,norb_ex_cut
-  !save oscillator stregths
-  do nj=1,3
-    do njp=1,3
-      skubo_ex_int(nj,njp,nn)=pi/(dble(npointstotal)*vcell) &
-      *conjg(vme_ex(nj,nn,1))*vme_ex(njp,nn,1)/e_ex(nn)   !pick the correct order of operators
+  !fill kubo oscillators of EXCITONS
+  do nn=1,norb_ex_cut
+    do nj=1,3
+      do njp=1,3
+        skubo_ex_int(nj,njp,nn)=pi/(dble(npointstotal)*vcell) &
+        *conjg(vme_ex(nj,nn,1))*vme_ex(njp,nn,1)/e_ex(nn)
+      end do
     end do
   end do
-end do
 
-
-!excitons
-do ialpha=1,3
-  do ialphap=1,3
-    call broad_vector(type_broad,norb_ex_cut,e_ex,skubo_ex_int(ialpha,ialphap,:), &
-    nw,wp,sigma_w_ex(ialpha,ialphap,:),eta)
+  !apply broadening to exciton contributions
+  do ialpha=1,3
+    do ialphap=1,3
+      call broad_vector(type_broad,norb_ex_cut,e_ex,skubo_ex_int(ialpha,ialphap,:), &
+      nw,wp,sigma_w_ex(ialpha,ialphap,:),eta)
+    end do
   end do
-end do
 
-!write frequency dependent conductivity
-open(50,file=file_name_sp)
-open(60,file=file_name_ex)
-do iw=1,nw
-  feps=1.0d0
-  !feps=4.0d0*pi*1.0d0/137.035999084d0*100.0d0   !absorbance units
-  !eps=4.0d0   !\sigma_0 units
-  write(50,*) wp(iw)*27.211385d0, &
-              -realpart(feps*sigma_w_sp(1,1,iw)), &
-              -realpart(feps*sigma_w_sp(1,2,iw)), &
-              -realpart(feps*sigma_w_sp(1,3,iw)), &
-              -realpart(feps*sigma_w_sp(2,1,iw)), &
-              -realpart(feps*sigma_w_sp(2,2,iw)), &
-              -realpart(feps*sigma_w_sp(2,3,iw)), &
-              -realpart(feps*sigma_w_sp(3,1,iw)), &
-              -realpart(feps*sigma_w_sp(3,2,iw)), &
-              -realpart(feps*sigma_w_sp(3,3,iw))
-  write(60,*) wp(iw)*27.211385d0, &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(1,1,iw)), &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(1,2,iw)), &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(1,3,iw)), &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(2,1,iw)), &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(2,2,iw)), &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(2,3,iw)), &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(3,1,iw)), &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(3,2,iw)), &
-              realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(3,3,iw))
-end do
+  !write frequency dependent conductivity
+  open(50,file=file_name_sp)
+  open(60,file=file_name_ex)
+  do iw=1,nw
+    feps=1.0d0
+    write(50,*) wp(iw)*27.211385d0, &
+                -realpart(feps*sigma_w_sp(1,1,iw)), &
+                -realpart(feps*sigma_w_sp(1,2,iw)), &
+                -realpart(feps*sigma_w_sp(1,3,iw)), &
+                -realpart(feps*sigma_w_sp(2,1,iw)), &
+                -realpart(feps*sigma_w_sp(2,2,iw)), &
+                -realpart(feps*sigma_w_sp(2,3,iw)), &
+                -realpart(feps*sigma_w_sp(3,1,iw)), &
+                -realpart(feps*sigma_w_sp(3,2,iw)), &
+                -realpart(feps*sigma_w_sp(3,3,iw))
+    write(60,*) wp(iw)*27.211385d0, &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(1,1,iw)), &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(1,2,iw)), &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(1,3,iw)), &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(2,1,iw)), &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(2,2,iw)), &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(2,3,iw)), &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(3,1,iw)), &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(3,2,iw)), &
+                realpart(complex(0.0d0,-1.0d0)*feps*sigma_w_ex(3,3,iw))
+  end do
+  close(50)
+  close(60)
+endif
 
-close(50)
-close(60)
 
 p_dot = scan(file_name_ex, '.', .true.)           ! find first “.” from the right
 if (p_dot == 0) then
@@ -182,7 +211,7 @@ open(60,file=file_name_ex_imag)
 do iw=1,nw
   feps=1.0d0
   !feps=4.0d0*pi*1.0d0/137.035999084d0*100.0d0   !absorbance units
-  !eps=4.0d0   !\sigma_0 units
+  !feps=4.0d0   !\sigma_0 units
   write(50,*) wp(iw)*27.211385d0, &
               -imagpart(feps*sigma_w_sp(1,1,iw)), &
               -imagpart(feps*sigma_w_sp(1,2,iw)), &
@@ -311,9 +340,30 @@ subroutine exciton_oscillator_strength(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,h
   pi=acos(-1.0d0)
 
   !get unit cell volume
-  call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1), &
-  R(2,2),R(2,3),cx,cy,cz)
-  vcell=sqrt(cx**2+cy**2+cz**2)
+  ! volume formula depends on the dimensionality of the unit cell 
+  ! for 1D, we have the magnitude of the vector (we take the magnitude of the three vectors just to be safe)
+  ! for 2D, we have the crossproduct (as before, now allowing the lattice to also be oriented in the yz or xz planes)
+  ! for 3D, we have the triple product dot(z,cross(x,y))
+  ! this is checked by checking the norm of rkx/rky/rkz to determine how many directions are defined in k
+
+  if ( (NORM2(rkx) == 0 .and. NORM2(rky) == 0) .or. &
+       (NORM2(rky) == 0 .and. NORM2(rkz) == 0) .or. &
+       (NORM2(rkx) == 0 .and. NORM2(rkz) == 0) ) then
+    vcell=sqrt(R(1,1)**2+R(1,2)**2+R(1,3)**2+R(2,1)**2+R(2,2)**2+R(2,3)**2+R(3,1)**2+R(3,2)**2+R(3,3)**2)
+  else if ( ( NORM2(rkz) == 0 .xor. NORM2(rky) == 0) .or. &
+            (NORM2(rkx) == 0 .xor. NORM2(rky) == 0) ) then
+    if (NORM2(rkx) == 0) then
+      call crossproduct(R(3,1),R(3,2),R(3,3),R(2,1),R(2,2),R(2,3),cx,cy,cz)
+    else if (NORM2(rky) == 0) then
+      call crossproduct(R(1,1),R(1,2),R(1,3),R(3,1),R(3,2),R(3,3),cx,cy,cz)
+    else
+      call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1),R(2,2),R(2,3),cx,cy,cz)
+    endif
+    vcell=sqrt(cx**2+cy**2+cz**2)
+  else 
+    call crossproduct(R(1,1),R(1,2),R(1,3),R(2,1),R(2,2),R(2,3),cx,cy,cz)
+    vcell=abs(R(3,1)*cx+R(3,2)*cy+R(3,3)*cz)
+  endif
 
   !SP arrays
   allocate (sderhop(3,nR,norb,norb))
@@ -350,7 +400,7 @@ subroutine exciton_oscillator_strength(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,h
     end do
 
   !getting some SP variables
-  call hoppings_observables_TB(norb,nR,Rvec,shop,hhop,rhop,sderhop,hderhop)
+  call hoppings_observables_TB(norb,nR,Rvec,shop,hhop,rhop,sderhop,hderhop,NORM2(rkx),NORM2(rky),NORM2(rkz))
   !11/05/2023 JJEP: fill rhop here. Easier to extend to DFT later
 
   !Brillouin zone sampling
@@ -372,7 +422,7 @@ subroutine exciton_oscillator_strength(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,h
     hhop,rhop,sderhop,hderhop,sderkernel,hderkernel,akernel,pgaugekernel)
     !velocity matrix elements
     call get_eigen_vme(norb,nbands,skernel,hkernel,akernel,hderkernel, &
-    pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme(ibz, :, :, :))
+    pgaugekernel,hk_ev,e,pgauge,vjseudoa,vjseudob,vme(ibz, :, :, :),NORM2(rkx),NORM2(rky),NORM2(rkz),scissor)
 
     !fill V_N
     !!$OMP critical
@@ -380,18 +430,18 @@ subroutine exciton_oscillator_strength(nR,norb,norb_ex,nv_ex,nc_ex,nv,Rvec,R,B,h
       do iex=1,norb_ex_cut
         !!! Iterate over band index explicitly (AJU 03-06-23)
         do ic=1,nc_ex
-        do iv=1,nv_ex
+          do iv=1,nv_ex
 
-          j = nc_ex * nv_ex * (ibz - 1) + nv_ex * (ic - 1) + iv
-          !get valence/conduction indices
-          !nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
-          !nc_ip=(nv+1)+int((ib-1)/nv_ex)
-          !j=(ibz-1)*norb_ex_band+ib
+            j = nc_ex * nv_ex * (ibz - 1) + nv_ex * (ic - 1) + iv
+            !get valence/conduction indices
+            !nv_ip=(nv-nv_ex)+ib-int((ib-1)/nv_ex)*nv_ex
+            !nc_ip=(nv+1)+int((ib-1)/nv_ex)
+            !j=(ibz-1)*norb_ex_band+ib
 
-          vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(j,iex)*vme(ibz, nj,iv,ic + nv_ex)
-          vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(j,iex)*vme(ibz, nj,ic + nv_ex,iv)
+            vme_ex(nj,iex,1)=vme_ex(nj,iex,1)+fk_ex(j,iex)*vme(ibz, nj,iv,ic + nv_ex)
+            vme_ex(nj,iex,2)=vme_ex(nj,iex,2)+fk_ex(j,iex)*vme(ibz, nj,ic + nv_ex,iv)
 
-        end do
+          end do
         end do
       end do
     end do
@@ -453,8 +503,22 @@ implicit real*8 (a-h,o-z)
 character(100) type_broad
 character(100) file_name_sp
 character(100) file_name_ex
+logical :: exists_file
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! make sure the input file exists before trying to read it
+inquire(file='kubo_w.in', exist=exists_file)
+if (.not. exists_file) then
+  write(*,*) 'Warning: kubo_w.in not found, skipping Kubo conductivity'
+  nw = 0
+  w0 = 0.0d0
+  wrange = 0.0d0
+  eta = 0.0d0
+  type_broad = 'lorentzian'
+  file_name_sp = 'kubo_sp.dat'
+  file_name_ex = 'kubo_ex.dat'
+  return
+endif
 open(10,file='kubo_w.in')
 read(10,*)
 read(10,*) w0
@@ -477,7 +541,7 @@ end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine hoppings_observables_TB(norb,nR,Rvec,shop,hhop, &
-rhop,sderhop,hderhop)
+rhop,sderhop,hderhop,nrkx,nrky,nrkz)
 
 implicit real*8 (a-h,o-z)
 dimension Rvec(nR,3), rhop(3,nR,norb,norb)
@@ -486,34 +550,36 @@ dimension sderhop(3,nR,norb,norb),hderhop(3,nR,norb,norb)
 
 complex*16 hhop
 complex*16 hderhop,sderhop
+real*8 nrkx
+real*8 nrky
+real*8 nrkz
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 hderhop=0.0d0
 sderhop=0.0d0
 do iR=1,nR
   do ialpha=1,norb
-  do ialphap=1,ialpha
-    Rx=Rvec(iR,1)
-    Ry=Rvec(iR,2)
+    do ialphap=1,ialpha
 
-    ! Check if the z direction is defined (thus periodic)
-    if (Rvec(iR,3) /= 0) then
-      Rz = Rvec(iR,3)
-    else
-      Rz = rhop(3, iR, ialpha,ialphap) ! Quintela et. al. (2023) DOI: 10.1103/PhysRevB.107.235416
-    end if
+      ! Check if each direction is defined (thus periodic)
+      ! Quintela et. al. (2023) DOI: 10.1103/PhysRevB.107.235416
+
+      Rx = merge(Rvec(iR,1), rhop(1,iR,ialpha,ialphap), nrkx /= 0)
+      Ry = merge(Rvec(iR,2), rhop(2,iR,ialpha,ialphap), nrky /= 0)
+      Rz = merge(Rvec(iR,3), rhop(3,iR,ialpha,ialphap), nrkz /= 0)
 
 
-    hderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*hhop(ialpha,ialphap,iR)
-    hderhop(2,iR,ialpha,ialphap)=complex(0.0d0,Ry)*hhop(ialpha,ialphap,iR)
-    hderhop(3,iR,ialpha,ialphap)=complex(0.0d0,Rz)*hhop(ialpha,ialphap,iR)
+      hderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*hhop(ialpha,ialphap,iR)
+      hderhop(2,iR,ialpha,ialphap)=complex(0.0d0,Ry)*hhop(ialpha,ialphap,iR)
+      hderhop(3,iR,ialpha,ialphap)=complex(0.0d0,Rz)*hhop(ialpha,ialphap,iR)
 
-    sderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*shop(ialpha,ialphap,iR)
-    sderhop(2,iR,ialpha,ialphap)=complex(0.0d0,Ry)*shop(ialpha,ialphap,iR)
-    sderhop(3,iR,ialpha,ialphap)=complex(0.0d0,Rz)*shop(ialpha,ialphap,iR)
+      sderhop(1,iR,ialpha,ialphap)=complex(0.0d0,Rx)*shop(ialpha,ialphap,iR)
+      sderhop(2,iR,ialpha,ialphap)=complex(0.0d0,Ry)*shop(ialpha,ialphap,iR)
+      sderhop(3,iR,ialpha,ialphap)=complex(0.0d0,Rz)*shop(ialpha,ialphap,iR)
 
 
+    end do
   end do
-  end do
+
 end do
 
 
@@ -560,14 +626,18 @@ do ialpha=1,norb
   do ialphap=1,ialpha
 
     do iRp=1,nR
-      Rx=Rvec(iRp,1)
-      Ry=Rvec(iRp,2)
-
-      if (Rvec(iRp, 3) /= 0) then
-        Rz=Rvec(iRp,3)
-      else
-        Rz=0.0d0
-      end if
+!       Rx=Rvec(iRp,1)
+!       Ry=Rvec(iRp,2)
+! 
+!       if (Rvec(iRp, 3) /= 0) then
+!         Rz=Rvec(iRp,3)
+!       else
+!         Rz=0.0d0
+!       end if
+      Rx = merge(Rvec(iRp,1), 0.0d0, Rvec(iRp,1) /= 0.0)
+      Ry = merge(Rvec(iRp,2), 0.0d0, Rvec(iRp,2) /= 0.0)
+      Rz = merge(Rvec(iRp,3), 0.0d0, Rvec(iRp,3) /= 0.0)
+      
 
       phase=complex(0.0d0,rkx*Rx+rky*Ry+rkz*Rz)
       factor=exp(phase)
@@ -616,7 +686,7 @@ end
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine get_eigen_vme(norb,nbands,skernel, &
 hkernel,akernel,hderkernel,pgaugekernel, &
-hk_ev,e,pgauge,vjseudoa,vjseudob,vme)
+hk_ev,e,pgauge,vjseudoa,vjseudob,vme,nrkx,nrky,nrkz,scissor)
 
 implicit real*8 (a-h,o-z)
 
@@ -628,40 +698,17 @@ dimension akernel(3,norb,norb)
 dimension ecomplex(norb)
 dimension vjseudoa(3,nbands,nbands),vjseudob(3,nbands,nbands),vme(3,nbands,nbands)
 
+
 complex*16 ecomplex
 complex*16 skernel,hkernel,akernel,hderkernel
 complex*16 hk_ev,vjseudoa,vjseudob,vme,pgaugekernel,pgauge
+real*8 nrkx
+real*8 nrky
+real*8 nrkz
+real*8 scissor
 
 complex*16 amu,amup
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-!!! Remove diagonalization; instead use stored eigvecs and eigvals (AJU 29-05-23)
-! e=0.0d0
-! call diagoz(norb,e,hkernel)
-! !call diagoz_arbg(norb,ecomplex,skernel,hkernel)
-! !call order(norb,ecomplex,e,hkernel)
-! do ii=1,norb
-! do jj=1,norb
-!   hk_ev(ii,jj)=hkernel(ii,jj)
-! end do
-! end do
-
-! !phase election
-! do j=1,norb
-!   aux1=0.0d0
-!   do i=1,norb
-!     aux1=aux1+hk_ev(i,j)
-!   end do
-
-!   !argument of the sym
-!   arg=atan2(aimag(aux1),realpart(aux1))
-!   factor=exp(complex(0.0d0,-arg))
-!   !write(*,*) 'sum is now:',aux1*factor
-!   do ii=1,norb
-!     hk_ev(ii,j)=hk_ev(ii,j)*factor
-! 	!hk_ev(ii,j)=hk_ev(ii,j)*1.0d0
-!   end do
-! end do
 
 !write(*,*) 'computing velocity matrix elements'
 vme=0.0d0
@@ -681,10 +728,10 @@ do nnp=1,nn
     do nj=1,3
       pgauge(nj,nn,nnp)=pgauge(nj,nn,nnp)+ &
       conjg(amu)*amup*pgaugekernel(nj,ialpha,ialphap)
-
-      if (nj == 3) then
+      
+      if ( ( nrkx == 0 .and. nj == 1) .or. ( nrky == 0 .and. nj == 2) .or. ( nrkz == 0 .and. nj == 3) )then
         vjseudoa(nj,nn,nnp)=vjseudoa(nj,nn,nnp)+ &
-        conjg(amu)*amup*hderkernel(nj,ialpha,ialphap)*(e(nnp)-e(nn))
+        conjg(amu)*amup*hderkernel(nj,ialpha,ialphap)*(scissor+e(nnp)-e(nn))
       else
         vjseudoa(nj,nn,nnp)=vjseudoa(nj,nn,nnp)+ &
         conjg(amu)*amup*hderkernel(nj,ialpha,ialphap)
@@ -718,7 +765,7 @@ return
 end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine get_kubo_intens(nv,npointstotal,vcell,nbands,e,vme,nw,wp,sigma_w_sp,eta)
+subroutine get_kubo_intens(nv,npointstotal,vcell,nbands,e,vme,nw,wp,sigma_w_sp,eta,scissor)
 implicit real*8 (a-h,o-z)
 
 dimension vme(3,nbands,nbands)
@@ -726,6 +773,7 @@ dimension wp(nw),sigma_w_sp(3,3,nw)
 dimension e(nbands)
 
 complex*16 vme,skubo,sigma_w_sp
+real*8 scissor
 pi=acos(-1.0d0)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 do iw=1,nw
@@ -750,9 +798,9 @@ do iw=1,nw
         factor1=(fnn-fnnp)/(e(nn)-e(nnp))
       end if
 	  !lorentzian
-      delta_nnp=1.0d0/pi*aimag(1.0d0/(wp(iw)-e(nn)+e(nnp)-complex(0.0d0,eta)))
+      delta_nnp=1.0d0/pi*aimag(1.0d0/(wp(iw)-e(nn)+e(nnp)-scissor-complex(0.0d0,eta)))
 	  !exponential
-    ! delta_nnp=1.0d0/eta*1.0d0/sqrt(2.0d0*pi)*exp(-0.5d0/(eta**2)*(wp(iw)-e(nn)+e(nnp))**2)
+     !delta_nnp=1.0d0/eta*1.0d0/sqrt(2.0d0*pi)*exp(-0.5d0/(eta**2)*(wp(iw)-e(nn)+e(nnp))**2)
 
       !save oscillator stregths
       do nj=1,3
@@ -819,7 +867,6 @@ implicit real*8 (a-h,o-z)
 cx=ay*bz-az*by
 cy=az*bx-ax*bz
 cz=ax*by-ay*bx
-
 return
 end
 
@@ -865,7 +912,7 @@ end
 !     Juan Jose Esteve-Paredes                24.04.2017
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      subroutine diagoz_arbg(n,w,s,h)
+subroutine diagoz_arbg(n,w,s,h)
 !finding the eigenvalues of a complex matrix using LAPACK
       implicit real*8 (a-h,o-z)
 !declarations, notice double precision
@@ -880,40 +927,10 @@ end
       saux=s
       haux=h
       !find the solution using the LAPACK routine ZGGEEV
-      !e=0.0d0
-      !do i=1,3
-        !write(*,*) (s(i,j),j=1,3)
-      !end do
-      !pause
-      !call zggev('V','V',n,s,n,h,n,ALPHA,BETA,VL,n,VR,n,WORK,200*n, RWORK,INFO)
       call zhegv( 1, 'V', 'U', n, h, n, s, n, wreal, WORK, 200*n, RWORK, INFO )
-      !do i=1,n
-        !write(*,*) wreal(i),1.0d0/wreal(i)
-      !end do
-      !do i=1,n
-        !w(i)=ALPHA(i)/BETA(i)
-        !write(*,*) ALPHA(i),BETA(i),w(i)
-        !do j=1,n
-          !h(i,j)=VR(i,j)
-        !end do
-      !end do
-      !pause
-
-
-      !ANOTHER SIMILAR TO THE PREVIOUS ONE
-      !call zgegv( 'N', 'V', n, h, n, s, n, ALPHA, BETA, &
-      !QVL, n, VR, n, WORK, 200*n, RWORK, INFO )
-      !write(*,*) 'Diagonalization=',INFO
-      !write(*,*) INFO
+      
       do i=1,n
-        !w(i)=ALPHA(i)/BETA(i)
         w(i)=complex(wreal(i),0.0d0)
-        !write(*,*) ALPHA(i),BETA(i),w(i)
-        !do j=1,n
-          !h(i,j)=VR(i,j)
-        !end do
-        !write(*,*) wreal(i),h(i,1)
-        !write(*,*) ALPHA(i),BETA(i),w(i)
       end do
       !pause
       do k=1,n
@@ -958,27 +975,27 @@ end
       !pause
 
       return
-      end
+end
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      !subroutine to order the complez eigenvalues and making them real
      !it also orders the eigenvectors
-     subroutine order(n,ecomplex,e,hk)
-     implicit real*8 (a-h,o-z)
-     complex*16 ecomplex,hk,hkaux
-     dimension ecomplex(n),e(n),eaux(n),hk(n,n),hkaux(n,n)
+subroutine order(n,ecomplex,e,hk)
+  implicit real*8 (a-h,o-z)
+  complex*16 ecomplex,hk,hkaux
+  dimension ecomplex(n),e(n),eaux(n),hk(n,n),hkaux(n,n)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     hkaux=hk
-     do i=1,n
-       eaux(i)=realpart(ecomplex(i))
-     end do
+  hkaux=hk
+  do i=1,n
+    eaux(i)=realpart(ecomplex(i))
+  end do
 
-     do i=1,n
-       imin=minloc(eaux,1)
-       e(i)=eaux(imin)
-       hk(:,i)=hkaux(:,imin)
-       eaux(imin)=1.0d8
-     end do
+  do i=1,n
+    imin=minloc(eaux,1)
+    e(i)=eaux(imin)
+    hk(:,i)=hkaux(:,imin)
+    eaux(imin)=1.0d8
+  end do
 
-     return
-     end
+  return
+end

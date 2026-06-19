@@ -151,8 +151,8 @@ TEST(FileParsing, W90fileParsing){
     // arma::vec expectedDegenHash = {1, 1, 2, 1, 1};
 
     // Hashes for Fock matrices (real/imag parts handled separately)
-    arma::vec expectedHamiltonianHash = {0.978634, 0.990920, 1.046875, 1.054984, 0.996068, 0.968801, 1.101170, 0.961007,
-        0.968796, 1.043775, 1.032634, 1.017193, 0.940727, 1.172638, 0.890277, 1.110180,
+    arma::vec expectedHamiltonianHash = {0.978634, 0.990920, 1.023349, 1.054984, 0.996068, 0.968801, 1.101170, 0.961007,
+        0.968796, 1.021764, 1.032634, 1.017193, 0.940727, 1.172638, 0.890277, 1.110180,
         1.088959, 1.027729, 0.962491, 0.970735, 1.036763, 1.089453, 1.079106, -0.531977,
         0.946280, 0.965448, 1.031659, 1.011340, 1.016294, 1.009594, 0.999775, 0.951863,
         0.458796, 0.579032, 1.125541, 1.059755, 0.985202, 0.986659, 1.042266, 1.042844,
@@ -160,8 +160,8 @@ TEST(FileParsing, W90fileParsing){
         1.131210, 2.914045, 6.239713, 0.937042, 1.013736, 0.995272, 1.019086, 0.998125,
         1.032483, 0.973986, 1.026194, 1.357262, 1.224249, 1.032389, 1.027929, 0.987408,
         0.982629, 1.003563, 1.071731, 1.044472, 0.880948, 1.118926, 0.963565, 0.998474,
-        1.029212, 1.046875, 0.982783, 0.964047, 1.057069, 0.999934, 0.973145, 1.045742,
-        1.043775, 1.005556, 0.966527
+        1.029212, 1.023349, 0.982783, 0.964047, 1.057069, 0.999934, 0.973145, 1.045742,
+        1.021764, 1.005556, 0.966527
     };
     
     // Hashes for Rhop matrices (if used)
@@ -679,8 +679,8 @@ TEST(hBNTest, WannierCalculation){
 
     auto energies = xatu::detectDegeneracies(results->eigval, nstates, 6);
     
-    std::vector<std::vector<double>> expectedEnergies = {{2.833347, 1}, 
-                                                         {2.834596, 1}};
+    std::vector<std::vector<double>> expectedEnergies = {{2.829980, 1}, 
+                                                         {2.831276, 1}};
                                                          
     for(uint i = 0; i < energies.size(); i++){
         EXPECT_NEAR(energies[i][0], expectedEnergies[i][0], 1E-4);
@@ -692,7 +692,7 @@ TEST(hBNTest, WannierCalculation){
     arma::mat norm_vme_ex = arma::square(arma::abs(vme_ex));
     double cum_norm_vme_ex = arma::accu(norm_vme_ex);
 
-    double expectedTotalOscillator = 103.0325881;
+    double expectedTotalOscillator = 102.7178826790;
     EXPECT_NEAR(cum_norm_vme_ex, expectedTotalOscillator, 1E-6);
 
     // Check reciprocal w.f.
@@ -713,7 +713,7 @@ TEST(hBNTest, WannierCalculation){
 
 
     double kwfHash = xatu::array2hash(kwf);
-    double expectedKwfHash = 1.057666;
+    double expectedKwfHash = 1.0576659386;
     EXPECT_NEAR(kwfHash, expectedKwfHash, 1E-5);
 
     // Check realspace w.f.
@@ -737,7 +737,7 @@ TEST(hBNTest, WannierCalculation){
     }
 
     double rswfHash = xatu::array2hash(rswf);
-    double expectedRSwfHash = 1.003540;
+    double expectedRSwfHash = 1.0035186777;
     EXPECT_NEAR(rswfHash, expectedRSwfHash, 1E-5);
 
 }

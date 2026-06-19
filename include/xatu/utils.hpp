@@ -36,14 +36,20 @@ bool checkIfTriangular(const arma::cx_mat&);
 * @param precision Number of decimals (sets degeneracy threshold)
 **/
 template<typename T>
-void printEnergies(const std::unique_ptr<T>& results, int n = 8, int precision = 6){
+void printEnergies(const std::unique_ptr<T>& results, int n = 8, double encut = 0.0, int precision = 6){
 
     // Print header
     printf("+---------------+-----------------------------+-----------------------------+\n");
     printf("|       N       |          Eigval (eV)        |          Degeneracy         |\n");
     printf("+---------------+-----------------------------+-----------------------------+\n");
-
-    std::vector<std::vector<double>> pairs = detectDegeneracies(results->eigval, n, precision);
+    
+    int newn = n;
+    
+    if (encut != 0.0){
+        newn = (int) arma::abs(results->eigval - encut).index_min() + 1;
+    }
+    
+    std::vector<std::vector<double>> pairs = detectDegeneracies(results->eigval, newn, precision);
     int it = 1;
 
     for(auto pair : pairs){
