@@ -42,10 +42,9 @@ int main(int argc, char* argv[]){
     TCLAP::ValuesConstraint<std::string> allowedMethods(methods);
     TCLAP::ValueArg<std::string> methodArg("m", "method", "Method to solve the Bethe-Salpeter equation.", false, "diag", &allowedMethods, cmd);
     TCLAP::ValueArg<std::string> bandsArg("b", "bands", "Computes the bands of the system on the specified kpoints.", false, "kpoints.txt", "Filename", cmd);
-    
+    TCLAP::ValueArg<std::string> screeningArg("z", "screening", "Provides input parameters for computing the screening.", false, "model.screening", "Filename", cmd);
     TCLAP::UnlabeledValueArg<std::string> systemArg("systemfile", "System file", true, "system.txt", "filename", cmd);
     TCLAP::UnlabeledValueArg<std::string> excitonArg("excitonfile", "Exciton file", false, "exciton.txt", "filename", cmd);
-
     cmd.parse(argc, argv);
 
     // Extract information from parsed CLI options
@@ -71,10 +70,11 @@ int main(int argc, char* argv[]){
     std::string systemfile  = systemArg.getValue();
     std::string excitonfile = excitonArg.getValue();
     std::string kpointsfile = bandsArg.getValue();
-
+    std::string screeningfile = screeningArg.getValue();
     // Init. configurations
     std::unique_ptr<xatu::SystemConfiguration> systemConfig;
     std::unique_ptr<xatu::ExcitonConfiguration> excitonConfig;
+    std::unique_ptr<xatu::ScreeningConfiguration> screeningConfig;
 
     if (dftArg.isSet()){
         systemConfig.reset(new xatu::CRYSTALConfiguration(systemfile, ncells));
@@ -104,12 +104,17 @@ int main(int argc, char* argv[]){
         system.solveBands(kpointsfile);
 
         return 0;
-    }
-    else{
+    } else if (screeningArg.isSet() && !excitonArg.isSet()){
+        throw std::invalid_argument("For screening, both screening and exciton files must be provided.");
+    } else if (!screeningArg.isSet() && excitonArg.isSet()) {
         if (!excitonArg.isSet()){
             throw std::invalid_argument("Must provide exciton file.");
         }
 
+        excitonConfig.reset(new xatu::ExcitonConfiguration(excitonfile));
+
+    } else {
+        screeningConfig.reset(new xatu::ScreeningConfiguration(screeningfile));
         excitonConfig.reset(new xatu::ExcitonConfiguration(excitonfile));
     }
 
@@ -120,13 +125,25 @@ int main(int argc, char* argv[]){
     cout << "+---------------------------------------------------------------------------+" << endl;
     cout << "|                                  Parameters                               |" << endl;
     cout << "+---------------------------------------------------------------------------+" << endl;
-    
+
     xatu::ExcitonTB bulkExciton = xatu::ExcitonTB(*systemConfig, *excitonConfig);
     bulkExciton.setMode(excitonConfig->excitonInfo.mode);
     bulkExciton.system->setAU(dftArg.isSet());
 
+    if (screeningArg.isSet()){
+        bulkExciton.initializeScreeningAttributes(*screeningConfig,excitonConfig->excitonInfo.mode);
+    }
+
+    bulkExciton.verifypotential();
+
     cout << std::left << std::setw(30) << "System configuration file: " << std::setw(10) << systemfile << endl;
-    cout << std::left << std::setw(30) << "Exciton configuration file: " << std::setw(10) << excitonfile << "\n" << endl;
+    cout << std::left << std::setw(30) << "Exciton configuration file: " << std::setw(10) << excitonfile << endl;
+    if (screeningArg.isSet()){
+        cout << std::left << std::setw(30) << "Screening configuration file: " << std::setw(10) << screeningfile << "\n" << endl;
+    } else {
+        cout << std::left << std::setw(30) << "Screening configuration file: " << std::setw(10) << "Not provided.\n" << endl;
+    }
+
     bulkExciton.printInformation();
     
     cout << "+---------------------------------------------------------------------------+" << endl;
@@ -143,8 +160,59 @@ int main(int argc, char* argv[]){
     if(!excitonConfig->excitonInfo.shift.is_empty()){
         bulkExciton.system->shiftBZ(excitonConfig->excitonInfo.shift);
     }
-    
+
+
     bulkExciton.initializeHamiltonian();
+
+    // If screening flag is present, computes the static dielectric function first
+    if(screeningArg.isSet()){
+
+        if (screeningConfig->screeningInfo.function == "dielectric") {
+            
+            std::complex<double> epsilon = bulkExciton.computesingleDielectricFunctionMatrixElement();            
+            
+            return 0;
+        } else if (screeningConfig->screeningInfo.function == "polarizability") {
+
+            if (bulkExciton.mode == "reciprocalspace")
+            {
+                bulkExciton.writeBZtofile();
+            }
+
+            bulkExciton.PolarizabilityMesh();
+
+            return 0;
+
+        } else if (screeningConfig->screeningInfo.function == "inversedielectric") {
+            std::cout << "Proceeding with computation of the inverse of a dielectric matrix...\n" << std::endl;
+
+            bulkExciton.computesingleInverseDielectricMatrix(excitonConfig->excitonInfo.label);
+
+            return 0;
+
+        } else if (screeningConfig->screeningInfo.function == "exciton"){
+            
+            std::cout << "Proceeding with computation of the permittivity matrix..." << std::endl;
+
+            if (bulkExciton.mode == "reciprocalspace")
+            {
+                bulkExciton.writeBZtofile();
+            }
+
+            bulkExciton.compute_2D_DielectricMatrix();
+
+            bulkExciton.invertDielectricMatrix();
+            
+            std::string filename_dielectric = excitonConfig->excitonInfo.label;
+
+            bulkExciton.writeInverseDielectricMatrix(filename_dielectric + "_invepsilon.dat");
+
+        } else {
+            std::cout << "\nThe value '" + screeningConfig->screeningInfo.function + "' assigned to 'function' not recognized. Terminating program.\n" << std::endl;
+            return 0;
+        }
+    }
+
     bulkExciton.BShamiltonian();
     auto results = bulkExciton.diagonalize(method, nstates);
 

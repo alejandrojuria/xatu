@@ -116,7 +116,7 @@ namespace xatu {
                     iss.clear(); 
                 }
             }
-            // fockMatrices.slice(i) /= Degen(i);  // correcting double-counted neighbors
+            fockMatrices.slice(i) /= Degen(i);  // correcting double-counted neighbors
             std::getline(m_file, line);
         }
 

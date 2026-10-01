@@ -403,7 +403,7 @@ void Result<T>::writeRealspaceAmplitude(int stateindex, int holeIndex,
 template <typename T>
 void Result<T>::writeEigenvalues(FILE* textfile, int n){
 
-    if(n > exciton->excitonbasisdim || n < 0){
+    if(n > (int)exciton->excitonbasisdim || n < 0){
         throw std::invalid_argument("Optional argument n must be a positive integer equal or below basisdim");
     }
 

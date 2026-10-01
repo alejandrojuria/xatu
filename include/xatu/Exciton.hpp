@@ -39,8 +39,21 @@ class Exciton {
         double cutoff_;
         arma::cx_mat HBS_;
 
+        // General Screening attributes
+        int nvalencebands_, nconductionbands_, nrmcbands_;
+        arma::ivec valencebands_, conductionbands_;
+        bool isscreeningset = false;
+
+        arma::rowvec q_;
+        arma::ivec Gs_;
+
         // Flags
         bool exchange = false;
+
+        arma::mat q_points;
+
+        arma::cube eigvalkqStack_test;
+        std::vector<arma::cx_cube> eigveckqStack_test;
 
         // Internals for BSE
         arma::mat eigvalKStack_, eigvalKQStack_;
@@ -74,6 +87,11 @@ class Exciton {
         const double& cutoff = cutoff_;
         // Returns scissor cut value
         const double& scissor = scissor_;
+
+        // List of valence bands used to compute the dielectric function
+        const arma::ivec& valencebands = valencebands_;
+        // List of conduction bands used to compute the dielectric function
+        const arma::ivec& conductionbands = conductionbands_;
 
         const arma::mat& eigvalKStack = eigvalKStack_;
         const arma::mat& eigvalKQStack = eigvalKQStack_;

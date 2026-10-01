@@ -49,6 +49,12 @@ build:	$(OBJECTS)
 xatu: main/xatu.cpp $(OBJECTS) 
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
+read_screening: main/read_screening.cpp $(OBJECTS) 
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
+
+write_screening: main/write_screening.cpp $(OBJECTS) 
+	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
+
 %: main/%.cpp $(OBJECTS)
 	$(CC) -o bin/$@ $< $(CFLAGS) $(INCLUDE) $(LIBS)
 
